@@ -1,0 +1,52 @@
+schema: spec-driven
+
+context: |
+  Product: Remote Skills, a vendor-neutral open-source toolkit for publishing
+  and consuming Agent Skills from remote origins at runtime. It is not a
+  marketplace or installer. Publishers retain their hosting and agents keep a
+  disposable, verified content-addressed cache.
+
+  Standards: Agent Skills authoring follows https://agentskills.io/specification.
+  Remote discovery follows only Cloudflare Agent Skills Discovery RFC draft
+  v0.2.0 and its explicit schema URI. Digest-less v0.1 catalogs and unknown or
+  missing discovery schemas fail closed.
+
+  Release: this scope is v0 and the first non-development release is 0.0.1.
+  Public compatibility follows SemVer's major-zero rules.
+
+  Stack: pnpm workspaces and Turborepo; Node.js 24+; TypeScript publisher CLI
+  and consumer SDK; Python 3.11+ async consumer SDK managed with uv; Fumadocs
+  documentation app. Official platforms are Linux, macOS, and Windows.
+
+  Packages: @remote-skills/cli, @remote-skills/client, and PyPI remote-skills
+  with Python import remote_skills. The npm @remote-skills organization is
+  already reserved. PyPI is claimed after approval with a legitimate
+  0.0.1.dev0 Trusted Publishing release.
+
+  Workflow: planning precedes implementation. After this OpenSpec proposal is
+  approved, a complete minimal replacement README must be pasted to the user
+  and explicitly approved before implementation begins.
+
+rules:
+  proposal:
+    - State user outcomes, scope, non-goals, standards dependencies, and release boundary.
+    - Keep framework adapters, MCP bridges, browser support, marketplaces, OAuth, and deployment services out of v0.
+  specs:
+    - Express externally observable behavior as normative requirements and scenarios.
+    - Preserve exact behavioral parity between TypeScript and Python consumer SDKs.
+    - Distinguish requirements inherited from external standards from stricter Remote Skills policy.
+    - Make integrity, archive safety, cache isolation, authentication forwarding, and network policy fail closed.
+  design:
+    - Record public APIs, artifact/cache layouts, trust boundaries, and rejected alternatives.
+    - Treat remote instructions and bundled scripts as untrusted data; the toolkit never executes them.
+  tasks:
+    - Make tasks independently dispatchable to coding sessions where dependencies allow.
+    - State blockers and prerequisite tasks explicitly; avoid two sessions owning the same files.
+    - Require RED tests before implementation and focused plus cross-language verification before completion.
+    - Put README approval before every implementation task.
+
+operations:
+  apply:
+    guidance:
+      - Do not implement until the OpenSpec artifacts and replacement README have explicit user approval.
+      - Keep v0 standards-first and avoid deferred adapters or hosting-service scope.

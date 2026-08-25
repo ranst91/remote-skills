@@ -1,43 +1,18 @@
 # Remote Skills
 
-### Serve skills. Don’t install them.
+### Serve skills. Don't install them.
 
-Remote Skills is an open-source toolkit for publishing and consuming Agent Skills directly from the web.
+Remote Skills is an open-source toolkit for publishing and consuming [Agent Skills](https://agentskills.io/) directly from remote origins.
 
-Skills remain on the publisher’s server. Agents discover them, fetch them when needed, verify their contents, and keep only a disposable cache.
-
-No marketplace. No copying skills into every agent. No manual updates.
-
-Built around Cloudflare’s [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc).
-
----
-
-## Skills should work like web modules
-
-Today, sharing an Agent Skill usually means asking someone to install a directory into their agent.
-
-That creates copies:
-
-- Every agent has its own installation.
-- Updates require reinstalling or synchronizing.
-- Publishers cannot reliably fix or revoke a skill.
-- Large skill libraries accumulate on every machine.
-
-Remote Skills uses a different model:
+Publishers keep authority over their skills. Agents discover a compact catalog, activate only what they need, verify the downloaded bytes, and reuse a disposable content-addressed cache.
 
 ```text
-Connect to an origin once.
-Discover its catalog.
-Fetch a skill when it is activated.
-Cache it by content hash.
-Fetch a new version when the hash changes.
+Discover metadata → activate by name → verify digest → pin for the session → read resources as needed
 ```
 
-The remote origin remains authoritative. The cache is not an installation.
+No marketplace. No copied installation in every agent. No proprietary skill format.
 
----
-
-## Publish a skill origin
+## Publish a remote skill origin
 
 Start with ordinary Agent Skills:
 
@@ -51,188 +26,140 @@ skills/
     └── SKILL.md
 ```
 
-Run a local origin:
+Validate and serve them locally:
 
 ```bash
-remote-skills dev ./skills
+npx @remote-skills/cli validate
+npx @remote-skills/cli dev
 ```
 
-Build it for any static host:
+The development origin is available at `http://127.0.0.1:8787`.
+
+Build deploy-ready static output:
 
 ```bash
-remote-skills build ./skills --out ./public
+npx @remote-skills/cli build
 ```
-
-Remote Skills generates:
 
 ```text
-public/
+dist/
 └── .well-known/
     └── agent-skills/
         ├── index.json
-        ├── code-review.tar.gz
-        └── release-notes/
-            └── SKILL.md
+        └── artifacts/
+            ├── sha256-….md
+            └── sha256-….tar.gz
 ```
 
-The generated index contains the skill catalog, artifact URLs and SHA-256 digests required by the discovery RFC.
+Deploy `dist/` to any HTTPS static host or application server. Remote Skills does not require a hosted Remote Skills service.
 
-Deploy it to any HTTPS origin:
+Verify the deployed origin:
 
-- Cloudflare
-- S3
-- R2
-- Vercel
-- Netlify
-- GitHub Pages with a custom domain
-- Your existing application server
+```bash
+npx @remote-skills/cli verify https://skills.example.com
+```
 
-There is no Remote Skills hosting service you are required to use.
+Private origins can use ordinary headers:
 
----
+```bash
+SKILLS_AUTH='Bearer …' npx @remote-skills/cli verify \
+  https://skills.example.com \
+  --header-env Authorization=SKILLS_AUTH
+```
 
-## Consume skills at runtime
+## Consume skills from TypeScript
 
-Agent developers add a remote origin:
+```bash
+npm install @remote-skills/client
+```
 
 ```ts
-const skills = remoteSkills({
-  origins: ["https://skills.example.com"],
+import { createRemoteSkills } from "@remote-skills/client";
+
+const client = createRemoteSkills({
+  origins: {
+    acme: { url: "https://skills.example.com" },
+  },
 });
+
+const session = await client.session("acme");
+const catalog = await session.catalog();
+
+const skill = await session.activate("code-review");
+console.log(skill.instructions);
+
+const security = await skill.read("references/security.md");
+await session.close();
 ```
 
-The agent receives only the compact catalog:
+`catalog()` returns compact discovery metadata. `activate()` downloads and verifies the current artifact only when needed, then pins that exact digest for the session. `read()` loads a resource from the already verified artifact; it does not make another network request.
 
-```ts
-const catalog = await skills.catalog();
-```
-
-When a skill becomes relevant:
-
-```ts
-const skill = await skills.activate("code-review");
-```
-
-Remote Skills then:
-
-1. Resolves the current artifact.
-2. Checks the local content-addressed cache.
-3. Downloads it only when necessary.
-4. Verifies its SHA-256 digest.
-5. Pins that exact version for the current session.
-6. Returns its instructions to the agent.
-
-Supporting resources are exposed through the same activated skill:
-
-```ts
-await skill.read("references/security.md");
-```
-
-A skill update never changes an active session halfway through. The next session resolves the new digest and fetches the updated artifact.
-
----
-
-## Use it with existing agents
-
-Agents without native Remote Skills support can connect through the included bridge:
+## Consume skills from Python
 
 ```bash
-remote-skills bridge https://skills.example.com
+uv add remote-skills
 ```
 
-The bridge exposes a small, vendor-neutral interface:
+```python
+from remote_skills import Origin, RemoteSkills
 
-```text
-list_skills
-activate_skill
-read_skill_resource
+client = RemoteSkills(
+    origins={
+        "acme": Origin(url="https://skills.example.com"),
+    }
+)
+
+async with client.session("acme") as session:
+    catalog = await session.catalog()
+    skill = await session.activate("code-review")
+
+    print(skill.instructions)
+    security = await skill.read("references/security.md")
 ```
 
-It can be used through MCP or embedded directly into an agent runtime.
+The TypeScript and Python SDKs follow the same behavior and stable error codes.
 
-The bridge is generic. You configure it once; you do not install every skill behind it.
+## Updates and caching
 
-```text
-Agent
-  │
-  └── Remote Skills bridge
-          │
-          ├── skills.example.com
-          ├── security.example.org
-          └── docs.vendor.com
-```
+Artifacts are identified by their SHA-256 digest.
 
----
+- An active session never changes halfway through.
+- A later session can resolve and pin a newly published digest.
+- Standard HTTP caching uses `ETag`, `Last-Modified`, and `Cache-Control`.
+- `client.refresh()` revalidates catalogs for future sessions.
+- Existing pinned sessions continue offline.
+- New offline sessions fail closed unless stale use is explicitly enabled and age-bounded.
 
-## One toolkit for both sides
+The cache is not an installation. It is bounded, disposable, and safe to rebuild from the configured origin.
 
-### For skill publishers
+## Trust boundary
 
-```bash
-remote-skills dev
-remote-skills validate
-remote-skills build
-remote-skills verify https://skills.example.com
-```
+Digest verification proves that downloaded bytes match the publisher's catalog. It does **not** prove that the instructions or scripts are safe.
 
-You get:
+Remote Skills:
 
-- Local development with live updates
-- Agent Skills validation
-- Deterministic archives
-- SHA-256 digest generation
-- Discovery-index generation
-- Cache-header recommendations
-- Deployment-ready static output
-- Remote conformance verification
+- never executes bundled scripts;
+- never treats `allowed-tools` as authorization;
+- never forwards origin credentials to an unconfigured artifact host;
+- rejects unsafe archive paths, links, special files, and decompression bombs;
+- requires HTTPS, except for explicitly configured loopback development.
 
-### For agent developers
+The host agent remains responsible for trust, permissions, relevance, and execution.
 
-You get:
+## Standards, not another registry
 
-- Remote catalog discovery
-- Activation-time fetching
-- Digest verification
-- Content-addressed caching
-- Session version pinning
-- Safe archive extraction
-- Resource access
-- HTTP and MCP adapters
-- Offline and stale-cache policies
-- Revocation handling
+Remote Skills connects existing open formats:
 
----
+- [Agent Skills](https://agentskills.io/specification) defines `SKILL.md` and its resources.
+- [Agent Skills Discovery v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc) defines the well-known catalog, artifact URLs, and SHA-256 digests.
+- HTTP provides distribution and cache validation.
 
-## What Remote Skills is not
+Remote Skills provides the publisher CLI and model-agnostic consumer SDKs around those standards.
 
-Remote Skills is not:
+## Documentation
 
-- A marketplace
-- A skill installer
-- A proprietary registry
-- A new skill format
-- A reason to trust arbitrary remote instructions
-- A mechanism for automatically executing downloaded scripts
+The full publisher, hosting, TypeScript, Python, caching, authentication, security, and API documentation lives in the self-hostable Fumadocs site under `apps/docs`.
 
-Publishers retain their domain and distribution. Agent hosts retain control over trust, permissions and execution.
+## License
 
----
-
-## Open infrastructure
-
-Remote Skills connects the pieces that already exist:
-
-- **Agent Skills** defines how skills are written.
-- **Agent Skills Discovery** defines how a domain advertises them.
-- **HTTP** provides distribution and caching.
-- **SHA-256** provides immutable content identity.
-- **MCP** can provide a compatibility bridge for existing agents.
-
-Remote Skills provides the missing end-to-end developer experience.
-
-```text
-Write locally.
-Serve remotely.
-Consume on demand.
-Update by publishing new bytes.
-```
+Apache-2.0
