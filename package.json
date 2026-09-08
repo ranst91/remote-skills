@@ -1,0 +1,44 @@
+{
+  "name": "remote-skills",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vendor-neutral tooling for publishing and consuming remote Agent Skills.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "package:check": "node scripts/check-package-artifacts.ts",
+    "package:inputs": "node scripts/package-artifact-inputs.ts",
+    "publication:readiness": "node scripts/check-publication-readiness.ts",
+    "typecheck": "pnpm ci:build:repository && pnpm typecheck:prepared",
+    "typecheck:prepared": "tsc -p tsconfig.repository.json && node scripts/run-turbo.ts typecheck && node scripts/check-typescript-policy.ts",
+    "test:repository": "pnpm ci:build:repository && pnpm test:repository:prepared",
+    "test:repository:prepared": "node --test tests/repository/*.test.ts",
+    "test:protocol": "node --test tests/protocol/*.test.ts",
+    "test": "pnpm test:repository && pnpm test:protocol && node scripts/run-turbo.ts test",
+    "schema:generate": "node scripts/generate-config-schema.ts",
+    "schema:check": "node scripts/check-config-schema.ts",
+    "windows": "pnpm --filter=@remote-skills/cli exec node --test --test-name-pattern=\"the local tarball installs offline and runs through direct and no-install binaries\" tests/package.test.ts && pnpm --filter=@remote-skills/client exec node --test --test-name-pattern=\"the local tarball installs from an empty offline store and executes a real session\" tests/package-gate.test.ts && pnpm --filter=@remote-skills/python-workspace exec node ../../scripts/run-uv.ts run --no-project --python 3.11 --no-python-downloads python -m unittest tests.test_package.PackageMetadataTests.test_distributions_install_offline_and_run_the_async_quickstart",
+    "ci:build:repository": "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client",
+    "ci:check": "pnpm ci:build:repository && pnpm format:check && pnpm lint && pnpm schema:check && tsc -p tsconfig.repository.json && node scripts/check-typescript-policy.ts && pnpm test:repository:prepared && pnpm ci:verify-projects",
+    "ci:test:core": "node scripts/run-ci-test-group.ts core",
+    "ci:test:typescript": "node scripts/run-ci-test-group.ts typescript",
+    "ci:test:python": "node scripts/run-ci-test-group.ts python",
+    "ci:test:protocol": "node scripts/run-ci-test-group.ts protocol",
+    "ci:test:examples": "node scripts/run-ci-test-group.ts examples",
+    "ci:verify-projects": "node scripts/verify-project-gates.ts",
+    "check": "pnpm ci:build:repository && pnpm format:check && pnpm lint && pnpm schema:check && tsc -p tsconfig.repository.json && node scripts/check-typescript-policy.ts && pnpm test:repository:prepared && pnpm test:protocol && node scripts/run-turbo.ts check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.10",
+    "@types/node": "24.13.3",
+    "turbo": "2.10.11",
+    "typescript": "7.0.2"
+  }
+}

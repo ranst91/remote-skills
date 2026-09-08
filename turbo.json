@@ -1,0 +1,28 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["tsconfig.base.json"],
+  "globalEnv": ["CI", "FORCE_COLOR", "PYTHONHASHSEED", "SOURCE_DATE_EPOCH", "TZ"],
+  "globalPassThroughEnv": ["REMOTE_SKILLS_PYTHON", "npm_execpath", "npm_package_name"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "check": {
+      "dependsOn": ["^check"],
+      "cache": false
+    },
+    "@remote-skills/docs#check": {
+      "dependsOn": ["@remote-skills/cli#check"],
+      "cache": false
+    },
+    "test": {
+      "dependsOn": ["^build", "^test"],
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "^typecheck"],
+      "outputs": []
+    }
+  }
+}

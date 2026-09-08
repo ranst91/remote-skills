@@ -1,0 +1,16 @@
+{
+  "name": "@remote-skills/example-python-consumer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node ../../../tests/examples/helpers/run-python.ts main.py",
+    "typecheck": "node ../../../tests/examples/helpers/run-python.ts -m compileall -q main.py",
+    "test": "node --test ../../../tests/examples/python-runner.test.ts && node ../../../tests/examples/helpers/run-python.ts main.py --help",
+    "check": "pnpm typecheck && pnpm test"
+  }
+}

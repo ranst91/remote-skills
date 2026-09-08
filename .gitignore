@@ -1,0 +1,8 @@
+node_modules/
+.turbo/
+.venv/
+dist/
+coverage/
+__pycache__/
+*.py[cod]
+.DS_Store

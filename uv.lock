@@ -1,0 +1,34 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[manifest]
+members = [
+    "remote-skills",
+    "remote-skills-workspace",
+]
+
+[[package]]
+name = "remote-skills"
+version = "0.0.1"
+source = { editable = "packages/sdk-python" }
+dependencies = [
+    { name = "uts46" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "uts46", specifier = "==0.2.0" }]
+
+[[package]]
+name = "remote-skills-workspace"
+version = "0.0.0"
+source = { virtual = "." }
+
+[[package]]
+name = "uts46"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/23/11/a9b7f1378a55adc48bcaf8ad4598c94a69e5ba1abfa777ee453e7f86c25f/uts46-0.2.0.tar.gz", hash = "sha256:64a992b4ed2ba2b07c7f66159e914b04566a8d064da6315336d56fb11a13c2c8", size = 67729, upload-time = "2025-03-25T21:30:03.3Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7c/f9/d4a33ea9c418614a24aa4a6e2ff48c1fd6fbdadfc09d4d4b7aeafb0d8c2c/uts46-0.2.0-py3-none-any.whl", hash = "sha256:78faa09204bba3496b12178ddae48e547393afddc591f3c42fe273a10ba8a6a3", size = 56001, upload-time = "2025-03-25T21:30:01.738Z" },
+]

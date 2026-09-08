@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/authoring/unicode-case-fold-v15.mjs",
+    "scripts/**/*.ts",
+    "tests/**/*.ts"
+  ]
+}

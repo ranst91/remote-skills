@@ -1,0 +1,26 @@
+[project]
+name = "remote-skills"
+version = "0.0.1"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+readme = "README.md"
+# Pin the UTS46 v16 tables so URL results do not depend on Python's unicodedata.
+dependencies = ["uts46==0.2.0"]
+
+[build-system]
+requires = ["uv_build>=0.11.33,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = true
+
+[tool.uv.build-backend]
+source-exclude = [
+    "src/remote_skills/cache/protocol.py",
+    "src/remote_skills/protocol_adapter.py",
+]
+wheel-exclude = [
+    "src/remote_skills/cache/protocol.py",
+    "src/remote_skills/protocol_adapter.py",
+]

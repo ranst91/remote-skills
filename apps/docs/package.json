@@ -1,0 +1,39 @@
+{
+  "name": "@remote-skills/docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "node --test tests/agent-accessibility.test.ts tests/docs-contract.test.ts tests/links.test.ts",
+    "test:agent-accessibility": "node --test tests/agent-accessibility.test.ts",
+    "test:content": "node --test tests/docs-contract.test.ts",
+    "test:links": "node --test tests/links.test.ts",
+    "test:production-routes": "node --test tests/production-routes.test.ts",
+    "check": "pnpm test && pnpm typecheck && pnpm build && pnpm test:production-routes"
+  },
+  "dependencies": {
+    "fumadocs-core": "16.15.4",
+    "fumadocs-mdx": "15.4.0",
+    "fumadocs-ui": "16.15.4",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/mdx": "2.0.14",
+    "@types/node": "catalog:",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "tailwindcss": "4.3.3",
+    "typescript": "catalog:"
+  }
+}

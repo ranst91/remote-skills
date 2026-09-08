@@ -1,0 +1,37 @@
+{
+  "name": "@remote-skills/client",
+  "version": "0.0.1",
+  "description": "Server-runtime client for verified Remote Skills origins.",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/browser-rejection.js",
+      "import": "./dist/index.js",
+      "require": "./dist/require-rejection.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "pack:local": "node scripts/pack-local.ts",
+    "package:check": "node --test tests/package-gate.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node scripts/run-tests.ts",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
