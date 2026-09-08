@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "catalog-initial",
+      "requests": [
+        {
+          "method": "GET",
+          "url": "https://skills.example.test/.well-known/agent-skills/index.json",
+          "headers": { "accept": "application/json", "x-tenant": "fixture-tenant" },
+          "sensitive_header_names": ["authorization"]
+        }
+      ]
+    },
+    {
+      "id": "catalog-conditional",
+      "requests": [
+        {
+          "method": "GET",
+          "url": "https://skills.example.test/.well-known/agent-skills/index.json",
+          "headers": {
+            "accept": "application/json",
+            "if-modified-since": "Tue, 25 Aug 2026 10:00:00 GMT",
+            "if-none-match": "\"catalog-v1\""
+          },
+          "sensitive_header_names": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "authorization-timeout",
+      "boundary": "origin",
+      "request": {
+        "url": "https://skills.example.test/.well-known/agent-skills/index.json",
+        "headers": { "authorization": "$RUNTIME_HEADER_SECRET_CANARY" }
+      }
+    },
+    {
+      "id": "configured-secret-header",
+      "boundary": "origin",
+      "request": {
+        "url": "https://skills.example.test/.well-known/agent-skills/index.json",
+        "configured_secret_header_names": ["x-origin-secret"],
+        "headers": { "x-origin-secret": "$RUNTIME_CONFIGURED_SECRET_CANARY" }
+      }
+    },
+    {
+      "id": "cdn-token-timeout",
+      "boundary": "cdn",
+      "request": {
+        "url": "https://cdn.example.test/artifacts/fixture-skill.md",
+        "configured_secret_header_names": ["x-cdn-token"],
+        "headers": { "x-cdn-token": "$RUNTIME_CDN_SECRET_CANARY" }
+      }
+    },
+    {
+      "id": "credential-bearing-url",
+      "boundary": "origin",
+      "request": {
+        "url": "https://skills.example.test/artifact?access_token=$RUNTIME_QUERY_SECRET_CANARY#fragment-secret",
+        "headers": {}
+      }
+    }
+  ]
+}

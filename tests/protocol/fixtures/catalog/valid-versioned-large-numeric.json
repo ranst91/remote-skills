@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "Review code with a security-first checklist.",
+      "type": "archive",
+      "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "x-remote-skills": {
+        "version": "9007199254740993.0.0",
+        "releases": [
+          {
+            "version": "9007199254740993.0.0",
+            "type": "archive",
+            "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+            "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          },
+          {
+            "version": "9007199254740992.999999999999999999999999999999.0",
+            "type": "archive",
+            "url": "artifacts/sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.tar.gz",
+            "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          {
+            "version": "1.0.0-9007199254740993",
+            "type": "archive",
+            "url": "artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          {
+            "version": "1.0.0-9007199254740992",
+            "type": "archive",
+            "url": "artifacts/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.tar.gz",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ]
+      }
+    }
+  ]
+}

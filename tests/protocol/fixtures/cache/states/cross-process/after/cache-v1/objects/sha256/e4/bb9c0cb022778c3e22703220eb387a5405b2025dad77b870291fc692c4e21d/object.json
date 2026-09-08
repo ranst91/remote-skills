@@ -1,0 +1,11 @@
+{
+  "schema": "remote-skills-object-metadata-v1",
+  "digest": "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d",
+  "artifact_type": "skill-md",
+  "archive_format": null,
+  "artifact_bytes": 83,
+  "extracted_bytes": 83,
+  "files": [{ "path": "SKILL.md", "size": 83, "media_type": "text/markdown" }],
+  "verified_at": "2026-08-25T10:00:01.000Z",
+  "accessed_at": "2026-08-25T10:00:30.000Z"
+}

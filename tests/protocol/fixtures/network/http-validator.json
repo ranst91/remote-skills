@@ -1,0 +1,25 @@
+{
+  "initial": {
+    "request_headers": { "accept": "application/json" },
+    "response": {
+      "status": 200,
+      "headers": {
+        "cache-control": "max-age=300",
+        "etag": "\"catalog-v1\"",
+        "last-modified": "Tue, 25 Aug 2026 10:00:00 GMT"
+      }
+    }
+  },
+  "conditional": {
+    "request_headers": {
+      "if-none-match": "\"catalog-v1\"",
+      "if-modified-since": "Tue, 25 Aug 2026 10:00:00 GMT"
+    },
+    "response": { "status": 304 }
+  },
+  "fresh": {
+    "now": "2026-08-25T10:04:59.999Z",
+    "requests": 0,
+    "catalog_body_transfer": false
+  }
+}

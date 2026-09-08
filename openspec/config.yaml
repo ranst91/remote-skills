@@ -16,12 +16,13 @@ context: |
 
   Stack: pnpm workspaces and Turborepo; Node.js 24+; TypeScript publisher CLI
   and consumer SDK; Python 3.11+ async consumer SDK managed with uv; Fumadocs
-  documentation app. Official platforms are Linux, macOS, and Windows.
+  documentation app. CI runs its complete suite on Linux and focused clean
+  installed-product compatibility checks on Windows.
 
   Packages: @remote-skills/cli, @remote-skills/client, and PyPI remote-skills
-  with Python import remote_skills. The npm @remote-skills organization is
-  already reserved. PyPI is claimed after approval with a legitimate
-  0.0.1.dev0 Trusted Publishing release.
+  with Python import remote_skills. These are local artifact identities only:
+  v0 does not reserve npm or PyPI names, configure Trusted Publishing, or
+  publish packages.
 
   Workflow: planning precedes implementation. After this OpenSpec proposal is
   approved, a complete minimal replacement README must be pasted to the user

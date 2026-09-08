@@ -1,0 +1,240 @@
+{
+  "contract_version": 1,
+  "conventions": {
+    "absent_optional_fields": "omitted",
+    "digest": "sha256:<64-lowercase-hex>",
+    "error_code": "stable_snake_case",
+    "json_encoding": "utf-8",
+    "path_separator": "/"
+  },
+  "shapes": {
+    "catalog_success": {
+      "outcome": "catalog_success",
+      "required": ["outcome", "origin_alias", "stale", "entries", "requests"],
+      "optional": ["body_transfers"]
+    },
+    "catalog_error": {
+      "outcome": "catalog_error",
+      "required": ["outcome", "error"],
+      "optional": []
+    },
+    "scope_catalog_success": {
+      "outcome": "scope_catalog_success",
+      "required": ["outcome", "origin_alias", "persistent", "stale", "requests"],
+      "optional": ["requested_scope", "confirmed_scope", "catalog_identifier", "body_transfers"]
+    },
+    "aggregate_catalog": {
+      "outcome": "aggregate_catalog",
+      "required": ["outcome", "entries", "failures"],
+      "optional": []
+    },
+    "activation_success": {
+      "outcome": "activation_success",
+      "required": [
+        "outcome",
+        "origin_alias",
+        "name",
+        "digest",
+        "instructions",
+        "frontmatter",
+        "files",
+        "requests"
+      ],
+      "optional": []
+    },
+    "activation_error": {
+      "outcome": "activation_error",
+      "required": ["outcome", "error", "cache_object_published", "requests"],
+      "optional": ["attempts"]
+    },
+    "resource_success": {
+      "outcome": "resource_success",
+      "required": ["outcome", "path", "size", "media_type", "encoding"],
+      "optional": ["requests"]
+    },
+    "resource_error": {
+      "outcome": "resource_error",
+      "required": ["outcome", "error"],
+      "optional": []
+    },
+    "request_success": {
+      "outcome": "request_success",
+      "required": ["outcome", "requests"],
+      "optional": [
+        "attempts",
+        "delays_ms",
+        "jitter_slots",
+        "origin_header_hops",
+        "sensitive_header_names",
+        "forbidden_header_names"
+      ]
+    },
+    "request_error": {
+      "outcome": "request_error",
+      "required": ["outcome", "error", "requests"],
+      "optional": ["attempts", "sensitive_header_names", "forbidden_header_names"]
+    },
+    "policy_decision": {
+      "outcome": "policy_decision",
+      "required": ["outcome", "decision"],
+      "optional": ["error", "resolutions", "connection_attempts"]
+    },
+    "cache_reuse": {
+      "outcome": "cache_reuse",
+      "required": ["outcome", "layout", "artifact_requests", "digest"],
+      "optional": []
+    },
+    "temporary_ignored": {
+      "outcome": "temporary_ignored",
+      "required": ["outcome", "published_object", "cleanup_eligible"],
+      "optional": []
+    },
+    "lease_reclaimable": {
+      "outcome": "lease_reclaimable",
+      "required": ["outcome", "object_retained", "requires_process_liveness_check"],
+      "optional": []
+    },
+    "one_immutable_winner": {
+      "outcome": "one_immutable_winner",
+      "required": ["outcome", "activations", "published_objects", "partial_observations"],
+      "optional": ["winner", "losing_temp_cleaned"]
+    },
+    "unsupported_namespace_untouched": {
+      "outcome": "unsupported_namespace_untouched",
+      "required": ["outcome", "client_namespace", "opaque_namespace"],
+      "optional": []
+    },
+    "version_selection_success": {
+      "outcome": "version_selection_success",
+      "required": [
+        "outcome",
+        "origin_alias",
+        "skill_name",
+        "artifact_type",
+        "url",
+        "digest",
+        "stale",
+        "requests"
+      ],
+      "optional": ["requested_range", "selected_version"]
+    },
+    "version_selection_error": {
+      "outcome": "version_selection_error",
+      "required": ["outcome", "requested_range", "error", "requests"],
+      "optional": []
+    },
+    "publisher_history_success": {
+      "outcome": "publisher_history_success",
+      "required": ["outcome", "skill_name", "releases", "artifacts_retained"],
+      "optional": []
+    },
+    "publisher_history_error": {
+      "outcome": "publisher_history_error",
+      "required": ["outcome", "error", "output_replaced"],
+      "optional": []
+    },
+    "authorized_version_activation": {
+      "outcome": "authorized_version_activation",
+      "required": [
+        "outcome",
+        "origin_alias",
+        "requested_scope",
+        "confirmed_scope",
+        "catalog_identifier",
+        "persistent",
+        "skill_name",
+        "requested_range",
+        "selected_version",
+        "artifact_type",
+        "url",
+        "digest",
+        "pinned_digest",
+        "stale",
+        "requests",
+        "catalog_requests",
+        "artifact_requests",
+        "artifact_sensitive_header_names",
+        "artifact_forbidden_header_names"
+      ],
+      "optional": []
+    }
+  },
+  "field_types": {
+    "activations": "integer",
+    "artifact_type": "string",
+    "artifact_requests": "integer",
+    "artifact_forbidden_header_names": "array",
+    "artifact_sensitive_header_names": "array",
+    "artifacts_retained": "integer",
+    "attempts": "integer",
+    "body_transfers": "integer",
+    "cache_object_published": "boolean",
+    "catalog_identifier": "string",
+    "catalog_requests": "integer",
+    "cleanup_eligible": "boolean",
+    "client_namespace": "string",
+    "connection_attempts": "integer",
+    "confirmed_scope": "string",
+    "decision": "string",
+    "delays_ms": "array",
+    "digest": "digest",
+    "encoding": "string",
+    "entries": "array",
+    "error": "error",
+    "failures": "array",
+    "files": "array",
+    "forbidden_header_names": "array",
+    "frontmatter": "object",
+    "instructions": "string",
+    "jitter_slots": "array",
+    "layout": "string",
+    "losing_temp_cleaned": "boolean",
+    "media_type": "string",
+    "name": "string",
+    "object_retained": "boolean",
+    "opaque_namespace": "string",
+    "origin_alias": "string",
+    "origin_header_hops": "array",
+    "output_replaced": "boolean",
+    "outcome": "string",
+    "partial_observations": "integer",
+    "path": "string",
+    "published_object": "boolean",
+    "published_objects": "integer",
+    "persistent": "boolean",
+    "pinned_digest": "digest",
+    "releases": "array",
+    "requested_range": "string",
+    "requested_scope": "string",
+    "requests": "integer",
+    "requires_process_liveness_check": "boolean",
+    "resolutions": "array",
+    "sensitive_header_names": "array",
+    "size": "integer",
+    "stale": "boolean",
+    "selected_version": "string",
+    "skill_name": "string",
+    "url": "string",
+    "winner": "string"
+  },
+  "error_shape": {
+    "required": ["code", "retryable", "context"],
+    "optional": [],
+    "forbidden": ["body", "headers", "instructions", "resource", "url_query", "url_fragment"]
+  },
+  "expected_result_files": {
+    "archive-results.json": "normalized_case_list",
+    "cache-results.json": "normalized_case_list",
+    "catalog-results.json": "normalized_case_list",
+    "network-results.json": "normalized_case_list",
+    "network-request-results.json": "network_request_list",
+    "publisher-activation-results.json": "normalized_case_list",
+    "publisher-results.json": "publisher_formats",
+    "publisher-version-history-results.json": "normalized_case_list",
+    "scope-version-catalog-results.json": "normalized_case_list",
+    "scope-version-network-results.json": "normalized_case_list",
+    "scope-version-request-transcripts.json": "transcript_case_list",
+    "redaction-results.json": "diagnostic_case_list",
+    "request-transcripts.json": "transcript_case_list"
+  }
+}

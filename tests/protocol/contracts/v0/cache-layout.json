@@ -1,0 +1,231 @@
+{
+  "contract_version": 1,
+  "namespace": "cache-v1",
+  "origin_identifier": {
+    "input": "canonical well-known index URL encoded as UTF-8",
+    "algorithm": "sha256 lowercase hex",
+    "example_url": "https://skills.example.test/.well-known/agent-skills/index.json",
+    "example_identifier": "e396390b2552f0cd92e2bf23ef6af15aedc1d1bb03c6cb2c8ba82d12932b260c",
+    "scoped_input": "canonical well-known index URL + LF + remote-skills-scope: + confirmed scope, encoded as UTF-8",
+    "scoped_example_scope": "engineering",
+    "scoped_example_identifier": "9dc5c74ba396dc5b65ff423600466f65b6d0a1bfca3eb6866345481f98de17a9",
+    "persistent_prerequisite": "public unscoped response or configured scope confirmed by matching response header; Cache-Control no-store forbids persistence",
+    "forbidden_inputs": ["headers", "credentials", "credential hashes", "URL fragment"]
+  },
+  "paths": {
+    "catalog_body": "catalogs/<origin-sha256>/body.json",
+    "catalog_metadata": "catalogs/<origin-sha256>/metadata.json",
+    "eviction_metadata": "eviction.json",
+    "object_artifact": "objects/sha256/<first-two>/<remaining>/artifact",
+    "object_metadata": "objects/sha256/<first-two>/<remaining>/object.json",
+    "object_root": "objects/sha256/<first-two>/<remaining>/root/",
+    "lease": "leases/<digest>/<process-session-and-lease-nonce>.json",
+    "lease_generation": "leases/<digest>/.lease-generation.json",
+    "coordination": "tmp/coordination-v1/",
+    "mutation_intent": "tmp/coordination-v1/locks/<digest>/<owner-nonce>.intent",
+    "mutation_lock": "tmp/coordination-v1/locks/<digest>/<zero-padded-ticket>-<owner-nonce>.lock",
+    "process_registration": "tmp/coordination-v1/processes/<digest>/<process-nonce>.json",
+    "temporary": "tmp/<private-random-name>/"
+  },
+  "publication": [
+    "create_private_same_filesystem_temporary_path",
+    "stream_hash_and_bound_bytes",
+    "validate_complete_object",
+    "publish_with_no_clobber_atomic_insert",
+    "verify_existing_winner_if_insert_lost",
+    "discard_private_temporary_path"
+  ],
+  "metadata_schemas": {
+    "catalog": {
+      "schema": "remote-skills-catalog-metadata-v1",
+      "required": ["schema", "canonical_url", "retrieved_at", "validated_at"],
+      "optional": ["etag", "last_modified", "cache_control", "confirmed_scope"],
+      "types": {
+        "schema": "string",
+        "canonical_url": "sanitized_url",
+        "retrieved_at": "timestamp",
+        "validated_at": "timestamp",
+        "etag": "string",
+        "last_modified": "string",
+        "cache_control": "string",
+        "confirmed_scope": "string"
+      }
+    },
+    "object": {
+      "schema": "remote-skills-object-metadata-v1",
+      "required": [
+        "schema",
+        "digest",
+        "artifact_type",
+        "archive_format",
+        "artifact_bytes",
+        "extracted_bytes",
+        "files",
+        "verified_at",
+        "accessed_at"
+      ],
+      "optional": [],
+      "types": {
+        "schema": "string",
+        "digest": "digest",
+        "artifact_type": "string",
+        "archive_format": "nullable_string",
+        "artifact_bytes": "integer",
+        "extracted_bytes": "integer",
+        "files": "extraction_file_array",
+        "verified_at": "timestamp",
+        "accessed_at": "timestamp"
+      }
+    },
+    "extraction_file": {
+      "required": ["path", "size", "media_type"],
+      "optional": [],
+      "types": { "path": "normalized_path", "size": "integer", "media_type": "string" }
+    },
+    "lease": {
+      "schema": "remote-skills-cache-lease-v1",
+      "required": [
+        "schema",
+        "digest",
+        "pid",
+        "process_nonce",
+        "session_nonce",
+        "lease_nonce",
+        "created_at",
+        "renewed_at"
+      ],
+      "optional": [],
+      "types": {
+        "schema": "string",
+        "digest": "digest",
+        "pid": "integer",
+        "process_nonce": "string",
+        "session_nonce": "string",
+        "lease_nonce": "string",
+        "created_at": "timestamp",
+        "renewed_at": "timestamp"
+      }
+    },
+    "lease_generation": {
+      "schema": "remote-skills-cache-lease-generation-v1",
+      "required": ["schema", "coordination_version", "generation"],
+      "optional": [],
+      "types": {
+        "schema": "string",
+        "coordination_version": "string",
+        "generation": "timestamp"
+      }
+    },
+    "mutation_lock": {
+      "schema": "remote-skills-cache-mutation-lock-v1",
+      "required": ["schema", "pid", "process_nonce", "owner_nonce", "ticket", "created_at"],
+      "optional": ["operation", "contended_with_eviction"],
+      "types": {
+        "schema": "string",
+        "pid": "integer",
+        "process_nonce": "string",
+        "owner_nonce": "string",
+        "ticket": "integer",
+        "created_at": "timestamp",
+        "operation": "string",
+        "contended_with_eviction": "boolean"
+      }
+    },
+    "mutation_intent": {
+      "schema": "remote-skills-cache-mutation-intent-v1",
+      "required": ["schema", "pid", "process_nonce", "owner_nonce", "created_at"],
+      "optional": ["operation", "contended_with_eviction"],
+      "types": {
+        "schema": "string",
+        "pid": "integer",
+        "process_nonce": "string",
+        "owner_nonce": "string",
+        "created_at": "timestamp",
+        "operation": "string",
+        "contended_with_eviction": "boolean"
+      }
+    },
+    "process_registration": {
+      "schema": "remote-skills-cache-process-registration-v1",
+      "required": ["schema", "pid", "process_nonce", "renewed_at"],
+      "optional": ["process_identity"],
+      "types": {
+        "schema": "string",
+        "pid": "integer",
+        "process_nonce": "string",
+        "process_identity": "string",
+        "renewed_at": "timestamp"
+      }
+    },
+    "writer": {
+      "schema": "remote-skills-cache-writer-v1",
+      "required": [
+        "schema",
+        "writer",
+        "pid",
+        "process_nonce",
+        "expected_digest",
+        "bytes_received",
+        "complete"
+      ],
+      "optional": [],
+      "types": {
+        "schema": "string",
+        "writer": "string",
+        "pid": "integer",
+        "process_nonce": "string",
+        "expected_digest": "digest",
+        "bytes_received": "integer",
+        "complete": "boolean"
+      }
+    },
+    "eviction": {
+      "schema": "remote-skills-eviction-metadata-v1",
+      "required": ["schema", "last_run_at", "max_bytes", "max_age_seconds", "candidate_order"],
+      "optional": [],
+      "types": {
+        "schema": "string",
+        "last_run_at": "timestamp",
+        "max_bytes": "integer",
+        "max_age_seconds": "integer",
+        "candidate_order": "string_array"
+      }
+    }
+  },
+  "lease_expiry": "conservative age plus the shared digest-scoped process registration and operating-system process identity check",
+  "coordination_lifecycle": [
+    "atomically_create_or_replace_one_digest_scoped_registration_per_process_nonce",
+    "heartbeat_renewed_at_while_a_lease_or_writer_for_that_digest_is_active",
+    "writer_process_nonce_must_reference_the_same_digest_registration",
+    "remove_the_registration_after_the_final_owned_lease_or_writer_ends",
+    "new_lease_handles_include_a_unique_persisted_lease_nonce",
+    "reclaim_orphan_process_registrations_without_a_lease_writer_or_object",
+    "remove_orphan_lease_generation_records_and_empty_coordination_directories",
+    "reclaim_expired_registration_and_generation_records_only_after_liveness_recheck",
+    "bind_every_cleanup_unlink_to_the_observed_record_and_parent_generation",
+    "bound_every_coordination_scan_and_record_size",
+    "publish_a_live_process_registration_before_any_mutation_intent_or_lock_record",
+    "elect_mutation_owners_with_bounded_lamport_bakery_intents_and_integer_tickets",
+    "retain_each_mutation_intent_until_its_ticket_and_critical_section_are_released",
+    "anchor_object_generation_identity_with_retained_no_follow_directory_chain_before_announcing_a_lease_acquisition",
+    "reject_before_lease_publication_if_an_observed_object_generation_was_removed",
+    "persist_an_observed_predecessor_eviction_handoff_in_the_successor_ticket_generation",
+    "use_generation_unique_owner_paths_that_are_never_reused_by_a_successor",
+    "serialize_each_digest_lease_acquisition_against_final_eviction_pin_check_through_removal",
+    "acquire_the_shared_mutation_lock_before_any_runtime_compatibility_lock_and_release_in_reverse_order",
+    "reject_an_acquisition_that_contended_with_a_winning_eviction_instead_of_returning_a_handle_to_a_removed_object"
+  ],
+  "fixture_evaluation_inputs": {
+    "required": ["schema", "now", "lease_expiry_seconds", "process_liveness"],
+    "schema": "remote-skills-cache-evaluation-inputs-v1"
+  },
+  "metadata_forbidden_fields": [
+    "headers",
+    "authorization",
+    "cookie",
+    "query",
+    "fragment",
+    "requested_scope",
+    "artifact_body"
+  ]
+}

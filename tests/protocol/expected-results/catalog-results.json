@@ -1,0 +1,98 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "valid-v0.2",
+      "result": {
+        "outcome": "catalog_success",
+        "origin_alias": "acme",
+        "stale": false,
+        "entries": [
+          {
+            "origin_alias": "acme",
+            "name": "code-review",
+            "description": "Review code with a security-first checklist.",
+            "artifact_type": "skill-md",
+            "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          {
+            "origin_alias": "acme",
+            "name": "release-notes",
+            "description": "Draft concise release notes from verified inputs.",
+            "artifact_type": "archive",
+            "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          }
+        ],
+        "requests": 1
+      }
+    },
+    {
+      "id": "valid-v0.2-extension",
+      "result": {
+        "outcome": "catalog_success",
+        "origin_alias": "acme",
+        "stale": false,
+        "entries": [
+          {
+            "origin_alias": "acme",
+            "name": "code-review",
+            "description": "Review code with a security-first checklist.",
+            "artifact_type": "skill-md",
+            "url": "https://skills.example.test/.well-known/agent-skills/artifacts/code-review.md",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        ],
+        "requests": 1
+      }
+    },
+    {
+      "id": "unsupported-v0.1",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "unsupported_schema",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "schema": "https://schemas.agentskills.io/discovery/0.1/schema.json"
+          }
+        }
+      }
+    },
+    {
+      "id": "unsupported-missing-schema",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "unsupported_schema",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "invalid-digest",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "origin_alias": "acme", "field": "skills[0].digest" }
+        }
+      }
+    },
+    {
+      "id": "invalid-entry",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "origin_alias": "acme", "field": "skills[0].description" }
+        }
+      }
+    }
+  ]
+}

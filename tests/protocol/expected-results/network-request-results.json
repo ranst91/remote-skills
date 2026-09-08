@@ -1,0 +1,37 @@
+{
+  "contract_version": 1,
+  "requests": [
+    {
+      "boundary": "origin",
+      "method": "GET",
+      "path": "/.well-known/agent-skills/index.json",
+      "headers": { "accept": "application/json", "x-tenant": "fixture-tenant" },
+      "sensitive_header_names": ["authorization"]
+    },
+    {
+      "boundary": "origin",
+      "method": "GET",
+      "path": "/.well-known/agent-skills/index.json",
+      "headers": {
+        "accept": "application/json",
+        "if-modified-since": "Tue, 25 Aug 2026 10:00:00 GMT",
+        "if-none-match": "\"catalog-v1\""
+      },
+      "sensitive_header_names": []
+    },
+    {
+      "boundary": "cdn",
+      "method": "GET",
+      "path": "/artifacts/fixture-skill.md",
+      "headers": { "accept": "text/markdown" },
+      "sensitive_header_names": ["x-cdn-token"]
+    },
+    {
+      "boundary": "origin",
+      "method": "GET",
+      "path": "/query-secret",
+      "headers": { "accept": "application/json" },
+      "sensitive_header_names": []
+    }
+  ]
+}

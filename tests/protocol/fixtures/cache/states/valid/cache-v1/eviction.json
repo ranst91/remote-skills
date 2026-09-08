@@ -1,0 +1,7 @@
+{
+  "schema": "remote-skills-eviction-metadata-v1",
+  "last_run_at": "2026-08-25T10:00:30.000Z",
+  "max_bytes": 536870912,
+  "max_age_seconds": 2592000,
+  "candidate_order": ["accessed_at", "digest"]
+}

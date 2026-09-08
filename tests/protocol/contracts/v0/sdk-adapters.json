@@ -1,0 +1,76 @@
+{
+  "contract_version": 1,
+  "expected_state": "red_until_sdk_implementation",
+  "entrypoints": {
+    "python": "adapters/python_protocol_adapter.py",
+    "typescript": "adapters/typescript-protocol-adapter.mjs"
+  },
+  "case_api": {
+    "python": "run_protocol_case",
+    "typescript": "runProtocolCase"
+  },
+  "suites": [
+    {
+      "name": "archive",
+      "fixtures": "fixtures/archive/archive-cases.json",
+      "expected": "expected-results/archive-results.json",
+      "expected_field": "result"
+    },
+    {
+      "name": "cache",
+      "fixtures": "fixtures/cache/cache-cases.json",
+      "expected": "expected-results/cache-results.json",
+      "expected_field": "result"
+    },
+    {
+      "name": "catalog",
+      "fixtures": "fixtures/catalog/catalog-cases.json",
+      "expected": "expected-results/catalog-results.json",
+      "expected_field": "result"
+    },
+    {
+      "name": "network",
+      "fixtures": "fixtures/network/network-cases.json",
+      "expected": "expected-results/network-results.json",
+      "expected_field": "result"
+    },
+    {
+      "name": "publisher_activation",
+      "fixtures": "fixtures/publisher/consumer-cases.json",
+      "expected": "expected-results/publisher-activation-results.json",
+      "expected_field": "result"
+    },
+    {
+      "name": "redaction",
+      "fixtures": "fixtures/requests/redaction-cases.json",
+      "expected": "expected-results/redaction-results.json",
+      "expected_field": "diagnostic"
+    },
+    {
+      "name": "request_transcripts",
+      "fixtures": "fixtures/requests/catalog-transcripts.json",
+      "expected": "expected-results/request-transcripts.json",
+      "expected_field": "requests"
+    }
+  ],
+  "supplemental_suites": [
+    {
+      "name": "catalog",
+      "fixtures": "fixtures/catalog/scope-version-cases.json",
+      "expected": "expected-results/scope-version-catalog-results.json",
+      "expected_field": "result"
+    },
+    {
+      "name": "network",
+      "fixtures": "fixtures/network/scope-version-network-cases.json",
+      "expected": "expected-results/scope-version-network-results.json",
+      "expected_field": "result"
+    },
+    {
+      "name": "request_transcripts",
+      "fixtures": "fixtures/requests/scope-version-catalog-transcripts.json",
+      "expected": "expected-results/scope-version-request-transcripts.json",
+      "expected_field": "requests"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "cache-v1-valid",
+      "category": "versioned_layout",
+      "state": "valid",
+      "evaluation_inputs": "evaluation-inputs.json",
+      "files": [
+        "cache-v1/catalogs/e396390b2552f0cd92e2bf23ef6af15aedc1d1bb03c6cb2c8ba82d12932b260c/body.json",
+        "cache-v1/catalogs/e396390b2552f0cd92e2bf23ef6af15aedc1d1bb03c6cb2c8ba82d12932b260c/metadata.json",
+        "cache-v1/eviction.json",
+        "cache-v1/leases/e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/live-process-session.json",
+        "cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/artifact",
+        "cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/object.json",
+        "cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/root/SKILL.md",
+        "evaluation-inputs.json"
+      ]
+    },
+    {
+      "id": "cache-v1-partial-writer",
+      "category": "partial_writer",
+      "state": "partial-writer",
+      "files": [
+        "cache-v1/tmp/writer-typescript-0001/artifact.partial",
+        "cache-v1/tmp/writer-typescript-0001/writer.json"
+      ]
+    },
+    {
+      "id": "cache-v1-crashed-lease",
+      "category": "crashed_lease",
+      "state": "crashed-lease",
+      "evaluation_inputs": "evaluation-inputs.json",
+      "files": [
+        "cache-v1/leases/e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/dead-process-session.json",
+        "cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/artifact",
+        "cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/object.json",
+        "cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/root/SKILL.md",
+        "evaluation-inputs.json"
+      ]
+    },
+    {
+      "id": "cache-v1-cross-process",
+      "category": "cross_process",
+      "state": "cross-process",
+      "evaluation_inputs": "evaluation-inputs.json",
+      "before": "before",
+      "after": "after",
+      "files": [
+        "after/cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/artifact",
+        "after/cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/object.json",
+        "after/cache-v1/objects/sha256/e4/bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d/root/SKILL.md",
+        "before/cache-v1/tmp/writer-python-0002/artifact",
+        "before/cache-v1/tmp/writer-python-0002/writer.json",
+        "before/cache-v1/tmp/writer-typescript-0001/artifact",
+        "before/cache-v1/tmp/writer-typescript-0001/writer.json",
+        "evaluation-inputs.json",
+        "expected-events.json"
+      ]
+    },
+    {
+      "id": "cache-v2-unknown",
+      "category": "unknown_layout",
+      "state": "unknown-layout",
+      "files": ["cache-v2/DO-NOT-TOUCH.txt"]
+    }
+  ]
+}

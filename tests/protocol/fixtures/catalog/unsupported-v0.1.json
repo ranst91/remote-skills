@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.1/schema.json",
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "A digest-less legacy entry.",
+      "type": "skill-md",
+      "url": "artifacts/code-review.md"
+    }
+  ]
+}

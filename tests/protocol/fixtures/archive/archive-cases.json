@@ -1,0 +1,418 @@
+{
+  "contract_version": 1,
+  "default_limits": {
+    "archive_bytes": 52428800,
+    "extracted_bytes": 104857600,
+    "files": 1000,
+    "file_bytes": 10485760
+  },
+  "cases": [
+    {
+      "id": "skill-md-valid",
+      "artifact_type": "skill-md",
+      "category": "valid",
+      "path": "skill-md/valid.md"
+    },
+    {
+      "id": "skill-md-invalid-utf8",
+      "artifact_type": "skill-md",
+      "category": "invalid_utf8_content",
+      "path": "skill-md/invalid-utf8.md"
+    },
+    {
+      "id": "skill-md-malformed-yaml",
+      "artifact_type": "skill-md",
+      "category": "malformed_yaml",
+      "path": "skill-md/malformed-yaml.md"
+    },
+    {
+      "id": "skill-md-missing-frontmatter",
+      "artifact_type": "skill-md",
+      "category": "missing_frontmatter",
+      "path": "skill-md/missing-frontmatter.md"
+    },
+    {
+      "id": "skill-md-missing-name",
+      "artifact_type": "skill-md",
+      "category": "missing_required_field",
+      "path": "skill-md/missing-name.md"
+    },
+    {
+      "id": "skill-md-missing-description",
+      "artifact_type": "skill-md",
+      "category": "missing_required_field",
+      "path": "skill-md/missing-description.md"
+    },
+    {
+      "id": "skill-md-invalid-name",
+      "artifact_type": "skill-md",
+      "category": "invalid_name",
+      "path": "skill-md/invalid-name.md"
+    },
+    {
+      "id": "skill-md-invalid-metadata",
+      "artifact_type": "skill-md",
+      "category": "invalid_standard_metadata",
+      "path": "skill-md/invalid-metadata.md"
+    },
+    {
+      "id": "tar-valid",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "valid",
+      "path": "tar-gzip/valid.tar.gz"
+    },
+    {
+      "id": "tar-traversal",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "traversal",
+      "path": "tar-gzip/traversal.tar.gz"
+    },
+    {
+      "id": "tar-duplicate",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "duplicate_path",
+      "path": "tar-gzip/duplicate.tar.gz"
+    },
+    {
+      "id": "tar-case-collision",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "case_collision",
+      "path": "tar-gzip/case-collision.tar.gz"
+    },
+    {
+      "id": "tar-symlink",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "symlink",
+      "path": "tar-gzip/symlink.tar.gz"
+    },
+    {
+      "id": "tar-hardlink",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "hard_link",
+      "path": "tar-gzip/hardlink.tar.gz"
+    },
+    {
+      "id": "tar-special-file",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "special_file",
+      "path": "tar-gzip/fifo.tar.gz"
+    },
+    {
+      "id": "tar-invalid-utf8-path",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "invalid_utf8_path",
+      "path": "tar-gzip/invalid-utf8-path.tar.gz"
+    },
+    {
+      "id": "tar-decompression-limit",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "decompression_limit",
+      "path": "tar-gzip/decompression-limit.tar.gz",
+      "limits": { "extracted_bytes": 1024 }
+    },
+    {
+      "id": "tar-count-limit",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "count_limit",
+      "path": "tar-gzip/count-limit.tar.gz",
+      "limits": { "files": 3 }
+    },
+    {
+      "id": "tar-size-limit",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "size_limit",
+      "path": "tar-gzip/size-limit.tar.gz",
+      "limits": { "file_bytes": 1024 }
+    },
+    {
+      "id": "tar-absolute-path",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "absolute_path",
+      "path": "tar-gzip/absolute-path.tar.gz"
+    },
+    {
+      "id": "tar-drive-prefix",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "drive_prefixed_path",
+      "path": "tar-gzip/drive-prefix.tar.gz"
+    },
+    {
+      "id": "tar-windows-drive-backslash",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "windows_drive_backslash",
+      "path": "tar-gzip/windows-drive-backslash.tar.gz"
+    },
+    {
+      "id": "tar-root-backslash",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "root_backslash",
+      "path": "tar-gzip/root-backslash.tar.gz"
+    },
+    {
+      "id": "tar-unc-path",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "unc_path",
+      "path": "tar-gzip/unc-path.tar.gz"
+    },
+    {
+      "id": "tar-mixed-separator-traversal",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "mixed_separator_traversal",
+      "path": "tar-gzip/mixed-separator-traversal.tar.gz"
+    },
+    {
+      "id": "tar-unicode-normalization-collision",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "unicode_normalization_collision",
+      "path": "tar-gzip/unicode-normalization-collision.tar.gz"
+    },
+    {
+      "id": "tar-nul-path",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "nul_path",
+      "path": "tar-gzip/nul-path.tar.gz"
+    },
+    {
+      "id": "tar-dot-segment",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "dot_segment",
+      "path": "tar-gzip/dot-segment.tar.gz"
+    },
+    {
+      "id": "tar-dot-dot-segment",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "dot_dot_segment",
+      "path": "tar-gzip/dot-dot-segment.tar.gz"
+    },
+    {
+      "id": "tar-missing-root-skill",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "missing_root_skill",
+      "path": "tar-gzip/missing-skill.tar.gz"
+    },
+    {
+      "id": "tar-nonregular-root-skill",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "non_regular_root_skill",
+      "path": "tar-gzip/nonregular-skill.tar.gz"
+    },
+    {
+      "id": "tar-device",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "device",
+      "path": "tar-gzip/device.tar.gz"
+    },
+    {
+      "id": "tar-download-limit",
+      "artifact_type": "archive",
+      "format": "tar.gz",
+      "category": "archive_byte_limit",
+      "path": "tar-gzip/download-limit.tar.gz",
+      "limits": { "archive_bytes": 1 }
+    },
+    {
+      "id": "zip-valid",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "valid",
+      "path": "zip/valid.zip"
+    },
+    {
+      "id": "zip-traversal",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "traversal",
+      "path": "zip/traversal.zip"
+    },
+    {
+      "id": "zip-duplicate",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "duplicate_path",
+      "path": "zip/duplicate.zip"
+    },
+    {
+      "id": "zip-case-collision",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "case_collision",
+      "path": "zip/case-collision.zip"
+    },
+    {
+      "id": "zip-symlink",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "symlink",
+      "path": "zip/symlink.zip"
+    },
+    {
+      "id": "zip-special-file",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "special_file",
+      "path": "zip/fifo.zip"
+    },
+    {
+      "id": "zip-invalid-utf8-path",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "invalid_utf8_path",
+      "path": "zip/invalid-utf8-path.zip"
+    },
+    {
+      "id": "zip-decompression-limit",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "decompression_limit",
+      "path": "zip/decompression-limit.zip",
+      "limits": { "extracted_bytes": 1024 }
+    },
+    {
+      "id": "zip-count-limit",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "count_limit",
+      "path": "zip/count-limit.zip",
+      "limits": { "files": 3 }
+    },
+    {
+      "id": "zip-size-limit",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "size_limit",
+      "path": "zip/size-limit.zip",
+      "limits": { "file_bytes": 1024 }
+    },
+    {
+      "id": "zip-absolute-path",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "absolute_path",
+      "path": "zip/absolute-path.zip"
+    },
+    {
+      "id": "zip-drive-prefix",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "drive_prefixed_path",
+      "path": "zip/drive-prefix.zip"
+    },
+    {
+      "id": "zip-windows-drive-backslash",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "windows_drive_backslash",
+      "path": "zip/windows-drive-backslash.zip"
+    },
+    {
+      "id": "zip-root-backslash",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "root_backslash",
+      "path": "zip/root-backslash.zip"
+    },
+    {
+      "id": "zip-unc-path",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "unc_path",
+      "path": "zip/unc-path.zip"
+    },
+    {
+      "id": "zip-mixed-separator-traversal",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "mixed_separator_traversal",
+      "path": "zip/mixed-separator-traversal.zip"
+    },
+    {
+      "id": "zip-unicode-normalization-collision",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "unicode_normalization_collision",
+      "path": "zip/unicode-normalization-collision.zip"
+    },
+    {
+      "id": "zip-nul-path",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "nul_path",
+      "path": "zip/nul-path.zip"
+    },
+    {
+      "id": "zip-dot-segment",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "dot_segment",
+      "path": "zip/dot-segment.zip"
+    },
+    {
+      "id": "zip-dot-dot-segment",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "dot_dot_segment",
+      "path": "zip/dot-dot-segment.zip"
+    },
+    {
+      "id": "zip-missing-root-skill",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "missing_root_skill",
+      "path": "zip/missing-skill.zip"
+    },
+    {
+      "id": "zip-nonregular-root-skill",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "non_regular_root_skill",
+      "path": "zip/nonregular-skill.zip"
+    },
+    {
+      "id": "zip-socket",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "socket",
+      "path": "zip/socket.zip"
+    },
+    {
+      "id": "zip-download-limit",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "archive_byte_limit",
+      "path": "zip/download-limit.zip",
+      "limits": { "archive_bytes": 1 }
+    },
+    {
+      "id": "zip-streamed-size-mismatch",
+      "artifact_type": "archive",
+      "format": "zip",
+      "category": "streamed_size_mismatch",
+      "path": "zip/streamed-size-mismatch.zip",
+      "limits": { "file_bytes": 1024 }
+    }
+  ]
+}

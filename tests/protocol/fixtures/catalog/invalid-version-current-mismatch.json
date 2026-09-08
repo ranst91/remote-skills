@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "Review code with a security-first checklist.",
+      "type": "archive",
+      "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "x-remote-skills": {
+        "version": "2.0.0",
+        "releases": [
+          {
+            "version": "2.0.0",
+            "type": "archive",
+            "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+            "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
+        ]
+      }
+    }
+  ]
+}

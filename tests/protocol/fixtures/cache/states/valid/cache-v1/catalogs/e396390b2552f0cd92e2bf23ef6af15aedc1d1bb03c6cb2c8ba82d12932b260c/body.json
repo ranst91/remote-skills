@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "fixture-skill",
+      "description": "Exercise archive safety.",
+      "type": "skill-md",
+      "url": "artifacts/fixture-skill.md",
+      "digest": "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d"
+    }
+  ]
+}

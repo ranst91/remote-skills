@@ -1,0 +1,9 @@
+{
+  "schema": "remote-skills-catalog-metadata-v1",
+  "canonical_url": "https://skills.example.test/.well-known/agent-skills/index.json",
+  "etag": "\"catalog-v1\"",
+  "last_modified": "Tue, 25 Aug 2026 10:00:00 GMT",
+  "cache_control": "max-age=300",
+  "retrieved_at": "2026-08-25T10:00:00.000Z",
+  "validated_at": "2026-08-25T10:00:00.000Z"
+}

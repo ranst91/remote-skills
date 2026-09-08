@@ -1,0 +1,11 @@
+{
+  "contract_version": 1,
+  "cases": [
+    { "id": "valid-v0.2", "input": "valid-v0.2.json" },
+    { "id": "valid-v0.2-extension", "input": "valid-v0.2-extension.json" },
+    { "id": "unsupported-v0.1", "input": "unsupported-v0.1.json" },
+    { "id": "unsupported-missing-schema", "input": "unsupported-missing-schema.json" },
+    { "id": "invalid-digest", "input": "invalid-digest.json" },
+    { "id": "invalid-entry", "input": "invalid-entry.json" }
+  ]
+}

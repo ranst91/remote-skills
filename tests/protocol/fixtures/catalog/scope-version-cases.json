@@ -1,0 +1,115 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "version-select-no-constraint",
+      "input": "valid-versioned-history.json"
+    },
+    {
+      "id": "version-select-star",
+      "input": "valid-versioned-history.json",
+      "requested_range": "*"
+    },
+    {
+      "id": "version-select-major-x",
+      "input": "valid-versioned-history.json",
+      "requested_range": "1.x"
+    },
+    {
+      "id": "version-select-minor-x",
+      "input": "valid-versioned-history.json",
+      "requested_range": "1.4.x"
+    },
+    {
+      "id": "version-select-caret",
+      "input": "valid-versioned-history.json",
+      "requested_range": "^1.4.2"
+    },
+    {
+      "id": "version-select-tilde",
+      "input": "valid-versioned-history.json",
+      "requested_range": "~1.4.2"
+    },
+    {
+      "id": "version-select-exact",
+      "input": "valid-versioned-history.json",
+      "requested_range": "1.4.2"
+    },
+    {
+      "id": "version-unversioned-star",
+      "input": "valid-v0.2.json",
+      "requested_range": "*",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-unversioned-restrictive",
+      "input": "valid-v0.2.json",
+      "requested_range": "1.4.x",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-no-compatible",
+      "input": "valid-versioned-history.json",
+      "requested_range": "3.x",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-prerelease-excluded",
+      "input": "valid-versioned-prerelease.json",
+      "requested_range": ">=1.4.0 <1.5.0",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-prerelease-explicit",
+      "input": "valid-versioned-prerelease.json",
+      "requested_range": ">=1.5.0-beta.1 <1.5.0",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-build-metadata-tie",
+      "input": "valid-versioned-build-metadata-tie.json",
+      "requested_range": "1.4.7",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-select-large-core-numeric",
+      "input": "valid-versioned-large-numeric.json",
+      "requested_range": "*",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-select-large-prerelease-numeric",
+      "input": "valid-versioned-large-numeric.json",
+      "requested_range": ">=1.0.0-9007199254740992 <1.0.0",
+      "skill_name": "code-review"
+    },
+    {
+      "id": "version-invalid-semver",
+      "input": "invalid-version-semver.json"
+    },
+    {
+      "id": "version-invalid-historical-semver",
+      "input": "invalid-version-historical-semver.json"
+    },
+    {
+      "id": "version-invalid-numeric-prerelease",
+      "input": "invalid-version-numeric-prerelease.json"
+    },
+    {
+      "id": "version-current-mismatch",
+      "input": "invalid-version-current-mismatch.json"
+    },
+    {
+      "id": "version-invalid-order",
+      "input": "invalid-version-order.json"
+    },
+    {
+      "id": "version-duplicate",
+      "input": "invalid-version-duplicate.json"
+    },
+    {
+      "id": "version-over-limit",
+      "input": "invalid-version-over-limit.json"
+    }
+  ]
+}

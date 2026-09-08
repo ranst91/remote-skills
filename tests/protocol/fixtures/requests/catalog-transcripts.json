@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "catalog-initial",
+      "configuration": {
+        "origin_alias": "acme",
+        "origin": "https://skills.example.test",
+        "headers": { "authorization": "$RUNTIME_SECRET_CANARY", "x-tenant": "fixture-tenant" }
+      },
+      "response": { "status": 200, "fixture": "catalog/valid-v0.2.json" }
+    },
+    {
+      "id": "catalog-conditional",
+      "configuration": {
+        "origin_alias": "acme",
+        "origin": "https://skills.example.test",
+        "validators": {
+          "etag": "\"catalog-v1\"",
+          "last_modified": "Tue, 25 Aug 2026 10:00:00 GMT"
+        }
+      },
+      "response": { "status": 304 }
+    }
+  ]
+}

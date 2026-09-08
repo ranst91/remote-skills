@@ -1,0 +1,23 @@
+{
+  "contract_version": 1,
+  "runtime_secret_placeholder": "$RUNTIME_SECRET_CANARY",
+  "snapshot_replacement": "<redacted>",
+  "never_snapshot_fields": [
+    "authorization",
+    "cookie",
+    "proxy-authorization",
+    "set-cookie",
+    "x-api-key"
+  ],
+  "url_rules": {
+    "userinfo": "reject",
+    "query": "omit",
+    "fragment": "omit",
+    "host_and_path": "retain_when_safe"
+  },
+  "body_rules": {
+    "artifact": "never_log",
+    "catalog_error_response": "never_log",
+    "skill_instructions": "never_log"
+  }
+}

@@ -1,0 +1,368 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "scope-confirmed-200",
+      "result": {
+        "outcome": "scope_catalog_success",
+        "origin_alias": "acme",
+        "requested_scope": "engineering",
+        "confirmed_scope": "engineering",
+        "catalog_identifier": "9dc5c74ba396dc5b65ff423600466f65b6d0a1bfca3eb6866345481f98de17a9",
+        "persistent": true,
+        "stale": false,
+        "requests": 1,
+        "body_transfers": 1
+      }
+    },
+    {
+      "id": "scope-confirmed-304",
+      "result": {
+        "outcome": "scope_catalog_success",
+        "origin_alias": "acme",
+        "requested_scope": "engineering",
+        "confirmed_scope": "engineering",
+        "catalog_identifier": "9dc5c74ba396dc5b65ff423600466f65b6d0a1bfca3eb6866345481f98de17a9",
+        "persistent": true,
+        "stale": false,
+        "requests": 1,
+        "body_transfers": 0
+      }
+    },
+    {
+      "id": "scope-304-missing-confirmation",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "remote-skills-scope"
+          }
+        }
+      }
+    },
+    {
+      "id": "scope-304-mismatch-confirmation",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "remote-skills-scope"
+          }
+        }
+      }
+    },
+    {
+      "id": "scope-304-duplicate-confirmation",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "remote-skills-scope"
+          }
+        }
+      }
+    },
+    {
+      "id": "scope-missing-confirmation",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "remote-skills-scope"
+          }
+        }
+      }
+    },
+    {
+      "id": "scope-mismatch-confirmation",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "remote-skills-scope"
+          }
+        }
+      }
+    },
+    {
+      "id": "scope-unauthenticated-401",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "authentication_failed",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "scope": "engineering",
+            "status": 401
+          }
+        }
+      }
+    },
+    {
+      "id": "scope-authorization-403",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "authorization_denied",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "scope": "engineering",
+            "status": 403
+          }
+        }
+      }
+    },
+    {
+      "id": "scope-no-store",
+      "result": {
+        "outcome": "scope_catalog_success",
+        "origin_alias": "acme",
+        "requested_scope": "engineering",
+        "confirmed_scope": "engineering",
+        "persistent": false,
+        "stale": false,
+        "requests": 1,
+        "body_transfers": 1
+      }
+    },
+    {
+      "id": "scope-authenticated-unscoped-memory-only",
+      "result": {
+        "outcome": "scope_catalog_success",
+        "origin_alias": "acme",
+        "persistent": false,
+        "stale": false,
+        "requests": 1,
+        "body_transfers": 1
+      }
+    },
+    {
+      "id": "scope-engineering-cache",
+      "result": {
+        "outcome": "scope_catalog_success",
+        "origin_alias": "acme",
+        "requested_scope": "engineering",
+        "confirmed_scope": "engineering",
+        "catalog_identifier": "9dc5c74ba396dc5b65ff423600466f65b6d0a1bfca3eb6866345481f98de17a9",
+        "persistent": true,
+        "stale": false,
+        "requests": 1,
+        "body_transfers": 1
+      }
+    },
+    {
+      "id": "scope-sales-cache",
+      "result": {
+        "outcome": "scope_catalog_success",
+        "origin_alias": "acme",
+        "requested_scope": "sales",
+        "confirmed_scope": "sales",
+        "catalog_identifier": "33b69d221d0f33ecd41214ff994db654c893de1745a26652ee3a49d379844d7e",
+        "persistent": true,
+        "stale": false,
+        "requests": 1,
+        "body_transfers": 1
+      }
+    },
+    {
+      "id": "scope-artifact-denied",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "authorization_denied",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "scope": "engineering",
+            "status": 403
+          }
+        },
+        "requests": 1,
+        "sensitive_header_names": ["authorization"],
+        "forbidden_header_names": ["remote-skills-scope"]
+      }
+    },
+    {
+      "id": "version-removal-existing-session",
+      "result": {
+        "outcome": "resource_success",
+        "path": "SKILL.md",
+        "size": 83,
+        "media_type": "text/markdown",
+        "encoding": "utf-8",
+        "requests": 0
+      }
+    },
+    {
+      "id": "version-removal-future-online",
+      "result": {
+        "outcome": "version_selection_error",
+        "requested_range": "1.4.x",
+        "error": {
+          "code": "version_unavailable",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "skill_name": "code-review",
+            "requested_range": "1.4.x"
+          }
+        },
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-removal-explicit-stale",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "1.4.x",
+        "selected_version": "1.4.7",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "stale": true,
+        "requests": 0
+      }
+    },
+    {
+      "id": "authorized-range-activation",
+      "result": {
+        "outcome": "authorized_version_activation",
+        "origin_alias": "acme",
+        "requested_scope": "engineering",
+        "confirmed_scope": "engineering",
+        "catalog_identifier": "9dc5c74ba396dc5b65ff423600466f65b6d0a1bfca3eb6866345481f98de17a9",
+        "persistent": true,
+        "skill_name": "code-review",
+        "requested_range": "1.4.x",
+        "selected_version": "1.4.7",
+        "artifact_type": "skill-md",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-e3dd434d090978361c16488c14d525b5824f67b17336f852c094624477a1bbe3.md",
+        "digest": "sha256:e3dd434d090978361c16488c14d525b5824f67b17336f852c094624477a1bbe3",
+        "pinned_digest": "sha256:e3dd434d090978361c16488c14d525b5824f67b17336f852c094624477a1bbe3",
+        "stale": false,
+        "requests": 2,
+        "catalog_requests": 1,
+        "artifact_requests": 1,
+        "artifact_sensitive_header_names": ["authorization"],
+        "artifact_forbidden_header_names": ["remote-skills-scope"]
+      }
+    },
+    {
+      "id": "scope-invalid-non-visible-ascii",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "configuration_invalid",
+          "retryable": false,
+          "context": {
+            "field": "scope"
+          }
+        },
+        "requests": 0
+      }
+    },
+    {
+      "id": "scope-invalid-empty",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "configuration_invalid",
+          "retryable": false,
+          "context": {
+            "field": "scope"
+          }
+        },
+        "requests": 0
+      }
+    },
+    {
+      "id": "scope-invalid-over-128-bytes",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "configuration_invalid",
+          "retryable": false,
+          "context": {
+            "field": "scope"
+          }
+        },
+        "requests": 0
+      }
+    },
+    {
+      "id": "scope-invalid-whitespace",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "configuration_invalid",
+          "retryable": false,
+          "context": {
+            "field": "scope"
+          }
+        },
+        "requests": 0
+      }
+    },
+    {
+      "id": "scope-invalid-comma",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "configuration_invalid",
+          "retryable": false,
+          "context": {
+            "field": "scope"
+          }
+        },
+        "requests": 0
+      }
+    },
+    {
+      "id": "scope-invalid-multiple-request-headers",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "configuration_invalid",
+          "retryable": false,
+          "context": {
+            "field": "remote-skills-scope"
+          }
+        },
+        "requests": 0
+      }
+    },
+    {
+      "id": "scope-invalid-multiple-response-headers",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "remote-skills-scope"
+          }
+        }
+      }
+    }
+  ]
+}

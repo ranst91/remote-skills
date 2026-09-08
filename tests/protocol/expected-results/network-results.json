@@ -1,0 +1,404 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "validator-initial-200",
+      "result": {
+        "outcome": "catalog_success",
+        "origin_alias": "acme",
+        "stale": false,
+        "entries": [],
+        "requests": 1,
+        "body_transfers": 1
+      }
+    },
+    {
+      "id": "validator-conditional-304",
+      "result": {
+        "outcome": "catalog_success",
+        "origin_alias": "acme",
+        "stale": false,
+        "entries": [],
+        "requests": 1,
+        "body_transfers": 0
+      }
+    },
+    {
+      "id": "validator-fresh-no-request",
+      "result": {
+        "outcome": "catalog_success",
+        "origin_alias": "acme",
+        "stale": false,
+        "entries": [],
+        "requests": 0,
+        "body_transfers": 0
+      }
+    },
+    {
+      "id": "redirect-same-host",
+      "result": { "outcome": "request_success", "requests": 2, "origin_header_hops": [0, 1] }
+    },
+    {
+      "id": "redirect-cross-host",
+      "result": { "outcome": "request_success", "requests": 2, "origin_header_hops": [0] }
+    },
+    {
+      "id": "redirect-private-address",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        },
+        "requests": 1
+      }
+    },
+    {
+      "id": "redirect-overflow",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        },
+        "requests": 6
+      }
+    },
+    { "id": "ip-public-v4", "result": { "outcome": "policy_decision", "decision": "allow" } },
+    {
+      "id": "ip-private-10",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-private-172",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-private-192",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-loopback-v4",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-link-local-v4",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-multicast-v4",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-unspecified-v4",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    { "id": "ip-public-v6", "result": { "outcome": "policy_decision", "decision": "allow" } },
+    {
+      "id": "ip-loopback-v6",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-unique-local-v6",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-link-local-v6",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-multicast-v6",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-unspecified-v6",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-mapped-loopback-v6",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-mapped-private-v6",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "ip-mapped-public-v6",
+      "result": { "outcome": "policy_decision", "decision": "allow" }
+    },
+    {
+      "id": "ip-dns-rebinding",
+      "result": {
+        "outcome": "policy_decision",
+        "decision": "deny",
+        "error": {
+          "code": "policy_denied",
+          "retryable": false,
+          "context": { "origin_alias": "acme" }
+        },
+        "resolutions": ["93.184.216.34", "127.0.0.1"],
+        "connection_attempts": 1
+      }
+    },
+    { "id": "retry-408", "result": { "outcome": "request_success", "requests": 2, "attempts": 2 } },
+    {
+      "id": "retry-429",
+      "result": { "outcome": "request_success", "requests": 2, "attempts": 2, "delays_ms": [2000] }
+    },
+    {
+      "id": "retry-500",
+      "result": {
+        "outcome": "request_success",
+        "requests": 3,
+        "attempts": 3,
+        "jitter_slots": [0, 1]
+      }
+    },
+    {
+      "id": "retry-network-failure",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "origin_unavailable",
+          "retryable": true,
+          "context": { "origin_alias": "acme" }
+        },
+        "requests": 3,
+        "attempts": 3
+      }
+    },
+    {
+      "id": "retry-disabled-transient",
+      "result": {
+        "outcome": "request_error",
+        "error": {
+          "code": "origin_unavailable",
+          "retryable": true,
+          "context": { "origin_alias": "acme" }
+        },
+        "requests": 1,
+        "attempts": 1
+      }
+    },
+    {
+      "id": "retry-digest-mismatch",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "digest_mismatch",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "skill_name": "fixture-skill",
+            "expected_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        "cache_object_published": false,
+        "requests": 1,
+        "attempts": 1
+      }
+    },
+    {
+      "id": "offline-active-session",
+      "result": {
+        "outcome": "resource_success",
+        "path": "SKILL.md",
+        "size": 83,
+        "media_type": "text/markdown",
+        "encoding": "utf-8",
+        "requests": 0
+      }
+    },
+    {
+      "id": "offline-new-default",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "origin_unavailable",
+          "retryable": true,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "offline-stale-allowed",
+      "result": {
+        "outcome": "catalog_success",
+        "origin_alias": "acme",
+        "stale": true,
+        "entries": [],
+        "requests": 0
+      }
+    },
+    {
+      "id": "offline-stale-expired",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "origin_unavailable",
+          "retryable": true,
+          "context": { "origin_alias": "acme" }
+        }
+      }
+    },
+    {
+      "id": "removal-existing-session",
+      "result": {
+        "outcome": "resource_success",
+        "path": "SKILL.md",
+        "size": 83,
+        "media_type": "text/markdown",
+        "encoding": "utf-8",
+        "requests": 0
+      }
+    },
+    {
+      "id": "removal-future-session",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "skill_not_found",
+          "retryable": false,
+          "context": { "origin_alias": "acme", "skill_name": "fixture-skill" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "credentials-same-host",
+      "result": {
+        "outcome": "request_success",
+        "requests": 1,
+        "sensitive_header_names": ["authorization"]
+      }
+    },
+    {
+      "id": "credentials-cross-host-stripped",
+      "result": { "outcome": "request_success", "requests": 2, "sensitive_header_names": [] }
+    },
+    {
+      "id": "credentials-explicit-cdn",
+      "result": {
+        "outcome": "request_success",
+        "requests": 1,
+        "sensitive_header_names": ["x-cdn-token"],
+        "forbidden_header_names": ["authorization"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "A catalog without an explicit schema.",
+      "type": "skill-md",
+      "url": "artifacts/code-review.md",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ]
+}

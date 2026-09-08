@@ -1,0 +1,10 @@
+{
+  "schema": "remote-skills-cache-lease-v1",
+  "digest": "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d",
+  "pid": 999999,
+  "process_nonce": "process-fixture-dead",
+  "session_nonce": "session-fixture-dead",
+  "lease_nonce": "lease-fixture-dead",
+  "created_at": "2026-08-20T10:00:00.000Z",
+  "renewed_at": "2026-08-20T10:00:30.000Z"
+}
