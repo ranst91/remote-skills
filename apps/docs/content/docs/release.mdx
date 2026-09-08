@@ -1,0 +1,39 @@
+---
+title: Release and compatibility
+description: V0 package versions, supported environments, local artifact evidence, and deferred features.
+---
+
+## V0 package line
+
+The initial coordinated version is `0.0.1`:
+
+- npm tarball for `@remote-skills/cli`;
+- npm tarball for `@remote-skills/client`;
+- Python wheel and source distribution named `remote-skills`.
+
+These are **local artifacts** built, inspected, installed, and smoke-tested without contacting a package registry. Repository acceptance does not reserve a package name, configure registry/OIDC state, request publication credentials, create a tag, upload bytes, or claim that any artifact is available from npm or PyPI.
+
+Major-zero SemVer applies: compatibility may change between minor versions. The packages can version independently later even though `0.0.1` starts coordinated.
+
+## Supported environments
+
+- Node.js 24 or newer.
+- Python 3.11 or newer.
+- Linux for the complete validation, test, build, and local packaging suite.
+- Windows for clean-installed CLI, TypeScript client, and Python distribution checks.
+
+Readiness requires the complete Linux suite plus the focused Windows installed-product checks. Platform-specific behavior may not weaken path, archive, link, or cache safety.
+
+## Standards contract
+
+V0 recognizes the canonical Agent Skills source format and exactly Cloudflare Agent Skills Discovery schema `https://schemas.agentskills.io/discovery/0.2.0/schema.json`. Missing, v0.1, and unknown schemas fail as `unsupported_schema`; recognized v0.2.0 catalogs ignore unknown non-conflicting fields.
+
+## Deferred from v0
+
+V0 does not include a marketplace, managed hosting, deploy command, browser SDK, OAuth/credential manager, framework adapter, MCP bridge, relevance model, automatic selection, client-side policy language, generated catalog types, custom signing protocol, or execution helper. The provider implements authentication, scope authorization, and artifact access at its origin; the host implements content trust and execution policy.
+
+The provider may prune advertised history. Consumers pin what an authorized session selected, but ranges do not create retention obligations. See [versions and removal](/docs/versions).
+
+## Documentation application
+
+This Fumadocs site is self-hostable. From the repository, `pnpm --filter @remote-skills/docs build` creates the production Next.js application and `pnpm --filter @remote-skills/docs start` serves it on a Node.js host. That documentation deployment is independent of the static skill-origin hosting contract.

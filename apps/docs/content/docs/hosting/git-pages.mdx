@@ -1,0 +1,49 @@
+---
+title: Git, CI, and Pages
+description: Keep Git as source of truth while deploying generated dist bytes at an origin root.
+---
+
+The supported flow is **repository source → CI build → generated `dist/` → static origin**. Git stays the authoring source of truth; SDKs do not clone repositories or special-case raw-file URLs.
+
+## CI shape
+
+Commit source skills, `remote-skills.json`, the package-manager lockfile, and CI configuration. Do not hand-edit or normalize the artifact bytes after the build.
+
+```yaml title="CI outline"
+steps:
+  - uses: actions/checkout@v4
+  - uses: pnpm/action-setup@v4
+    with:
+      run_install: false
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 24
+      cache: pnpm
+  - run: pnpm install --frozen-lockfile
+  - run: pnpm exec remote-skills validate --strict
+  - run: pnpm exec remote-skills build
+  - run: pnpm exec remote-skills verify http://127.0.0.1:8787
+    # Start `remote-skills dev` or another exact-byte loopback server for this check.
+  - name: Upload dist unchanged
+    uses: your-pages-provider/upload-artifact@pinned-version
+    with:
+      path: dist
+```
+
+Treat the snippet as provider-neutral structure: pin the actions your organization approves and ensure the CLI is already installed by the lockfile. The deployment job publishes the complete `dist/` tree, not unpacked archives and not only `index.json`.
+
+## GitHub Pages and GitLab Pages
+
+GitHub Pages, GitLab Pages, and other Pages products can serve the output if the deployment maps `dist/` to the hostname root. A custom domain such as `skills.example.com` is the clearest arrangement.
+
+The usual project site at `https://example.github.io/repository-name/` is a **project subpath**, not an origin root. Cloudflare discovery still resolves the fixed URL `https://example.github.io/.well-known/agent-skills/index.json`; it will not look under `/repository-name/`. Use one of:
+
+- a dedicated hostname or custom domain mapped to the Pages project;
+- provider routing that mounts `dist/` at `/`;
+- another static host capable of an origin-root mapping.
+
+Changing the SDK origin to include `/repository-name/` does not relocate the well-known path. Confirm the final URL with [archive-to-origin verification](/docs/hosting/archive-to-origin).
+
+## History and rollback
+
+If version history is advertised, CI must provide verified prior output to the builder so retained artifacts remain present. A clean build promises only what it contains. Roll back a faulty origin by redeploying the prior complete index and immutable artifact set; already pinned sessions remain internally consistent.

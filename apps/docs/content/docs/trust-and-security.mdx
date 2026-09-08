@@ -1,0 +1,38 @@
+---
+title: Trust and security
+description: What digest verification establishes, what stays untrusted, and where requests fail closed.
+---
+
+## Integrity is not trust
+
+SHA-256 verification establishes **byte integrity**: downloaded bytes match the descriptor in the catalog snapshot. It does not prove the publisher is trustworthy, the instructions are correct, or a bundled script is safe.
+
+Remote Skills never executes scripts, changes host permissions, selects relevance, grants tools, or treats `allowed-tools` as authorization. Instructions, frontmatter, references, assets, and executable-looking files remain untrusted data. The host agent/application owns trust and execution policy.
+
+## Archive boundary
+
+Before publication or use, archives fail closed on absolute, drive-prefixed, escaping, dot-segment, NUL-containing, or invalid UTF-8 paths; duplicate normalized names; portable case collisions; symlinks; hard links; devices; FIFOs; sockets; other special files; or a missing/non-regular root `SKILL.md`.
+
+Default bounds are:
+
+| Boundary | Default |
+| --- | ---: |
+| catalog | 1 MiB |
+| compressed artifact | 50 MiB |
+| extracted skill | 100 MiB |
+| files per skill | 1,000 |
+| bytes per file | 10 MiB |
+
+Metadata-declared sizes are checked before expansion and streamed sizes remain bounded. Digest verification finishes before immutable cache publication.
+
+## Network boundary
+
+Production origins require HTTPS. Explicit loopback development can allow HTTP. Userinfo, query-based secrets, denied IP ranges, and unsafe redirects are rejected. Every connection and redirect is re-evaluated under policy; redirects are capped.
+
+Credentials belong to one configured host authority. Same-origin requests receive origin headers. Cross-host artifacts receive none unless that host has its own explicit header map. Diagnostics sanitize URLs and exclude headers, response bodies, instructions, and resources.
+
+Only idempotent catalog/artifact GET failures, HTTP `408`, `429`, and `5xx` are retryable within configured bounds. Schema, policy, archive, and digest failures are terminal. The default timeout is 30 seconds with at most two retries.
+
+## Local publisher boundary
+
+The publisher rejects at-rest output symlinks/reparse points, serializes cooperative publication, retains directory-generation evidence, and finally re-verifies the intended output and exact bytes. Portable Node.js cannot prevent a malicious same-UID process from redirecting a pathname between the last check and a filesystem syscall; v0 detects an inconsistent intended output before reporting success but does not claim OS access-control guarantees.

@@ -1,0 +1,5 @@
+{
+  "title": "Hosting",
+  "defaultOpen": true,
+  "pages": ["archive-to-origin", "git-pages", "local-or-remote"]
+}

@@ -1,0 +1,28 @@
+---
+title: Versions, history, and removal
+description: Optional strict SemVer metadata, deterministic selection, retention, and session pinning.
+---
+
+Agent Skills may declare `metadata.version`; Remote Skills interprets it as strict SemVer. Version metadata is optional. Unversioned entries remain valid latest-only Cloudflare v0.2.0 entries.
+
+## Ignorable extension
+
+The standard top-level `type`, `url`, and `digest` always describe the provider's current release. Version-aware publishers add an entry-level `x-remote-skills` object with `version` and `releases`. A consumer that ignores the extension can still activate the standard current entry.
+
+History is bounded to 100 descriptors per skill. Descriptors contain exactly version, type, URL, and digest; the current descriptor must exactly match the top-level artifact. Reusing one skill/version with different bytes fails the build.
+
+## Range selection
+
+Clients accept `*`, `1.x`, `1.4.x`, `^1.4.2`, `~1.4.2`, or exact `1.4.2`. Each new session selects the highest advertised stable compatible release. A prerelease is eligible only when the range explicitly includes a relevant prerelease comparator.
+
+No range or `*` may use an unversioned current entry. A restrictive range against an unversioned entry, or any unsatisfied range, fails `version_unavailable`; clients do not widen the range or silently choose latest.
+
+## Retention is a provider choice
+
+The provider may carry forward releases only from verified prior output, including their content-addressed bytes unchanged. A clean build advertises only releases it actually contains. The provider may prune history and has no obligation to preserve every consumer baseline.
+
+An advertised range is therefore selection policy, not a retention guarantee. A provider may prune `1.4.7`; a newly validated online session must choose another advertised compatible release or fail `version_unavailable`. It cannot resurrect the removed object from cache.
+
+## Pins and updates
+
+Session A may pin `1.4.7`; a later catalog may add `1.4.8` or remove `1.4.7`. Session A remains readable at its authorized version, descriptor, and digest. A future session applies the range to the new catalog. Explicit bounded stale mode may select from its older snapshot and is marked stale.

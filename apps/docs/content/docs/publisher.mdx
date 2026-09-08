@@ -1,0 +1,51 @@
+---
+title: Publish an origin
+description: Validate canonical Agent Skills and build deterministic Cloudflare discovery v0.2.0 output.
+---
+
+Start with ordinary Agent Skills. Each immediate child of a configured source root is a candidate, and its directory name must match the `name` in `SKILL.md` frontmatter.
+
+```text
+skills/
+└── code-review/
+    ├── SKILL.md
+    └── references/
+        └── security.md
+```
+
+```md title="skills/code-review/SKILL.md"
+---
+name: code-review
+description: Review changes for correctness and security.
+metadata:
+  version: "1.4.7"
+---
+
+Read the change, then consult `references/security.md` when the change crosses a trust boundary.
+```
+
+Version metadata is optional. When present it must be strict SemVer; the builder never invents a version from a digest or timestamp.
+
+## Validate, build, verify
+
+Use a locally installed CLI; these commands do not download a command on demand.
+
+```bash
+pnpm exec remote-skills validate
+pnpm exec remote-skills build
+pnpm exec remote-skills verify https://skills.example.com
+```
+
+`validate` reports structural, safety, and broken-local-reference problems as errors. Writing guidance remains a warning unless `--strict` is enabled. Every included symlink and hard link is rejected. Default exclusions cover repository metadata, dependencies, build outputs, common secret files, and `.env*`; `.skillignore` may add exclusions but cannot re-include safety exclusions.
+
+## Artifact choice
+
+A skill containing only `SKILL.md` becomes a content-addressed `skill-md`. A skill with resources becomes a root-level tar-gzip archive by default. `--archive` forces an archive and `--format zip` selects deterministic ZIP. Source executable bits do not grant authority; scripts remain data.
+
+Output paths, member order, timestamps, ownership, permissions, compression parameters, JSON key order, and trailing newline are normalized for byte-identical builds across supported operating systems.
+
+## Publication generation
+
+The builder makes content-addressed artifacts durable before atomically replacing `index.json`. Cooperative builds for one output directory serialize. It preserves the immediately prior generation while readers may still hold it and finally verifies the output chain plus every byte referenced by the new index.
+
+For version history, use verified prior output and explicit pruning; see [version policy](/docs/versions). Then deploy the whole output exactly as described in [archive to origin](/docs/hosting/archive-to-origin).

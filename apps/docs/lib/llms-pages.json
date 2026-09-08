@@ -1,0 +1,21 @@
+[
+  {
+    "title": "Quickstarts",
+    "pages": ["index", "publisher", "typescript", "python"]
+  },
+  {
+    "title": "Hosting",
+    "pages": ["hosting/archive-to-origin", "hosting/git-pages"]
+  },
+  {
+    "title": "Operations and policy",
+    "pages": [
+      "cli",
+      "authentication-and-scopes",
+      "versions",
+      "cache-and-offline",
+      "trust-and-security",
+      "api-reference"
+    ]
+  }
+]

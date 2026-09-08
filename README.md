@@ -26,11 +26,11 @@ skills/
     └── SKILL.md
 ```
 
-Validate and serve them locally:
+With the CLI installed in your project, validate and serve them locally:
 
 ```bash
-npx @remote-skills/cli validate
-npx @remote-skills/cli dev
+remote-skills validate
+remote-skills dev
 ```
 
 The development origin is available at `http://127.0.0.1:8787`.
@@ -38,7 +38,7 @@ The development origin is available at `http://127.0.0.1:8787`.
 Build deploy-ready static output:
 
 ```bash
-npx @remote-skills/cli build
+remote-skills build
 ```
 
 ```text
@@ -51,26 +51,43 @@ dist/
             └── sha256-….tar.gz
 ```
 
-Deploy `dist/` to any HTTPS static host or application server. Remote Skills does not require a hosted Remote Skills service.
+## I bundled it; what do I host?
 
-Verify the deployed origin:
+Upload or mount the complete contents of `dist/` unchanged at your HTTPS origin root. For `https://skills.example.com`, the fixed catalog must resolve at `https://skills.example.com/.well-known/agent-skills/index.json`. Preserve the generated relative artifact URLs and exact response bytes or digest verification will fail. Keep archives compressed; their members already start at the archive root, with `SKILL.md` at that root rather than inside a skill-name wrapper.
+
+Serve the generated files with these media types:
+
+| Output | `Content-Type` |
+| --- | --- |
+| `index.json` | `application/json` |
+| `*.md` | `text/markdown; charset=utf-8` |
+| `*.zip` | `application/zip` |
+| `*.tar.gz` | `application/gzip` |
+
+Content-addressed artifacts may use immutable caching. Keep the fixed catalog on ordinary HTTP revalidation.
+
+Configure the SDK with the origin root, such as `https://skills.example.com`, not the catalog URL. Then verify the deployed origin:
 
 ```bash
-npx @remote-skills/cli verify https://skills.example.com
+remote-skills verify https://skills.example.com
 ```
 
 Private origins can use ordinary headers:
 
 ```bash
-SKILLS_AUTH='Bearer …' npx @remote-skills/cli verify \
+SKILLS_AUTH='Bearer …' remote-skills verify \
   https://skills.example.com \
   --header-env Authorization=SKILLS_AUTH
 ```
 
+A configured scope only requests a provider-defined catalog view; it does not grant access. The provider still authenticates the caller, authorizes that view, and authorizes every artifact request.
+
+See the [archive-to-origin guide](apps/docs/content/docs/hosting/archive-to-origin.mdx) for static hosting and the [Git, CI, and Pages guide](apps/docs/content/docs/hosting/git-pages.mdx) for Git-backed hosting and origin-root routing. If a small, fixed skill set should update and roll back with one container, copy or clone it into the image instead; the [local or remote guide](apps/docs/content/docs/hosting/local-or-remote.mdx) covers that choice.
+
 ## Consume skills from TypeScript
 
 ```bash
-npm install @remote-skills/client
+pnpm add ./artifacts/remote-skills-client-0.0.1.tgz
 ```
 
 ```ts
@@ -92,12 +109,12 @@ const security = await skill.read("references/security.md");
 await session.close();
 ```
 
-`catalog()` returns compact discovery metadata. `activate()` downloads and verifies the current artifact only when needed, then pins that exact digest for the session. `read()` loads a resource from the already verified artifact; it does not make another network request.
+`catalog()` returns compact discovery metadata. `activate()` downloads and verifies the complete current artifact only when needed, then pins that exact digest for the session. Resource access is context-lazy: `read()` loads a selected resource from the already verified local artifact and does not make another network request.
 
 ## Consume skills from Python
 
 ```bash
-uv add remote-skills
+uv add ./artifacts/remote_skills-0.0.1-py3-none-any.whl
 ```
 
 ```python
@@ -130,11 +147,13 @@ Artifacts are identified by their SHA-256 digest.
 - Existing pinned sessions continue offline.
 - New offline sessions fail closed unless stale use is explicitly enabled and age-bounded.
 
-The cache is not an installation. It is bounded, disposable, and safe to rebuild from the configured origin.
+The production default is a bounded disk cache, not RAM. Memory-only and custom caches are also available. Every cache is disposable, is not an installation, and is safe to rebuild from the configured origin.
+
+A version range selects among releases currently advertised by the provider; it is not a retention guarantee. The provider may prune a release, and a new online session cannot resurrect that removed release from cached bytes.
 
 ## Trust boundary
 
-Digest verification proves that downloaded bytes match the publisher's catalog. It does **not** prove that the instructions or scripts are safe.
+Digest verification proves **byte integrity**: downloaded bytes match the publisher's catalog. It does **not** prove that the instructions or scripts are safe.
 
 Remote Skills:
 
@@ -156,9 +175,12 @@ Remote Skills connects existing open formats:
 
 Remote Skills provides the publisher CLI and model-agnostic consumer SDKs around those standards.
 
+There is no managed Remote Skills service or framework adapter. You host the exact static build output and integrate a consumer SDK into your own host application.
+
 ## Documentation
 
 The full publisher, hosting, TypeScript, Python, caching, authentication, security, and API documentation lives in the self-hostable Fumadocs site under `apps/docs`.
+Runnable examples and their setup commands are indexed in [examples/README.md](examples/README.md).
 
 ## License
 

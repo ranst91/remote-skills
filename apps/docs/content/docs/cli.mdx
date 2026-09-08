@@ -1,0 +1,70 @@
+---
+title: CLI reference
+description: Validate, build, serve, and verify a skill origin with the packaged remote-skills binary.
+---
+
+Install `@remote-skills/cli` into the project from the release artifact your team has approved, then invoke its `remote-skills` binary through the local package manager. The CLI has four commands; there is no `deploy`, `publish`, or package-upload command.
+
+## `remote-skills validate`
+
+Validates `remote-skills.json`, source selection, standard Agent Skills frontmatter, local references, filesystem safety, and configured limits.
+
+```bash
+pnpm exec remote-skills validate
+pnpm exec remote-skills validate --strict
+```
+
+`--strict` promotes writing-quality warnings to errors. Invalid configuration and usage return a distinct usage exit code; validation failures and internal command failures return failure.
+
+## `remote-skills build`
+
+Builds deploy-ready static origin files. It validates first and does not replace completed output on a validation failure.
+
+```bash
+pnpm exec remote-skills build \
+  --format tar.gz \
+  --out-dir dist
+```
+
+Options:
+
+- `--archive` forces single-file skills into archives.
+- `--format tar.gz|zip` overrides archive format.
+- `--out-dir <project-relative-path>` overrides output.
+- `--prior-output <project-relative-path>` supplies a verified completed generation for history carry-forward.
+- repeatable `--prune SKILL@VERSION` explicitly removes retained release descriptors.
+
+## `remote-skills dev`
+
+Builds with the production pipeline, serves the completed well-known tree, watches included sources, and switches only between complete generations.
+
+```bash
+pnpm exec remote-skills dev
+# http://127.0.0.1:8787
+```
+
+`--host` and `--port` override bind settings. A non-loopback bind additionally requires `--unsafe-host`; this is acknowledgement, not authentication. Consumers must explicitly allow loopback HTTP. Refresh is ordinary catalog revalidation—there is no proprietary push channel.
+
+## `remote-skills verify <origin>`
+
+Checks the well-known catalog and all advertised current/history artifacts under consumer-equivalent network, size, digest, and archive policy.
+
+```bash
+pnpm exec remote-skills verify https://skills.example.com \
+  --timeout-ms 30000 \
+  --retries 2
+```
+
+Repeat `--header NAME=VALUE` for non-secret basic use or `--header-env NAME=ENV_VAR` to keep a secret out of the command line. `--scope <name>` requests and verifies a confirmed scoped catalog. Header values, bodies, and credential-bearing URLs are excluded from normal diagnostics.
+
+Override verification budgets with positive decimal integers (up to `9007199254740991`); both `--flag VALUE` and `--flag=VALUE` work. Each flag can appear once. Omitted flags retain these defaults:
+
+| Flag | Budget | Default |
+| --- | --- | --- |
+| `--catalog-bytes` | Catalog response or reused cached catalog, in bytes | 1048576 (1 MiB) |
+| `--archive-bytes` | Compressed artifact download, in bytes | 52428800 (50 MiB) |
+| `--extracted-bytes` | Total extracted file bytes per archive | 104857600 (100 MiB) |
+| `--files` | Files per archive | 1000 |
+| `--file-bytes` | Bytes per file, including standalone `skill-md` downloads | 10485760 (10 MiB) |
+
+For example, `pnpm exec remote-skills verify https://skills.example.com --catalog-bytes 2097152` allows a catalog of up to 2 MiB. Invalid budgets return a usage error before any request.
