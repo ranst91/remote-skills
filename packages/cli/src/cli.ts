@@ -9,6 +9,7 @@ import { PublisherBuildError } from "@remote-skills/core/build";
 import { ConfigValidationError } from "@remote-skills/core/config-schema";
 
 import { runBuildCommand } from "./build.ts";
+import { runDevCommand } from "./dev.ts";
 import { runValidateCommand } from "./validate.ts";
 import { runVerifyCommand } from "./verify.ts";
 import { PublisherVerifyError } from "./verify-errors.ts";
@@ -24,6 +25,7 @@ Usage:
 Commands:
   validate            Validate the current publisher project
   build               Build deploy-ready static origin files
+  dev                 Build and serve a loopback development origin
   verify <origin>     Verify every artifact at a deployed origin
 
 Options:
@@ -186,6 +188,7 @@ export async function dispatchCli(
 const DEFAULT_COMMANDS = Object.freeze({
   validate: runValidateCommand,
   build: runBuildCommand,
+  dev: runDevCommand,
   verify: runVerifyCommand,
 });
 
