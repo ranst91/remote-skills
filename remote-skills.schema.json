@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://remote-skills.dev/schemas/config/0.0.1.json",
+  "title": "Remote Skills publisher configuration",
+  "description": "Strict declarative configuration for remote-skills.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://remote-skills.dev/schemas/config/0.0.1.json",
+      "default": "https://remote-skills.dev/schemas/config/0.0.1.json"
+    },
+    "sourceRoots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "default": [
+        "skills"
+      ]
+    },
+    "outDir": {
+      "type": "string",
+      "minLength": 1,
+      "default": "dist"
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "tar.gz",
+        "zip"
+      ],
+      "default": "tar.gz"
+    },
+    "strict": {
+      "type": "boolean",
+      "default": false
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "default": {},
+      "properties": {
+        "catalogBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1048576
+        },
+        "archiveBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 52428800
+        },
+        "extractedBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 104857600
+        },
+        "files": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1000
+        },
+        "fileBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10485760
+        }
+      }
+    },
+    "dev": {
+      "type": "object",
+      "additionalProperties": false,
+      "default": {},
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "default": "127.0.0.1"
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 8787
+        }
+      }
+    }
+  }
+}
