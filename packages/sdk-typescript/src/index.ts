@@ -1,4 +1,10 @@
 export type {
+  CacheBackend,
+  CacheSelection,
+  DiskCacheOptions,
+  MemoryCacheOptions,
+} from "./cache/index.ts";
+export type {
   AggregateCatalog,
   CatalogDefaults,
   CatalogEntry,
