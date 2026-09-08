@@ -1,0 +1,426 @@
+{
+  "contract_version": 1,
+  "runtime": "Node.js 24.19.0 URL",
+  "cases": [
+    {
+      "id": "uppercase-sharp-s",
+      "input": "https://ẞ.example:443/^caret",
+      "expected": "https://xn--zca.example/%5Ecaret",
+      "authority": "xn--zca.example"
+    },
+    {
+      "id": "japanese-unicode",
+      "input": "https://例え.テスト/技能",
+      "expected": "https://xn--r8jz45g.xn--zckzah/%E6%8A%80%E8%83%BD",
+      "authority": "xn--r8jz45g.xn--zckzah"
+    },
+    {
+      "id": "japanese-punycode",
+      "input": "https://xn--r8jz45g.xn--zckzah/技能",
+      "expected": "https://xn--r8jz45g.xn--zckzah/%E6%8A%80%E8%83%BD",
+      "authority": "xn--r8jz45g.xn--zckzah"
+    },
+    {
+      "id": "cyrillic-unicode",
+      "input": "https://пример.рф/путь",
+      "expected": "https://xn--e1afmkfd.xn--p1ai/%D0%BF%D1%83%D1%82%D1%8C",
+      "authority": "xn--e1afmkfd.xn--p1ai"
+    },
+    {
+      "id": "cyrillic-punycode",
+      "input": "https://xn--e1afmkfd.xn--p1ai/путь",
+      "expected": "https://xn--e1afmkfd.xn--p1ai/%D0%BF%D1%83%D1%82%D1%8C",
+      "authority": "xn--e1afmkfd.xn--p1ai"
+    },
+    {
+      "id": "greek-unicode",
+      "input": "https://παράδειγμα.δοκιμή/διαδρομή",
+      "expected": "https://xn--hxajbheg2az3al.xn--jxalpdlp/%CE%B4%CE%B9%CE%B1%CE%B4%CF%81%CE%BF%CE%BC%CE%AE",
+      "authority": "xn--hxajbheg2az3al.xn--jxalpdlp"
+    },
+    {
+      "id": "greek-punycode",
+      "input": "https://xn--hxajbheg2az3al.xn--jxalpdlp/διαδρομή",
+      "expected": "https://xn--hxajbheg2az3al.xn--jxalpdlp/%CE%B4%CE%B9%CE%B1%CE%B4%CF%81%CE%BF%CE%BC%CE%AE",
+      "authority": "xn--hxajbheg2az3al.xn--jxalpdlp"
+    },
+    {
+      "id": "arabic-unicode",
+      "input": "https://مثال.إختبار/مسار",
+      "expected": "https://xn--mgbh0fb.xn--kgbechtv/%D9%85%D8%B3%D8%A7%D8%B1",
+      "authority": "xn--mgbh0fb.xn--kgbechtv"
+    },
+    {
+      "id": "han-unicode",
+      "input": "https://例子.测试/路径",
+      "expected": "https://xn--fsqu00a.xn--0zwm56d/%E8%B7%AF%E5%BE%84",
+      "authority": "xn--fsqu00a.xn--0zwm56d"
+    },
+    {
+      "id": "devanagari-unicode",
+      "input": "https://उदाहरण.परीक्षा/मार्ग",
+      "expected": "https://xn--p1b6ci4b4b3a.xn--11b5bs3a9aj6g/%E0%A4%AE%E0%A4%BE%E0%A4%B0%E0%A5%8D%E0%A4%97",
+      "authority": "xn--p1b6ci4b4b3a.xn--11b5bs3a9aj6g"
+    },
+    {
+      "id": "hebrew-unicode",
+      "input": "https://שלום.ישראל/דרך",
+      "expected": "https://xn--9dbne9b.xn--4dbrk0ce/%D7%93%D7%A8%D7%9A",
+      "authority": "xn--9dbne9b.xn--4dbrk0ce"
+    },
+    {
+      "id": "snowman-symbol",
+      "input": "https://☃.net/^caret",
+      "expected": "https://xn--n3h.net/%5Ecaret",
+      "authority": "xn--n3h.net"
+    },
+    {
+      "id": "emoji-host",
+      "input": "https://😀.la/^caret",
+      "expected": "https://xn--e28h.la/%5Ecaret",
+      "authority": "xn--e28h.la"
+    },
+    {
+      "id": "empty-interior-label",
+      "input": "https://a..b.example/^caret",
+      "expected": "https://a..b.example/%5Ecaret",
+      "authority": "a..b.example"
+    },
+    {
+      "id": "default-port-idn-unicode-path",
+      "input": "https://bücher.example:443/café",
+      "expected": "https://xn--bcher-kva.example/caf%C3%A9",
+      "authority": "xn--bcher-kva.example"
+    },
+    {
+      "id": "mapped-dot-variants",
+      "input": "https://a。b．c｡example/^caret",
+      "expected": "https://a.b.c.example/%5Ecaret",
+      "authority": "a.b.c.example"
+    },
+    {
+      "id": "kelvin-sign-maps-to-k",
+      "input": "https://K.example/^caret",
+      "expected": "https://k.example/%5Ecaret",
+      "authority": "k.example"
+    },
+    {
+      "id": "soft-hyphen-is-ignored",
+      "input": "https://a\u00adb.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "word-joiner-is-ignored",
+      "input": "https://a\u2060b.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "grapheme-joiner-is-ignored",
+      "input": "https://a\u034fb.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "zero-width-space-is-ignored",
+      "input": "https://a\u200bb.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "variation-selector-is-ignored",
+      "input": "https://a\ufe0fb.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "deprecated-mongolian-vowel-separator-is-ignored",
+      "input": "https://a\u180eb.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "function-application-is-ignored",
+      "input": "https://a\u2061b.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "invisible-plus-is-ignored",
+      "input": "https://a\u2064b.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "combining-greek-ypogegrammeni-is-mapped",
+      "input": "https://a\u0345b.example/^caret",
+      "expected": "https://xn--ab-09b.example/%5Ecaret",
+      "authority": "xn--ab-09b.example"
+    },
+    {
+      "id": "fullwidth-host-letters-are-mapped",
+      "input": "https://ａｂ.example/^caret",
+      "expected": "https://ab.example/%5Ecaret",
+      "authority": "ab.example"
+    },
+    {
+      "id": "percent-encoded-ascii-host",
+      "input": "https://%65xample.com/a",
+      "expected": "https://example.com/a",
+      "authority": "example.com"
+    },
+    {
+      "id": "percent-encoded-unicode-host",
+      "input": "https://%E2%98%83.net/a",
+      "expected": "https://xn--n3h.net/a",
+      "authority": "xn--n3h.net"
+    },
+    {
+      "id": "embedded-nul-path",
+      "input": "https://example.com/a\u0000b",
+      "expected": "https://example.com/a%00b",
+      "authority": "example.com"
+    },
+    {
+      "id": "lone-high-surrogate-path",
+      "input": "https://example.com/a\ud800b",
+      "expected": "https://example.com/a%EF%BF%BDb",
+      "authority": "example.com"
+    },
+    {
+      "id": "lone-low-surrogate-path",
+      "input": "https://example.com/a\udcffb",
+      "expected": "https://example.com/a%EF%BF%BDb",
+      "authority": "example.com"
+    },
+    {
+      "id": "valid-surrogate-pair-path",
+      "input": "https://example.com/a\ud83d\ude00b",
+      "expected": "https://example.com/a%F0%9F%98%80b",
+      "authority": "example.com"
+    },
+    {
+      "id": "hex-integer-ipv4",
+      "input": "https://0x08080808/a",
+      "expected": "https://8.8.8.8/a",
+      "authority": "8.8.8.8"
+    },
+    {
+      "id": "short-ipv4-last-component",
+      "input": "https://1.2.65535/a",
+      "expected": "https://1.2.255.255/a",
+      "authority": "1.2.255.255"
+    },
+    {
+      "id": "short-loopback-ipv4",
+      "input": "https://127.1/a",
+      "expected": "https://127.0.0.1/a",
+      "authority": "127.0.0.1"
+    },
+    {
+      "id": "hex-component-loopback-ipv4",
+      "input": "https://0x7f.1/a",
+      "expected": "https://127.0.0.1/a",
+      "authority": "127.0.0.1"
+    },
+    {
+      "id": "integer-loopback-ipv4",
+      "input": "https://2130706433/a",
+      "expected": "https://127.0.0.1/a",
+      "authority": "127.0.0.1"
+    },
+    {
+      "id": "trailing-dot-ipv4",
+      "input": "https://1.2.3.4./a",
+      "expected": "https://1.2.3.4/a",
+      "authority": "1.2.3.4"
+    },
+    {
+      "id": "octal-loopback-ipv4",
+      "input": "https://0177.0.0.1/a",
+      "expected": "https://127.0.0.1/a",
+      "authority": "127.0.0.1"
+    },
+    {
+      "id": "maximum-integer-ipv4",
+      "input": "https://4294967295/a",
+      "expected": "https://255.255.255.255/a",
+      "authority": "255.255.255.255"
+    },
+    {
+      "id": "empty-hex-integer-ipv4",
+      "input": "https://0x/a",
+      "expected": "https://0.0.0.0/a",
+      "authority": "0.0.0.0"
+    },
+    {
+      "id": "trailing-empty-short-ipv4",
+      "input": "https://1.2.3./a",
+      "expected": "https://1.2.0.3/a",
+      "authority": "1.2.0.3"
+    },
+    {
+      "id": "hex-integer-loopback-ipv4",
+      "input": "https://0x7f000001/a",
+      "expected": "https://127.0.0.1/a",
+      "authority": "127.0.0.1"
+    },
+    {
+      "id": "octal-components-ipv4",
+      "input": "https://0300.0250.0001.0001/a",
+      "expected": "https://192.168.1.1/a",
+      "authority": "192.168.1.1"
+    }
+  ],
+  "resolution_cases": [
+    {
+      "id": "ordinary-relative",
+      "input": "artifact.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/catalog/artifact.md"
+    },
+    {
+      "id": "repeated-slash-relative",
+      "input": "artifacts//sha256-a.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/catalog/artifacts//sha256-a.md"
+    },
+    {
+      "id": "dot-segment-relative",
+      "input": "./artifacts/./sha256-a.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/catalog/artifacts/sha256-a.md"
+    },
+    {
+      "id": "parent-segment-relative",
+      "input": "../artifacts/sha256-a.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/artifacts/sha256-a.md"
+    },
+    {
+      "id": "network-path-reference",
+      "input": "//cdn.example.test/artifacts//sha256-a.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://cdn.example.test/artifacts//sha256-a.md"
+    },
+    {
+      "id": "root-relative-repeated-slash",
+      "input": "/artifacts//sha256-a.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/artifacts//sha256-a.md"
+    },
+    {
+      "id": "parent-removes-one-segment",
+      "input": "artifacts/foo/../sha256-a.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/catalog/artifacts/sha256-a.md"
+    },
+    {
+      "id": "encoded-dot-segment",
+      "input": "artifacts/%2E/sha256-a.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/catalog/artifacts/sha256-a.md"
+    },
+    {
+      "id": "encoded-parent-segment",
+      "input": "artifacts/%2E%2E/secret.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/catalog/secret.md"
+    },
+    {
+      "id": "mixed-encoded-parent-segment",
+      "input": ".%2e/child.md",
+      "base": "https://skills.example.test/base/catalog/index.json",
+      "expected": "https://skills.example.test/base/child.md"
+    },
+    {
+      "id": "embedded-nul-relative-path",
+      "input": "art\u0000ifact.md",
+      "base": "https://skills.example.test/base/index.json",
+      "expected": "https://skills.example.test/base/art%00ifact.md"
+    }
+  ],
+  "version_drift_cases": [
+    { "codepoint": "0897", "expected": "https://xn--ab-tcf.example/" },
+    { "codepoint": "1B4E", "expected": "https://xn--ab-h2q.example/" },
+    { "codepoint": "1B4F", "expected": "https://xn--ab-k2q.example/" },
+    { "codepoint": "1B7F", "expected": "https://xn--ab-o6q.example/" },
+    { "codepoint": "1C89", "expected": "https://xn--ab-kur.example/" },
+    { "codepoint": "1C8A", "expected": "https://xn--ab-kur.example/" },
+    { "codepoint": "2427", "expected": "https://xn--ab-mmw.example/" },
+    { "codepoint": "2428", "expected": "https://xn--ab-pmw.example/" },
+    { "codepoint": "2429", "expected": "https://xn--ab-smw.example/" },
+    { "codepoint": "2FFC", "expected": null },
+    { "codepoint": "2FFD", "expected": null },
+    { "codepoint": "2FFE", "expected": null },
+    { "codepoint": "2FFF", "expected": null },
+    { "codepoint": "31E4", "expected": "https://xn--ab-274a.example/" },
+    { "codepoint": "31E5", "expected": "https://xn--ab-574a.example/" },
+    { "codepoint": "31EF", "expected": null },
+    { "codepoint": "A7CB", "expected": "https://xn--ab-sgb.example/" },
+    { "codepoint": "A7CC", "expected": "https://xn--ab-d58h.example/" },
+    { "codepoint": "A7CD", "expected": "https://xn--ab-d58h.example/" },
+    { "codepoint": "A7DA", "expected": "https://xn--ab-k68h.example/" },
+    { "codepoint": "A7DB", "expected": "https://xn--ab-k68h.example/" },
+    { "codepoint": "A7DC", "expected": "https://xn--ab-kya.example/" },
+    { "codepoint": "105C0", "expected": "https://xn--ab-v17n.example/" },
+    { "codepoint": "105C1", "expected": "https://xn--ab-y17n.example/" },
+    { "codepoint": "105C2", "expected": "https://xn--ab-117n.example/" },
+    { "codepoint": "105C3", "expected": "https://xn--ab-417n.example/" },
+    { "codepoint": "105C4", "expected": "https://xn--ab-717n.example/" },
+    { "codepoint": "105C5", "expected": "https://xn--ab-b27n.example/" },
+    { "codepoint": "105C6", "expected": "https://xn--ab-e27n.example/" },
+    { "codepoint": "105C7", "expected": "https://xn--ab-h27n.example/" },
+    { "codepoint": "105C8", "expected": "https://xn--ab-k27n.example/" },
+    { "codepoint": "105C9", "expected": "https://xn--ab-n27n.example/" },
+    { "codepoint": "105CA", "expected": "https://xn--ab-q27n.example/" },
+    { "codepoint": "105CB", "expected": "https://xn--ab-t27n.example/" },
+    { "codepoint": "105CC", "expected": "https://xn--ab-w27n.example/" },
+    { "codepoint": "105CD", "expected": "https://xn--ab-z27n.example/" },
+    { "codepoint": "105CE", "expected": "https://xn--ab-227n.example/" },
+    { "codepoint": "105CF", "expected": "https://xn--ab-527n.example/" },
+    { "codepoint": "105D0", "expected": "https://xn--ab-827n.example/" },
+    { "codepoint": "105D1", "expected": "https://xn--ab-c37n.example/" },
+    { "codepoint": "105D2", "expected": "https://xn--ab-f37n.example/" },
+    { "codepoint": "105D3", "expected": "https://xn--ab-i37n.example/" },
+    { "codepoint": "105D4", "expected": "https://xn--ab-l37n.example/" },
+    { "codepoint": "105D5", "expected": "https://xn--ab-o37n.example/" },
+    { "codepoint": "105D6", "expected": "https://xn--ab-r37n.example/" },
+    { "codepoint": "105D7", "expected": "https://xn--ab-u37n.example/" },
+    { "codepoint": "105D8", "expected": "https://xn--ab-x37n.example/" },
+    { "codepoint": "105D9", "expected": "https://xn--ab-037n.example/" }
+  ],
+  "invalid_cases": [
+    { "id": "zero-width-joiner", "input": "https://a\u200db.example/" },
+    { "id": "bidi-override", "input": "https://a\u202eb.example/" },
+    { "id": "one-dot-leader", "input": "https://a\u2024b.example/" },
+    { "id": "small-full-stop", "input": "https://a\ufe52b.example/" },
+    { "id": "arabic-letter-mark", "input": "https://a\u061cb.example/" },
+    { "id": "left-to-right-isolate", "input": "https://a\u2066b.example/" },
+    { "id": "first-strong-isolate", "input": "https://a\u2068b.example/" },
+    { "id": "unassigned-code-point", "input": "https://a\u0378b.example/" },
+    { "id": "private-use", "input": "https://a\ue000b.example/" },
+    { "id": "next-line-control", "input": "https://a\u0085b.example/" },
+    {
+      "id": "relative-tab-control",
+      "input": "art\tifact.md",
+      "base": "https://skills.example.test/base/index.json"
+    },
+    { "id": "encoded-host-slash", "input": "https://%2F.example/a" },
+    { "id": "encoded-host-nul", "input": "https://%00.example/a" },
+    { "id": "malformed-encoded-host", "input": "https://%zz.example/a" },
+    { "id": "invalid-utf8-encoded-host", "input": "https://%C3.example/a" },
+    { "id": "numeric-ipv4-overflow", "input": "https://4294967296/a" },
+    { "id": "hex-ipv4-overflow", "input": "https://0x100000000/a" },
+    { "id": "short-ipv4-overflow", "input": "https://1.2.65536/a" },
+    { "id": "non-final-ipv4-overflow", "input": "https://256.0.0.1/a" },
+    { "id": "too-many-ipv4-components", "input": "https://1.2.3.4.5/a" },
+    { "id": "invalid-octal-ipv4", "input": "https://09/a" },
+    { "id": "invalid-octal-components-ipv4", "input": "https://08.08.08.08/a" },
+    { "id": "empty-interior-numeric-label", "input": "https://1..2/a" },
+    { "id": "final-ipv4-component-overflow", "input": "https://1.2.3.256/a" },
+    { "id": "lone-high-surrogate-host", "input": "https://a\ud800b.example/a" },
+    { "id": "lone-low-surrogate-host", "input": "https://a\udcffb.example/a" }
+  ]
+}
