@@ -27,3 +27,12 @@ export type {
   StaleCatalogConfig,
 } from "./catalog/index.ts";
 export { CatalogAggregateError, RemoteSkillsError } from "./catalog/index.ts";
+export type {
+  ActivatedSessionSkill,
+  RemoteSkillsClient,
+  RemoteSkillsConfig,
+  RemoteSkillsDependencies,
+  RemoteSkillsSession,
+  SessionMetadata,
+} from "./session/index.ts";
+export { createRemoteSkills } from "./session/index.ts";
