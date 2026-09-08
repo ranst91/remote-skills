@@ -1,4 +1,10 @@
 export type {
+  ActivatedResource,
+  ActivatedSkill,
+  ActivationLimits,
+  ActivationPin,
+} from "./activation/index.ts";
+export type {
   CacheBackend,
   CacheSelection,
   DiskCacheOptions,
