@@ -9,3 +9,4 @@ package = false
 
 [tool.uv.workspace]
 members = ["packages/sdk-python"]
+exclude = ["examples/basic-python/agent"]

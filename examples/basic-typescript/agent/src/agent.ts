@@ -94,7 +94,7 @@ export async function answerChat(
     apiKey,
     maxRetries: 0,
     timeout: 30_000,
-    ...(baseURL === undefined ? {} : { baseURL }),
+    baseURL: baseURL ?? "https://api.openai.com/v1",
   });
   const client = createRemoteSkills({
     origins: { local: { url: origin, allowLoopbackHttp: true, retries: 0 } },

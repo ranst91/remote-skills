@@ -73,6 +73,26 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  examples/basic-python:
+    dependencies:
+      '@remote-skills/cli':
+        specifier: workspace:*
+        version: link:../../packages/cli
+
+  examples/basic-python/agent: {}
+
+  examples/basic-python/app:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite:
+        specifier: 8.2.2
+        version: 8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+
   examples/basic-typescript:
     dependencies:
       '@remote-skills/cli':

@@ -244,11 +244,15 @@ function exampleServices(
           args: [resolve(agentRoot, "src/server.ts")],
         }
       : {
-          command: resolve(agentRoot, ".venv/bin/python"),
+          command: resolve(
+            agentRoot,
+            process.platform === "win32" ? ".venv/Scripts/python.exe" : ".venv/bin/python",
+          ),
           args: [
             "-m",
             "uvicorn",
             "server:app",
+            "--no-access-log",
             "--host",
             "127.0.0.1",
             "--port",
