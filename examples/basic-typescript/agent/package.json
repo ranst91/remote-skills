@@ -1,0 +1,23 @@
+{
+  "name": "@remote-skills/example-basic-typescript-agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@remote-skills/client": "workspace:*",
+    "openai": "7.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  },
+  "scripts": {
+    "dev": "node src/server.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check": "pnpm typecheck"
+  }
+}

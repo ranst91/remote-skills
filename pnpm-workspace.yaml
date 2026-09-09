@@ -2,6 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
   - "examples/*"
+  - "examples/basic-typescript/agent"
+  - "examples/basic-typescript/app"
+  - "examples/basic-python/agent"
+  - "examples/basic-python/app"
   - "examples/consumers/*"
 
 catalog:

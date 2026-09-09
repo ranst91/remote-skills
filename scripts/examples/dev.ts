@@ -1,0 +1,377 @@
+import { type ChildProcess, spawn } from "node:child_process";
+import { existsSync, readFileSync } from "node:fs";
+import { createServer } from "node:net";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+import { createPnpmCommand } from "../lib/pnpm-command.ts";
+import { syncPython, uvAvailable } from "./sync-python.ts";
+
+type ExampleName = "python" | "typescript";
+
+export interface ServiceDefinition {
+  readonly name: string;
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly cwd: string;
+  readonly env: Readonly<NodeJS.ProcessEnv>;
+  readonly readyUrl: string;
+}
+
+interface RunServicesOptions {
+  readonly signal: AbortSignal;
+  readonly readinessTimeoutMs?: number;
+  readonly onStarted?: (name: string, pid: number) => void;
+  readonly onReady?: (name: string, pid: number) => void;
+}
+
+interface ExampleEnvironment {
+  readonly appPort: number;
+  readonly agentPort: number;
+  readonly skillsPort: number;
+}
+
+interface ManagedChild {
+  readonly definition: ServiceDefinition;
+  readonly process: ChildProcess;
+  readonly exit: Promise<{ code: number | null; signal: NodeJS.Signals | null }>;
+}
+
+const CATALOG_PATH = "/.well-known/agent-skills/index.json";
+const DEFAULT_READINESS_TIMEOUT_MS = 15_000;
+const SHUTDOWN_GRACE_MS = 1_500;
+
+function environmentVariable(name: string): string | undefined {
+  const value: unknown = Reflect.get(process.env, name);
+  return typeof value === "string" ? value : undefined;
+}
+
+function parsePort(env: Readonly<NodeJS.ProcessEnv>, name: string, fallback: number): number {
+  const raw = env[name];
+  if (raw === undefined || raw === "") return fallback;
+  if (!/^[0-9]+$/u.test(raw)) throw new Error(`${name} must be a port between 1 and 65535.`);
+  const port = Number(raw);
+  if (port < 1 || port > 65_535) {
+    throw new Error(`${name} must be a port between 1 and 65535.`);
+  }
+  return port;
+}
+
+export function validateEnvironment(
+  example: ExampleName,
+  env: Readonly<NodeJS.ProcessEnv>,
+): ExampleEnvironment {
+  if (env.REMOTE_SKILLS_EXAMPLE_TEST !== "1" && !env.OPENAI_API_KEY) {
+    throw new Error("OPENAI_API_KEY is required.");
+  }
+  const defaults =
+    example === "typescript"
+      ? { appPort: 5_173, agentPort: 3_001, skillsPort: 8_787 }
+      : { appPort: 5_174, agentPort: 3_002, skillsPort: 8_788 };
+  const ports = {
+    appPort: parsePort(env, "APP_PORT", defaults.appPort),
+    agentPort: parsePort(env, "AGENT_PORT", defaults.agentPort),
+    skillsPort: parsePort(env, "SKILLS_PORT", defaults.skillsPort),
+  };
+  if (new Set(Object.values(ports)).size !== 3) {
+    throw new Error("APP_PORT, AGENT_PORT, and SKILLS_PORT must be distinct.");
+  }
+  return ports;
+}
+
+function checkPort(port: number): Promise<void> {
+  return new Promise((resolvePort, rejectPort) => {
+    const server = createServer();
+    server.unref();
+    server.once("error", () => rejectPort(new Error(`Port ${port} is unavailable.`)));
+    server.listen(port, "127.0.0.1", () => {
+      server.close((error) =>
+        error ? rejectPort(new Error(`Port ${port} is unavailable.`)) : resolvePort(),
+      );
+    });
+  });
+}
+
+export async function assertPortsAvailable(ports: readonly number[]): Promise<void> {
+  for (const port of ports) await checkPort(port);
+}
+
+function startService(definition: ServiceDefinition): ManagedChild {
+  const child = spawn(definition.command, [...definition.args], {
+    cwd: definition.cwd,
+    env: { ...definition.env },
+    shell: false,
+    stdio: "inherit",
+  });
+  const exit = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
+    (resolveExit, rejectExit) => {
+      child.once("error", () => rejectExit(new Error(`${definition.name} failed to start.`)));
+      child.once("close", (code, signal) => resolveExit({ code, signal }));
+    },
+  );
+  return { definition, process: child, exit };
+}
+
+function abortPromise(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) return Promise.resolve();
+  return new Promise((resolveAbort) =>
+    signal.addEventListener("abort", () => resolveAbort(), { once: true }),
+  );
+}
+
+async function waitForReady(
+  child: ManagedChild,
+  timeoutMs: number,
+  signal: AbortSignal,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  const aborted = abortPromise(signal).then(() => "abort" as const);
+  while (Date.now() < deadline) {
+    if (signal.aborted) return false;
+    const requestSignal = AbortSignal.any([signal, AbortSignal.timeout(250)]);
+    const outcome = await Promise.race([
+      child.exit.then(() => "exit" as const),
+      aborted,
+      fetch(child.definition.readyUrl, { signal: requestSignal })
+        .then((response) => (response.ok ? "ready" : "retry"))
+        .catch(() => "retry" as const),
+    ]);
+    if (outcome === "exit") {
+      throw new Error(`${child.definition.name} exited before becoming ready.`);
+    }
+    if (outcome === "abort") return false;
+    if (outcome === "ready") return true;
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 50));
+  }
+  throw new Error(`${child.definition.name} did not become ready in time.`);
+}
+
+async function stopChild(child: ManagedChild): Promise<void> {
+  if (child.process.exitCode !== null || child.process.signalCode !== null) {
+    await child.exit.catch(() => undefined);
+    return;
+  }
+  child.process.kill("SIGTERM");
+  const exited = await Promise.race([
+    child.exit.then(
+      () => true,
+      () => true,
+    ),
+    new Promise<false>((resolveGrace) => setTimeout(() => resolveGrace(false), SHUTDOWN_GRACE_MS)),
+  ]);
+  if (!exited) {
+    child.process.kill("SIGKILL");
+    await child.exit.catch(() => undefined);
+  }
+}
+
+export async function runServices(
+  definitions: readonly ServiceDefinition[],
+  options: RunServicesOptions,
+): Promise<void> {
+  const children: ManagedChild[] = [];
+  try {
+    for (const definition of definitions) {
+      if (options.signal.aborted) return;
+      const child = startService(definition);
+      children.push(child);
+      if (child.process.pid === undefined) throw new Error(`${definition.name} failed to start.`);
+      options.onStarted?.(definition.name, child.process.pid);
+      const ready = await waitForReady(
+        child,
+        options.readinessTimeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
+        options.signal,
+      );
+      if (!ready) return;
+      options.onReady?.(definition.name, child.process.pid);
+    }
+
+    await Promise.race([
+      abortPromise(options.signal),
+      ...children.map((child) =>
+        child.exit.then(() => {
+          throw new Error(`${child.definition.name} exited unexpectedly.`);
+        }),
+      ),
+    ]);
+  } finally {
+    await Promise.all(children.map(stopChild));
+  }
+}
+
+function withoutKeys(
+  env: Readonly<NodeJS.ProcessEnv>,
+  keys: readonly string[],
+  additions: Readonly<NodeJS.ProcessEnv>,
+): NodeJS.ProcessEnv {
+  const result = { ...env, ...additions };
+  for (const key of keys) delete result[key];
+  return result;
+}
+
+function exampleServices(
+  example: ExampleName,
+  root: string,
+  ports: ExampleEnvironment,
+  env: Readonly<NodeJS.ProcessEnv>,
+): ServiceDefinition[] {
+  const exampleRoot = resolve(root, `examples/basic-${example}`);
+  const agentRoot = resolve(exampleRoot, "agent");
+  const appRoot = resolve(exampleRoot, "app");
+  const skillsOrigin = `http://127.0.0.1:${ports.skillsPort}`;
+  const agentOrigin = `http://127.0.0.1:${ports.agentPort}`;
+  const modelKeys = ["OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL"];
+  const publisherEnv = withoutKeys(
+    env,
+    [...modelKeys, "APP_PORT", "AGENT_PORT", "SKILLS_PORT", "REMOTE_SKILLS_ORIGIN"],
+    {},
+  );
+  const browserEnv = withoutKeys(
+    env,
+    [...modelKeys, "AGENT_PORT", "SKILLS_PORT", "REMOTE_SKILLS_ORIGIN"],
+    { APP_PORT: String(ports.appPort), AGENT_ORIGIN: agentOrigin },
+  );
+  const agentEnv = withoutKeys(env, ["APP_PORT", "SKILLS_PORT", "AGENT_ORIGIN"], {
+    AGENT_PORT: String(ports.agentPort),
+    REMOTE_SKILLS_ORIGIN: skillsOrigin,
+  });
+  const cliEntrypoint = resolve(exampleRoot, "node_modules/@remote-skills/cli/dist/cli.js");
+  const viteEntrypoint = resolve(appRoot, "node_modules/vite/bin/vite.js");
+  const backend =
+    example === "typescript"
+      ? {
+          command: process.execPath,
+          args: [resolve(agentRoot, "src/server.ts")],
+        }
+      : {
+          command: resolve(agentRoot, ".venv/bin/python"),
+          args: [
+            "-m",
+            "uvicorn",
+            "server:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            String(ports.agentPort),
+          ],
+        };
+  return [
+    {
+      name: "publisher",
+      command: process.execPath,
+      args: [cliEntrypoint, "dev", "--host", "127.0.0.1", "--port", String(ports.skillsPort)],
+      cwd: resolve(exampleRoot, "skills"),
+      env: publisherEnv,
+      readyUrl: `${skillsOrigin}${CATALOG_PATH}`,
+    },
+    {
+      name: "backend",
+      ...backend,
+      cwd: agentRoot,
+      env: agentEnv,
+      readyUrl: `${agentOrigin}/api/health`,
+    },
+    {
+      name: "browser",
+      command: process.execPath,
+      args: [viteEntrypoint],
+      cwd: appRoot,
+      env: browserEnv,
+      readyUrl: `http://127.0.0.1:${ports.appPort}`,
+    },
+  ];
+}
+
+function parseExample(args: readonly string[]): ExampleName {
+  const index = args.indexOf("--example");
+  const example = index === -1 ? undefined : args[index + 1];
+  if (example !== "typescript" && example !== "python") {
+    throw new Error("Use --example typescript or --example python.");
+  }
+  return example;
+}
+
+function verifyToolchain(root: string): void {
+  if (Number(process.versions.node.split(".")[0]) < 24) {
+    throw new Error("Node.js 24 or newer is required.");
+  }
+  const packageManager: unknown = JSON.parse(
+    readFileSync(resolve(root, "package.json"), "utf8"),
+  ).packageManager;
+  const expected = typeof packageManager === "string" ? packageManager : "";
+  const actual = environmentVariable("npm_config_user_agent")?.split(" ")[0] ?? "";
+  if (!process.env.npm_execpath || actual !== expected.replace("@", "/")) {
+    throw new Error(`Run this example with ${expected || "the repository's pinned pnpm"}.`);
+  }
+}
+
+async function runBuild(root: string, signal: AbortSignal): Promise<void> {
+  const launch = createPnpmCommand(["ci:build:repository"]);
+  const child = spawn(launch.command, launch.args, {
+    cwd: root,
+    env: withoutKeys(process.env, ["OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL"], {}),
+    shell: false,
+    stdio: "inherit",
+  });
+  let killTimer: NodeJS.Timeout | undefined;
+  const stop = () => {
+    child.kill("SIGTERM");
+    killTimer = setTimeout(() => child.kill("SIGKILL"), SHUTDOWN_GRACE_MS);
+  };
+  signal.addEventListener("abort", stop, { once: true });
+  try {
+    const code = await new Promise<number | null>((resolveExit, rejectExit) => {
+      child.once("error", () => rejectExit(new Error("Repository build failed to start.")));
+      child.once("close", resolveExit);
+    });
+    if (code !== 0) throw new Error("Repository build failed.");
+  } finally {
+    if (killTimer) clearTimeout(killTimer);
+    signal.removeEventListener("abort", stop);
+  }
+}
+
+async function main(): Promise<void> {
+  const root = resolve(import.meta.dirname, "../..");
+  const example = parseExample(process.argv.slice(2));
+  const exampleRoot = resolve(root, `examples/basic-${example}`);
+  const envFile = resolve(exampleRoot, ".env");
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
+  verifyToolchain(root);
+  const ports = validateEnvironment(example, process.env);
+  if (example === "python" && !uvAvailable({ cwd: resolve(exampleRoot, "agent") })) {
+    throw new Error("uv is required to run the Python example.");
+  }
+  await assertPortsAvailable([ports.appPort, ports.agentPort, ports.skillsPort]);
+
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+  try {
+    await runBuild(root, controller.signal);
+    if (example === "python") {
+      syncPython({ cwd: resolve(exampleRoot, "agent"), required: true });
+    }
+    const services = exampleServices(example, root, ports, process.env);
+    await runServices(services, {
+      signal: controller.signal,
+      onReady: (name) => {
+        if (name === "browser") {
+          process.stdout.write(`Chat ready at http://127.0.0.1:${ports.appPort}\n`);
+        }
+      },
+    });
+  } finally {
+    process.removeListener("SIGINT", stop);
+    process.removeListener("SIGTERM", stop);
+  }
+}
+
+const invokedPath = process.argv[1];
+if (invokedPath && import.meta.url === pathToFileURL(resolve(invokedPath)).href) {
+  main().catch((error: unknown) => {
+    process.stderr.write(`${error instanceof Error ? error.message : "Example startup failed."}\n`);
+    process.exitCode = 1;
+  });
+}

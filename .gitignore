@@ -6,3 +6,5 @@ coverage/
 __pycache__/
 *.py[cod]
 .DS_Store
+examples/basic-typescript/.env
+examples/basic-python/.env
