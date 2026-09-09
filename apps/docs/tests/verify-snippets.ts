@@ -4,10 +4,9 @@ import { cp, mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "n
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { basename, delimiter, dirname, relative, resolve } from "node:path";
-
+import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 import { runRemoteSkills } from "../../../tests/examples/helpers/public-cli.ts";
 import { startStaticOrigin } from "../../../tests/examples/helpers/static-host.ts";
-import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../..");
 const docsRoot = resolve(repositoryRoot, "apps/docs/content/docs");
@@ -107,7 +106,22 @@ function parseHostedCatalog(source: string): HostedCatalogEntry[] {
     };
   });
 }
+const basicChatContract: readonly BashContractEntry[] = [
+  { command: "pnpm i", mode: "static", reason: "executed-by-tests/examples/basic-chat.test.ts" },
+  {
+    command: "cp .env.example .env",
+    mode: "static",
+    reason: "executed-by-tests/examples/basic-chat.test.ts",
+  },
+  {
+    command: "pnpm run dev",
+    mode: "static",
+    reason: "executed-by-tests/examples/basic-chat.test.ts",
+  },
+];
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
+  ["examples/basic-python/README.md#0", basicChatContract],
+  ["examples/basic-typescript/README.md#0", basicChatContract],
   [
     "README.md#0",
     [

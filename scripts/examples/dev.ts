@@ -299,10 +299,16 @@ function verifyToolchain(root: string): void {
   if (Number(process.versions.node.split(".")[0]) < 24) {
     throw new Error("Node.js 24 or newer is required.");
   }
-  const packageManager: unknown = JSON.parse(
-    readFileSync(resolve(root, "package.json"), "utf8"),
-  ).packageManager;
-  const expected = typeof packageManager === "string" ? packageManager : "";
+  const manifest: unknown = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+  if (
+    manifest === null ||
+    typeof manifest !== "object" ||
+    !("packageManager" in manifest) ||
+    typeof manifest.packageManager !== "string"
+  ) {
+    throw new Error("The repository must declare its pinned pnpm version in packageManager.");
+  }
+  const expected = manifest.packageManager;
   const actual = environmentVariable("npm_config_user_agent")?.split(" ")[0] ?? "";
   if (!process.env.npm_execpath || actual !== expected.replace("@", "/")) {
     throw new Error(`Run this example with ${expected || "the repository's pinned pnpm"}.`);

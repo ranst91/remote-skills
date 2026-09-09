@@ -2,7 +2,7 @@
 
 Prerequisites: Node.js 24+, pnpm 10.33.4, uv, and an OpenAI API key.
 
-```sh
+```bash
 pnpm i
 cp .env.example .env
 # Add your OpenAI API key to .env

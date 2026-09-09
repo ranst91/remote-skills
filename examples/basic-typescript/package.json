@@ -13,6 +13,6 @@
   },
   "scripts": {
     "dev": "node ../../scripts/examples/dev.ts --example typescript",
-    "check": "pnpm --filter @remote-skills/example-basic-typescript-agent check && pnpm --filter @remote-skills/example-basic-typescript-app check && node --test ../../tests/examples/basic-chat-lifecycle.test.ts"
+    "check": "node --test ../../tests/examples/basic-chat-lifecycle.test.ts && cd skills && node ../node_modules/@remote-skills/cli/dist/cli.js validate"
   }
 }

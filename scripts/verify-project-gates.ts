@@ -12,6 +12,12 @@ const expectedProjects = [
   "@remote-skills/example-publisher",
   "@remote-skills/example-typescript-consumer",
   "@remote-skills/example-python-consumer",
+  "@remote-skills/example-basic-typescript",
+  "@remote-skills/example-basic-typescript-agent",
+  "@remote-skills/example-basic-typescript-app",
+  "@remote-skills/example-basic-python",
+  "@remote-skills/example-basic-python-agent",
+  "@remote-skills/example-basic-python-app",
 ];
 
 const turbo = createTurboCommand([

@@ -43,6 +43,12 @@ const groups = {
       "@remote-skills/example-publisher",
       "@remote-skills/example-typescript-consumer",
       "@remote-skills/example-python-consumer",
+      "@remote-skills/example-basic-typescript",
+      "@remote-skills/example-basic-typescript-agent",
+      "@remote-skills/example-basic-typescript-app",
+      "@remote-skills/example-basic-python",
+      "@remote-skills/example-basic-python-agent",
+      "@remote-skills/example-basic-python-app",
     ],
     commands: [
       buildCliCommand,
@@ -57,6 +63,28 @@ const groups = {
         kind: "pnpm",
         args: ["--filter", "@remote-skills/example-python-consumer", "run", "check"],
       },
+      {
+        kind: "pnpm",
+        args: ["--filter", "@remote-skills/example-basic-typescript", "run", "check"],
+      },
+      {
+        kind: "pnpm",
+        args: ["--filter", "@remote-skills/example-basic-typescript-agent", "run", "check"],
+      },
+      {
+        kind: "pnpm",
+        args: ["--filter", "@remote-skills/example-basic-typescript-app", "run", "check"],
+      },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/example-basic-python", "run", "check"] },
+      {
+        kind: "pnpm",
+        args: ["--filter", "@remote-skills/example-basic-python-agent", "run", "check"],
+      },
+      {
+        kind: "pnpm",
+        args: ["--filter", "@remote-skills/example-basic-python-app", "run", "check"],
+      },
+      { kind: "pnpm", args: ["run", "test:basic-chat"] },
     ],
   },
 } as const;

@@ -13,6 +13,6 @@
   },
   "scripts": {
     "dev": "node ../../scripts/examples/dev.ts --example python",
-    "check": "pnpm --filter @remote-skills/example-basic-python-agent check && pnpm --filter @remote-skills/example-basic-python-app check"
+    "check": "cd skills && node ../node_modules/@remote-skills/cli/dist/cli.js validate"
   }
 }

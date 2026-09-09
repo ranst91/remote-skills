@@ -21,6 +21,7 @@
     "test:repository": "pnpm ci:build:repository && pnpm test:repository:prepared",
     "test:repository:prepared": "node --test tests/repository/*.test.ts",
     "test:protocol": "node --test tests/protocol/*.test.ts",
+    "test:basic-chat": "node --test --test-concurrency=1 tests/examples/basic-chat.test.ts",
     "test": "pnpm test:repository && pnpm test:protocol && node scripts/run-turbo.ts test",
     "schema:generate": "node scripts/generate-config-schema.ts",
     "schema:check": "node scripts/check-config-schema.ts",
@@ -37,7 +38,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
+    "@copilotkit/aimock": "1.40.0",
     "@types/node": "24.13.3",
+    "playwright": "1.63.0",
     "turbo": "2.10.11",
     "typescript": "7.0.2"
   }

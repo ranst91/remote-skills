@@ -174,6 +174,12 @@ test("CI groups own every default test family without nested Turbo repetition", 
       "@remote-skills/example-publisher",
       "@remote-skills/example-typescript-consumer",
       "@remote-skills/example-python-consumer",
+      "@remote-skills/example-basic-typescript",
+      "@remote-skills/example-basic-typescript-agent",
+      "@remote-skills/example-basic-typescript-app",
+      "@remote-skills/example-basic-python",
+      "@remote-skills/example-basic-python-agent",
+      "@remote-skills/example-basic-python-app",
     ],
   });
 
@@ -296,7 +302,7 @@ test("the Windows command runs only clean installed CLI and activation smokes", 
   assert.equal(property(scripts, "ci:check:windows-public"), undefined);
 });
 
-test("the CI project-gate verifier names every placeholder workspace", () => {
+test("the CI project-gate verifier names every workspace", () => {
   const verifier = readFileSync("scripts/verify-project-gates.ts", "utf8");
 
   for (const project of [
@@ -308,8 +314,36 @@ test("the CI project-gate verifier names every placeholder workspace", () => {
     "@remote-skills/example-publisher",
     "@remote-skills/example-typescript-consumer",
     "@remote-skills/example-python-consumer",
+    "@remote-skills/example-basic-typescript",
+    "@remote-skills/example-basic-typescript-agent",
+    "@remote-skills/example-basic-typescript-app",
+    "@remote-skills/example-basic-python",
+    "@remote-skills/example-basic-python-agent",
+    "@remote-skills/example-basic-python-app",
   ])
     assert.ok(verifier.includes(project), `CI verifier does not require ${project}`);
+});
+
+test("the examples group checks each basic workspace and runs browser acceptance once", () => {
+  const commands = describeGroupCommands("examples");
+  assert.ok(Array.isArray(commands));
+  for (const language of ["python", "typescript"]) {
+    for (const suffix of ["", "-app", "-agent"]) {
+      assert.equal(
+        commands.filter(
+          (command) =>
+            command === `pnpm --filter @remote-skills/example-basic-${language}${suffix} run check`,
+        ).length,
+        1,
+      );
+    }
+  }
+  assert.equal(commands.filter((command) => command === "pnpm run test:basic-chat").length, 1);
+  const workflow = workflowJob(readFileSync(".github/workflows/ci.yml", "utf8"), "test");
+  assert.match(
+    workflow,
+    /if: matrix.group == 'examples'\n {8}run: pnpm exec playwright install --with-deps chromium/u,
+  );
 });
 
 test("Turbo receives and hashes deterministic CI environment values", () => {
