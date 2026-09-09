@@ -12,6 +12,7 @@ Start with `README.md`. The approved architecture and boundaries are in `openspe
 - `packages/cli`: public publisher CLI.
 - `packages/sdk-typescript`: public server-runtime TypeScript client.
 - `packages/sdk-python`: public async Python client.
+- `integrations/*`: framework integration packages.
 - `tests/protocol`: language-neutral fixtures and expected results; read `tests/protocol/README.md` before changing them.
 - `apps/docs`: self-hostable documentation site.
 - `examples`: runnable publisher and consumer examples.

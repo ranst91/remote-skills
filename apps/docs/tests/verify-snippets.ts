@@ -107,21 +107,20 @@ function parseHostedCatalog(source: string): HostedCatalogEntry[] {
   });
 }
 const basicChatContract: readonly BashContractEntry[] = [
-  { command: "pnpm i", mode: "static", reason: "executed-by-tests/examples/basic-chat.test.ts" },
+  { command: "pnpm i", mode: "static", reason: "executed-by-tests/examples/vercel-ai-sdk.test.ts" },
   {
     command: "cp .env.example .env",
     mode: "static",
-    reason: "executed-by-tests/examples/basic-chat.test.ts",
+    reason: "executed-by-tests/examples/vercel-ai-sdk.test.ts",
   },
   {
     command: "pnpm run dev",
     mode: "static",
-    reason: "executed-by-tests/examples/basic-chat.test.ts",
+    reason: "executed-by-tests/examples/vercel-ai-sdk.test.ts",
   },
 ];
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
-  ["examples/basic-python/README.md#0", basicChatContract],
-  ["examples/basic-typescript/README.md#0", basicChatContract],
+  ["examples/vercel-ai-sdk/README.md#0", basicChatContract],
   [
     "README.md#0",
     [
@@ -475,6 +474,7 @@ async function executeBashContracts(snippets: readonly Snippet[]) {
 
 async function compileTypeScript(snippets: readonly Snippet[]) {
   checkedSpawn("pnpm", ["--filter", "@remote-skills/client", "build"]);
+  checkedSpawn("pnpm", ["--filter", "@remote-skills/ai-sdk", "build"]);
   const project = await mkdtemp(resolve(tmpdir(), "remote-skills-doc-typescript-"));
   try {
     const packageScope = resolve(project, "node_modules/@remote-skills");
@@ -482,6 +482,16 @@ async function compileTypeScript(snippets: readonly Snippet[]) {
     await symlink(
       resolve(repositoryRoot, "packages/sdk-typescript"),
       resolve(packageScope, "client"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    await symlink(
+      resolve(repositoryRoot, "integrations/ai-sdk"),
+      resolve(packageScope, "ai-sdk"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    await symlink(
+      resolve(repositoryRoot, "integrations/ai-sdk/node_modules/ai"),
+      resolve(project, "node_modules/ai"),
       process.platform === "win32" ? "junction" : "dir",
     );
     await writeFile(resolve(project, "package.json"), '{"type":"module"}\n');
@@ -494,6 +504,9 @@ async function compileTypeScript(snippets: readonly Snippet[]) {
             moduleResolution: "NodeNext",
             noEmit: true,
             strict: true,
+            // Match the integration: AI SDK 7's published declarations have upstream errors.
+            // Snippet bodies and their public API usage still receive strict checking.
+            skipLibCheck: true,
             target: "ES2022",
             typeRoots: [resolve(repositoryRoot, "node_modules/@types")],
             types: ["node"],

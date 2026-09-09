@@ -175,7 +175,7 @@ Remote Skills connects existing open formats:
 
 Remote Skills provides the publisher CLI and model-agnostic consumer SDKs around those standards.
 
-There is no managed Remote Skills service or framework adapter. You host the exact static build output and integrate a consumer SDK into your own host application.
+You host the exact static build output and integrate a consumer SDK into your own host application. For Vercel AI SDK, use the [integration package](integrations/ai-sdk/README.md) and [TypeScript chat demo](examples/vercel-ai-sdk/README.md). There is no managed Remote Skills service.
 
 ## Documentation
 

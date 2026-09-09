@@ -36,6 +36,8 @@ export const TYPESCRIPT_PROJECT_CONFIG_PATHS = [
   "packages/cli/tsconfig.build.json",
   "packages/sdk-typescript/tsconfig.json",
   "packages/sdk-typescript/tsconfig.build.json",
+  "integrations/ai-sdk/tsconfig.json",
+  "integrations/ai-sdk/tsconfig.build.json",
   "apps/docs/tsconfig.json",
   "examples/tsconfig.json",
   "examples/consumers/typescript/tsconfig.json",

@@ -151,7 +151,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
   );
   assert.equal(
     property(scripts, "ci:build:repository"),
-    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client",
+    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk",
   );
   for (const group of ["core", "typescript", "python", "protocol", "examples"])
     assert.equal(
@@ -166,7 +166,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
   const groups: unknown = JSON.parse(description.stdout);
   assert.deepEqual(groups, {
     core: ["@remote-skills/core", "@remote-skills/cli"],
-    typescript: ["@remote-skills/client"],
+    typescript: ["@remote-skills/client", "@remote-skills/ai-sdk"],
     python: ["@remote-skills/python-workspace"],
     protocol: ["test:protocol", "determinism"],
     examples: [
@@ -174,12 +174,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
       "@remote-skills/example-publisher",
       "@remote-skills/example-typescript-consumer",
       "@remote-skills/example-python-consumer",
-      "@remote-skills/example-basic-typescript",
-      "@remote-skills/example-basic-typescript-agent",
-      "@remote-skills/example-basic-typescript-app",
-      "@remote-skills/example-basic-python",
-      "@remote-skills/example-basic-python-agent",
-      "@remote-skills/example-basic-python-app",
+      "@remote-skills/example-vercel-ai-sdk",
     ],
   });
 
@@ -195,6 +190,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
     "packages/core/package.json",
     "packages/cli/package.json",
     "packages/sdk-typescript/package.json",
+    "integrations/ai-sdk/package.json",
     "packages/sdk-python/package.json",
     "apps/docs/package.json",
     "examples/publisher/package.json",
@@ -310,35 +306,29 @@ test("the CI project-gate verifier names every workspace", () => {
     "@remote-skills/core",
     "@remote-skills/cli",
     "@remote-skills/client",
+    "@remote-skills/ai-sdk",
     "@remote-skills/python-workspace",
     "@remote-skills/example-publisher",
     "@remote-skills/example-typescript-consumer",
     "@remote-skills/example-python-consumer",
-    "@remote-skills/example-basic-typescript",
-    "@remote-skills/example-basic-typescript-agent",
-    "@remote-skills/example-basic-typescript-app",
-    "@remote-skills/example-basic-python",
-    "@remote-skills/example-basic-python-agent",
-    "@remote-skills/example-basic-python-app",
+    "@remote-skills/example-vercel-ai-sdk",
   ])
     assert.ok(verifier.includes(project), `CI verifier does not require ${project}`);
 });
 
-test("the examples group checks each basic workspace and runs browser acceptance once", () => {
+test("the examples group checks each Vercel workspace and runs browser acceptance once", () => {
   const commands = describeGroupCommands("examples");
   assert.ok(Array.isArray(commands));
-  for (const language of ["python", "typescript"]) {
-    for (const suffix of ["", "-app", "-agent"]) {
-      assert.equal(
-        commands.filter(
-          (command) =>
-            command === `pnpm --filter @remote-skills/example-basic-${language}${suffix} run check`,
-        ).length,
-        1,
-      );
-    }
+  for (const suffix of [""]) {
+    assert.equal(
+      commands.filter(
+        (command) =>
+          command === `pnpm --filter @remote-skills/example-vercel-ai-sdk${suffix} run check`,
+      ).length,
+      1,
+    );
   }
-  assert.equal(commands.filter((command) => command === "pnpm run test:basic-chat").length, 1);
+  assert.equal(commands.filter((command) => command === "pnpm run test:vercel-ai-sdk").length, 1);
   const workflow = workflowJob(readFileSync(".github/workflows/ci.yml", "utf8"), "test");
   assert.match(
     workflow,

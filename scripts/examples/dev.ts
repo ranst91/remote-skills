@@ -5,9 +5,6 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createPnpmCommand } from "../lib/pnpm-command.ts";
-import { syncPython, uvAvailable } from "./sync-python.ts";
-
-type ExampleName = "python" | "typescript";
 
 export interface ServiceDefinition {
   readonly name: string;
@@ -27,7 +24,6 @@ interface RunServicesOptions {
 
 interface ExampleEnvironment {
   readonly appPort: number;
-  readonly agentPort: number;
   readonly skillsPort: number;
 }
 
@@ -38,7 +34,7 @@ interface ManagedChild {
 }
 
 const CATALOG_PATH = "/.well-known/agent-skills/index.json";
-const DEFAULT_READINESS_TIMEOUT_MS = 15_000;
+const DEFAULT_READINESS_TIMEOUT_MS = 60_000;
 const SHUTDOWN_GRACE_MS = 1_500;
 
 function environmentVariable(name: string): string | undefined {
@@ -57,24 +53,17 @@ function parsePort(env: Readonly<NodeJS.ProcessEnv>, name: string, fallback: num
   return port;
 }
 
-export function validateEnvironment(
-  example: ExampleName,
-  env: Readonly<NodeJS.ProcessEnv>,
-): ExampleEnvironment {
+export function validateEnvironment(env: Readonly<NodeJS.ProcessEnv>): ExampleEnvironment {
   if (env.REMOTE_SKILLS_EXAMPLE_TEST !== "1" && !env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY is required.");
   }
-  const defaults =
-    example === "typescript"
-      ? { appPort: 5_173, agentPort: 3_001, skillsPort: 8_787 }
-      : { appPort: 5_174, agentPort: 3_002, skillsPort: 8_788 };
+  const defaults = { appPort: 5_173, skillsPort: 8_787 };
   const ports = {
     appPort: parsePort(env, "APP_PORT", defaults.appPort),
-    agentPort: parsePort(env, "AGENT_PORT", defaults.agentPort),
     skillsPort: parsePort(env, "SKILLS_PORT", defaults.skillsPort),
   };
-  if (new Set(Object.values(ports)).size !== 3) {
-    throw new Error("APP_PORT, AGENT_PORT, and SKILLS_PORT must be distinct.");
+  if (new Set(Object.values(ports)).size !== 2) {
+    throw new Error("APP_PORT and SKILLS_PORT must be distinct.");
   }
   return ports;
 }
@@ -210,89 +199,50 @@ function withoutKeys(
 }
 
 function exampleServices(
-  example: ExampleName,
   root: string,
   ports: ExampleEnvironment,
   env: Readonly<NodeJS.ProcessEnv>,
 ): ServiceDefinition[] {
-  const exampleRoot = resolve(root, `examples/basic-${example}`);
-  const agentRoot = resolve(exampleRoot, "agent");
-  const appRoot = resolve(exampleRoot, "app");
+  const exampleRoot = resolve(root, "examples/vercel-ai-sdk");
   const skillsOrigin = `http://127.0.0.1:${ports.skillsPort}`;
-  const agentOrigin = `http://127.0.0.1:${ports.agentPort}`;
-  const modelKeys = ["OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL"];
   const publisherEnv = withoutKeys(
     env,
-    [...modelKeys, "APP_PORT", "AGENT_PORT", "SKILLS_PORT", "REMOTE_SKILLS_ORIGIN"],
+    ["OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL", "REMOTE_SKILLS_ORIGIN"],
     {},
   );
-  const browserEnv = withoutKeys(
-    env,
-    [...modelKeys, "AGENT_PORT", "SKILLS_PORT", "REMOTE_SKILLS_ORIGIN"],
-    { APP_PORT: String(ports.appPort), AGENT_ORIGIN: agentOrigin },
-  );
-  const agentEnv = withoutKeys(env, ["APP_PORT", "SKILLS_PORT", "AGENT_ORIGIN"], {
-    AGENT_PORT: String(ports.agentPort),
-    REMOTE_SKILLS_ORIGIN: skillsOrigin,
-  });
-  const cliEntrypoint = resolve(exampleRoot, "node_modules/@remote-skills/cli/dist/cli.js");
-  const viteEntrypoint = resolve(appRoot, "node_modules/vite/bin/vite.js");
-  const backend =
-    example === "typescript"
-      ? {
-          command: process.execPath,
-          args: [resolve(agentRoot, "src/server.ts")],
-        }
-      : {
-          command: resolve(
-            agentRoot,
-            process.platform === "win32" ? ".venv/Scripts/python.exe" : ".venv/bin/python",
-          ),
-          args: [
-            "-m",
-            "uvicorn",
-            "server:app",
-            "--no-access-log",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            String(ports.agentPort),
-          ],
-        };
   return [
     {
       name: "publisher",
       command: process.execPath,
-      args: [cliEntrypoint, "dev", "--host", "127.0.0.1", "--port", String(ports.skillsPort)],
+      args: [
+        resolve(exampleRoot, "node_modules/@remote-skills/cli/dist/cli.js"),
+        "dev",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        String(ports.skillsPort),
+      ],
       cwd: resolve(exampleRoot, "skills"),
       env: publisherEnv,
       readyUrl: `${skillsOrigin}${CATALOG_PATH}`,
     },
     {
-      name: "backend",
-      ...backend,
-      cwd: agentRoot,
-      env: agentEnv,
-      readyUrl: `${agentOrigin}/api/health`,
-    },
-    {
       name: "browser",
       command: process.execPath,
-      args: [viteEntrypoint],
-      cwd: appRoot,
-      env: browserEnv,
+      args: [
+        resolve(exampleRoot, "node_modules/next/dist/bin/next"),
+        "dev",
+        "--webpack",
+        "--hostname",
+        "127.0.0.1",
+        "--port",
+        String(ports.appPort),
+      ],
+      cwd: exampleRoot,
+      env: { ...env, REMOTE_SKILLS_ORIGIN: skillsOrigin },
       readyUrl: `http://127.0.0.1:${ports.appPort}`,
     },
   ];
-}
-
-function parseExample(args: readonly string[]): ExampleName {
-  const index = args.indexOf("--example");
-  const example = index === -1 ? undefined : args[index + 1];
-  if (example !== "typescript" && example !== "python") {
-    throw new Error("Use --example typescript or --example python.");
-  }
-  return example;
 }
 
 function verifyToolchain(root: string): void {
@@ -343,16 +293,12 @@ async function runBuild(root: string, signal: AbortSignal): Promise<void> {
 
 async function main(): Promise<void> {
   const root = resolve(import.meta.dirname, "../..");
-  const example = parseExample(process.argv.slice(2));
-  const exampleRoot = resolve(root, `examples/basic-${example}`);
+  const exampleRoot = resolve(root, "examples/vercel-ai-sdk");
   const envFile = resolve(exampleRoot, ".env");
   if (existsSync(envFile)) process.loadEnvFile(envFile);
   verifyToolchain(root);
-  const ports = validateEnvironment(example, process.env);
-  if (example === "python" && !uvAvailable({ cwd: resolve(exampleRoot, "agent") })) {
-    throw new Error("uv is required to run the Python example.");
-  }
-  await assertPortsAvailable([ports.appPort, ports.agentPort, ports.skillsPort]);
+  const ports = validateEnvironment(process.env);
+  await assertPortsAvailable([ports.appPort, ports.skillsPort]);
 
   const controller = new AbortController();
   const stop = () => controller.abort();
@@ -360,10 +306,7 @@ async function main(): Promise<void> {
   process.once("SIGTERM", stop);
   try {
     await runBuild(root, controller.signal);
-    if (example === "python") {
-      syncPython({ cwd: resolve(exampleRoot, "agent"), required: true });
-    }
-    const services = exampleServices(example, root, ports, process.env);
+    const services = exampleServices(root, ports, process.env);
     await runServices(services, {
       signal: controller.signal,
       onReady: (name) => {

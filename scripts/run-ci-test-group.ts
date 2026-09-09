@@ -20,8 +20,13 @@ const groups = {
     ],
   },
   typescript: {
-    owners: ["@remote-skills/client"],
-    commands: [{ kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "check"] }],
+    owners: ["@remote-skills/client", "@remote-skills/ai-sdk"],
+    commands: [
+      { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "check"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "check"] },
+    ],
   },
   python: {
     owners: ["@remote-skills/python-workspace"],
@@ -43,16 +48,12 @@ const groups = {
       "@remote-skills/example-publisher",
       "@remote-skills/example-typescript-consumer",
       "@remote-skills/example-python-consumer",
-      "@remote-skills/example-basic-typescript",
-      "@remote-skills/example-basic-typescript-agent",
-      "@remote-skills/example-basic-typescript-app",
-      "@remote-skills/example-basic-python",
-      "@remote-skills/example-basic-python-agent",
-      "@remote-skills/example-basic-python-app",
+      "@remote-skills/example-vercel-ai-sdk",
     ],
     commands: [
       buildCliCommand,
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/docs", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-publisher", "run", "check"] },
       {
@@ -65,26 +66,9 @@ const groups = {
       },
       {
         kind: "pnpm",
-        args: ["--filter", "@remote-skills/example-basic-typescript", "run", "check"],
+        args: ["--filter", "@remote-skills/example-vercel-ai-sdk", "run", "check"],
       },
-      {
-        kind: "pnpm",
-        args: ["--filter", "@remote-skills/example-basic-typescript-agent", "run", "check"],
-      },
-      {
-        kind: "pnpm",
-        args: ["--filter", "@remote-skills/example-basic-typescript-app", "run", "check"],
-      },
-      { kind: "pnpm", args: ["--filter", "@remote-skills/example-basic-python", "run", "check"] },
-      {
-        kind: "pnpm",
-        args: ["--filter", "@remote-skills/example-basic-python-agent", "run", "check"],
-      },
-      {
-        kind: "pnpm",
-        args: ["--filter", "@remote-skills/example-basic-python-app", "run", "check"],
-      },
-      { kind: "pnpm", args: ["run", "test:basic-chat"] },
+      { kind: "pnpm", args: ["run", "test:vercel-ai-sdk"] },
     ],
   },
 } as const;
