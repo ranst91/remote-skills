@@ -49,6 +49,7 @@ jobs:
         with:
           version: "0.11.33"
           python-version: "3.11"
+          enable-cache: false
       - name: Preview or prepare coordinated versions
         id: release
         env:
