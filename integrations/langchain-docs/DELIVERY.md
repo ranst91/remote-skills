@@ -73,13 +73,69 @@ without a Next.js router network hop. Separate real Next.js/Chromium tests verif
 the page, request shape, ordered rendering, escaping, direct answers, bounded
 errors and cancellation with mocked route responses.
 
-**Live model: not run.** Automatic approval review rejected external OpenAI
-requests, including a retry documenting the public greeting-only payload. Direct
-user approval remains pending in the manager task. No browser workaround or
-live-provider request was made. Scripted responses are not live-model evidence.
+The manager task ran an authorized live baseline on September10,2026 using
+`gpt-4.1-mini` and the user input `Hello!` across all six paths. Five paths read
+the original instructions and reference and produced the required opening.
+Plain LangChain TypeScript answered directly without tools. The original checker
+reported four passes because a later instruction reread incorrectly erased the
+successful DeepAgents TypeScript sequence; its preserved event order shows the
+initial instruction-read, reference-read and correct final answer. An earlier
+independent Python LangGraph submission skipped the reference. These runs show
+variable model adherence and do not establish a reliable success rate.
 
-The managed read-only demo remains at <http://127.0.0.1:5182> with publisher
-<http://127.0.0.1:8792> for manager review. Live submissions remain on hold.
+The demo now supplies the same general skill-completion guidance in both
+languages, including required references and the existing trust boundary.
+It names no particular skill, resource, answer or forced tool choice.
+One follow-up six-path `gpt-4.1-mini` run with that guidance passed DeepAgents
+TypeScript, plain LangChain TypeScript and plain LangChain Python. The other
+three paths read the original instructions but skipped the reference. Guidance
+alone did not resolve the observed variability. A bounded six-path comparison
+using `gpt-4.1` answered `Hello!` directly in every path, without using tools.
+This does not establish that a model change makes bare greetings use skills.
+
+A separate local audit of all six actual handler/native compositions with
+`gpt-4.1` configuration and a dummy loopback provider verified the outgoing
+catalog description/path, host completion guidance, native progressive guidance,
+native `read_file` schema and automatic tool choice. No original instructions or
+reference contents appeared initially; discovery fetched zero artifacts. This
+checks composed requests locally, not previously sent live requests. The native
+skill prompt leaves selection discretionary and contains no explicit prohibition
+on tools for simple requests.
+
+The manager then ran the separate task `Welcome a new teammate using our
+prescribed greeting style.` once across all six paths with `gpt-4.1`. Every path
+read the original instructions and exact reference, then streamed the required
+opening and completed without an error. Unlike a bare greeting, this task asks
+for prescribed context unavailable to the model initially. The fixture,
+adapter, native tools and acceptance assertions were unchanged. It requests no
+particular tool/file and supplies no expected answer. A separate manager browser
+submission of the same task through plain LangChain TypeScript also succeeded.
+After the final starter update, the manager selected DeepAgents Python and
+clicked **Try team greeting** in the browser. That independent submission also
+read the instructions and reference before the correct welcoming answer, with
+no visible error. The manager captured actual screenshots of these browser
+submissions; screenshots from mocked page tests are not counted as live proof.
+
+The demo starter now uses that exact task, and both model defaults and
+`.env.example` use the tested `gpt-4.1` configuration while preserving
+`OPENAI_MODEL` overrides. Generic guidance remains the same. These changes do
+not turn the successful scenario into a successful `Hello!` run or establish a
+future reliability guarantee. The updated browser test clicks the actual starter
+for each selector and checks the outgoing task; deterministic native tests use
+the same task while retaining their explicit scripted-provider label.
+
+[Sanitized live validation](live-validation.json) preserves all four matrices,
+the original baseline checker outcome and correction, artifact/source hashes,
+event order and flags. It also records the separate local request audit. No raw
+model response, skill instruction body or credential is included.
+Local deterministic checks remain separate from live-model evidence.
+The manager owns live-provider execution and browser
+evidence; automatic approval review does not accept parent-task authorization
+for live execution in this implementation task, so none was attempted through
+an alternate route here.
+
+The managed demo remains at <http://127.0.0.1:5182> with publisher
+<http://127.0.0.1:8792> for manager review.
 
 ## Verification
 
@@ -110,6 +166,13 @@ matching CI's use of the synced interpreter.
 | `pnpm ci:verify-projects` | Passed;13 workspace project gates |
 | `pnpm check` | Passed;13 package check tasks, plus repository/protocol/format/lint/schema/type policy gates |
 | `git diff --check` | Passed |
+
+The focused demo follow-up passed its checks, production build and every root
+gate above. Its final root check completed all13 project checks in1m32s;
+the separate repository/protocol runs passed100/184 tests, typecheck completed
+all19 tasks, and project registration verified all13 gates. The live matrix
+predates only the starter/default promotion; the
+effective tested model and generic guidance are unchanged.
 
 Earlier failures were resolved: strict LangSmith peer range, duplicate Zod peer
 copies, generated Next.js output registration, new workspace/snippet contracts,

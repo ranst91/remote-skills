@@ -25,6 +25,7 @@ const MAX_MESSAGE_CHARS = 8_000;
 const MAX_EVENT_BYTES = 256 * 1024;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_EVENTS = 2_000;
+const STARTER_MESSAGE = "Welcome a new teammate using our prescribed greeting style.";
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -235,8 +236,8 @@ export default function Chat() {
         <p className="eyebrow">Remote Skills · LangChain family</p>
         <h1>Ask with context.</h1>
         <p className="lede">
-          Choose an agent and say hello. It can discover and load a relevant remote skill as it
-          answers.
+          Welcome a teammate in your team's prescribed style. The agent can find the guidance it
+          needs as it answers.
         </p>
       </header>
       <section className="chat" aria-label="Chat with the skill-enabled agent">
@@ -274,9 +275,7 @@ export default function Chat() {
           }}
         >
           {!question && (
-            <p className="empty-state">
-              Try a greeting to see the remote greeting skill in action.
-            </p>
+            <p className="empty-state">Try a team welcome to see the prescribed greeting style.</p>
           )}
           {question && (
             <article className="message user">
@@ -327,7 +326,7 @@ export default function Chat() {
               }
             }}
             rows={2}
-            placeholder="Say hello…"
+            placeholder="Ask for a welcome in your team's style…"
             value={input}
             onChange={(event) => setInput(event.target.value)}
             disabled={busy}
@@ -340,9 +339,9 @@ export default function Chat() {
               className="quiet"
               type="button"
               disabled={busy}
-              onClick={() => void send("Hello!")}
+              onClick={() => void send(STARTER_MESSAGE)}
             >
-              Try “Hello!”
+              Try team greeting
             </button>
             <div className="primary-actions">
               <button className="quiet" type="button" onClick={reset}>

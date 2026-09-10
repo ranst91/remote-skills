@@ -114,35 +114,41 @@ test("LangChain demo page renders bounded chronological events and cancels reque
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(app.origin);
 
-  await t.test("each supported path sends one question and permits a direct answer", async () => {
-    for (const path of [
-      "deepagents-ts",
-      "langchain-ts",
-      "langgraph-ts",
-      "deepagents-python",
-      "langchain-python",
-      "langgraph-python",
-    ]) {
-      await page.route("**/api/chat", async (route) => {
-        assert.deepEqual(route.request().postDataJSON(), { message: "Hello!", path });
-        await route.fulfill({
-          contentType: "application/x-ndjson",
-          body: ndjson([
-            { type: "text", text: "Hello, " },
-            { type: "text", text: "friend!" },
-            { type: "done" },
-          ]),
+  await t.test(
+    "each supported path sends the starter task and permits a direct answer",
+    async () => {
+      for (const path of [
+        "deepagents-ts",
+        "langchain-ts",
+        "langgraph-ts",
+        "deepagents-python",
+        "langchain-python",
+        "langgraph-python",
+      ]) {
+        await page.route("**/api/chat", async (route) => {
+          assert.deepEqual(route.request().postDataJSON(), {
+            message: "Welcome a new teammate using our prescribed greeting style.",
+            path,
+          });
+          await route.fulfill({
+            contentType: "application/x-ndjson",
+            body: ndjson([
+              { type: "text", text: "Hello, " },
+              { type: "text", text: "friend!" },
+              { type: "done" },
+            ]),
+          });
         });
-      });
-      await page.getByLabel("Agent", { exact: true }).selectOption(path);
-      await send(page);
-      await page.getByText("Hello, friend!", { exact: true }).waitFor();
-      await ready(page);
-      assert.equal(await page.locator(".assistant .answer").count(), 1);
-      assert.equal(await page.locator(".assistant details").count(), 0);
-      await page.unroute("**/api/chat");
-    }
-  });
+        await page.getByLabel("Agent", { exact: true }).selectOption(path);
+        await page.getByRole("button", { name: "Try team greeting", exact: true }).click();
+        await page.getByText("Hello, friend!", { exact: true }).waitFor();
+        await ready(page);
+        assert.equal(await page.locator(".assistant .answer").count(), 1);
+        assert.equal(await page.locator(".assistant details").count(), 0);
+        await page.unroute("**/api/chat");
+      }
+    },
+  );
 
   await t.test(
     "catalog, text, and native tool details preserve event order and escape content",

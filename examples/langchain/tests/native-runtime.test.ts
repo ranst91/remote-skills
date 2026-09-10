@@ -14,7 +14,7 @@ import type { AgentPath, ChatEvent } from "../server/typescript-agent.ts";
 
 const example = resolve(import.meta.dirname, "..");
 const greeting = "Ahoy, curious human! What would you like to explore?";
-const modelName = "gpt-4.1-mini";
+const modelName = "gpt-4.1";
 const dummyKey = "local-native-runtime-test-key";
 const instructionPath = "/skills/greeting/SKILL.md";
 const resourcePath = "/skills/greeting/references/greeting.md";
@@ -305,7 +305,10 @@ for (const path of paths) {
         new Request("http://127.0.0.1/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: "Hello! Please use the greeting skill.", path }),
+          body: JSON.stringify({
+            message: "Welcome a new teammate using our prescribed greeting style.",
+            path,
+          }),
           signal: controller.signal,
         }),
       );

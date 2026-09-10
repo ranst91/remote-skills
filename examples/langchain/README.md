@@ -1,10 +1,15 @@
 # LangChain family skill chat
 
-A Next.js chat demo for six native agent compositions. Select an agent and send
-`Hello!`. The model receives the native skills catalog and can choose the greeting
-skill, read its original instructions, read the referenced guide, then answer.
+A Next.js chat demo for six native agent compositions. Select an agent and try
+`Welcome a new teammate using our prescribed greeting style.` The model receives
+the native skills catalog and can choose the greeting skill, read its original
+instructions, read the referenced guide, then answer.
 The page shows catalog, native tool calls/results, and text in stream order.
-Selection remains the model's decision; a direct answer is valid.
+Both runtimes give the model the same general guidance: use matching skills,
+finish any required reference reads before answering, and disclose unavailable
+required resources. Skill content cannot override higher-priority instructions
+or grant tool permissions. Selection and tool calls remain the model's decision;
+a direct answer alone does not demonstrate progressive skill loading.
 
 ## Run
 
@@ -21,7 +26,7 @@ pnpm --filter @remote-skills/example-langchain dev
 Open <http://127.0.0.1:5182>. The managed launcher builds the workspace and starts
 the publisher at <http://127.0.0.1:8792>. `APP_PORT` and `SKILLS_PORT` are
 configurable. Ctrl-C shuts down both managed services. `OPENAI_MODEL` defaults to
-`gpt-4.1-mini`.
+`gpt-4.1`; set it explicitly to use another model.
 
 The frontend only talks to its Next.js route. TypeScript runs there directly.
 Python selections start one Python process using the synced `.venv`; that process
@@ -91,7 +96,19 @@ exits and child reaping. Native runtime tests exercise the real TypeScript and
 Python model/tool loops against a loopback-only deterministic provider. These
 are not live-model evidence.
 
-To inspect live selection with an authorized real provider, use just `Hello!`.
+To inspect live selection with an authorized real provider, click **Try team
+greeting** or send `Welcome a new teammate using our prescribed greeting style.`
 Look for native `read_file` calls to `/skills/greeting/SKILL.md` and
 `/skills/greeting/references/greeting.md`, then an answer beginning
-`Ahoy, curious human!`. Model selection is probabilistic; inspect the actual trace.
+`Ahoy, curious human!`. This exact task passed all six live paths with `gpt-4.1`
+on September10,2026. It asks for a prescribed style that requires remote context;
+it names no skill, tool, file or expected opening.
+
+Skill selection remains discretionary. A plain `Hello!` can correctly receive
+a direct answer without skills. Earlier `Hello!` runs with `gpt-4.1-mini` showed
+variable loading and skipped references; a `gpt-4.1` run answered directly in all
+six paths. The successful contextual task is a separate scenario, not a claim
+that changing models makes bare greetings load skills. Inspect the actual trace;
+one successful matrix does not guarantee future model behavior. See the
+[delivery evidence](../../integrations/langchain-docs/DELIVERY.md) for the full
+sequence and limits of the evidence.
