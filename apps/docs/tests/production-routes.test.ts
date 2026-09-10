@@ -10,17 +10,22 @@ const appRootPath = fileURLToPath(appRoot);
 const nextBin = fileURLToPath(new URL("node_modules/next/dist/bin/next", appRoot));
 const expectedMarkdownRoutes = [
   "/docs/index.md",
+  "/docs/quickstart.md",
   "/docs/publisher.md",
-  "/docs/typescript.md",
-  "/docs/python.md",
   "/docs/hosting/archive-to-origin.md",
   "/docs/hosting/git-pages.md",
-  "/docs/cli.md",
-  "/docs/authentication-and-scopes.md",
-  "/docs/versions.md",
+  "/docs/consume.md",
+  "/docs/vercel-ai-sdk.md",
+  "/docs/concepts.md",
+  "/docs/hosting/local-or-remote.md",
   "/docs/cache-and-offline.md",
+  "/docs/versions.md",
+  "/docs/authentication-and-scopes.md",
   "/docs/trust-and-security.md",
+  "/docs/cli.md",
+  "/docs/configuration.md",
   "/docs/api-reference.md",
+  "/docs/release.md",
 ];
 
 function generatedMarkdownRoute(publicRoute: string) {
@@ -112,7 +117,21 @@ test("production build serves llms.txt and every indexed canonical Markdown rout
       assert.match(markdown, /^# .+/u, route);
       assert.doesNotMatch(markdown, /&#x[0-9a-f]+;/iu, route);
       if (route === "/docs/hosting/archive-to-origin.md") {
-        assert.match(markdown, /\*\*Do not unpack, recompress, rename, or wrap archives\.\*\*/u);
+        assert.match(markdown, /\*\*Archives are served exactly as built\.\*\*/u);
+      }
+    }
+
+    for (const [oldPage, destination] of [
+      ["typescript", "consume"],
+      ["python", "consume"],
+      ["installation", "quickstart"],
+    ]) {
+      for (const suffix of ["", ".md"]) {
+        const response = await fetch(`${baseUrl}/docs/${oldPage}${suffix}`, {
+          redirect: "manual",
+        });
+        assert.equal(response.status, 308);
+        assert.equal(response.headers.get("location"), `/docs/${destination}${suffix}`);
       }
     }
   } finally {

@@ -1,28 +1,148 @@
 ---
-title: Versions, history, and removal
-description: Optional strict SemVer metadata, deterministic selection, retention, and session pinning.
+title: Versions and history
+description: Publish named releases and let consumers select a compatible version.
 ---
 
-Agent Skills may declare `metadata.version`; Remote Skills interprets it as strict SemVer. Version metadata is optional. Unversioned entries remain valid latest-only Cloudflare v0.2.0 entries.
+By default, new sessions pick up the latest available skill. In production, you may want to test how an update changes your agent's behavior before adopting it. Versions let you stay on a known release or accept only a chosen range of updates.
 
-## Ignorable extension
+## Give a skill a version
 
-The standard top-level `type`, `url`, and `digest` always describe the provider's current release. Version-aware publishers add an entry-level `x-remote-skills` object with `version` and `releases`. A consumer that ignores the extension can still activate the standard current entry.
+<Callout type="info">
+Version selection and release history are optional Remote Skills features, not requirements of the Agent Skills format or discovery standard. The version fits in the format's existing `metadata` field, so the skill remains compatible; clients without version support can still load its current release.
+</Callout>
 
-History is bounded to 100 descriptors per skill. Descriptors contain exactly version, type, URL, and digest; the current descriptor must exactly match the top-level artifact. Reusing one skill/version with different bytes fails the build.
+A versioned skill includes a full SemVer value in `metadata.version`, such as `1.0.0`:
 
-## Range selection
+```md title="skills/howdy/SKILL.md"
+---
+name: howdy
+description: Greet someone with a friendly cowboy welcome.
+metadata:
+  version: "1.0.0"
+---
 
-Clients accept `*`, `1.x`, `1.4.x`, `^1.4.2`, `~1.4.2`, or exact `1.4.2`. Each new session selects the highest advertised stable compatible release. A prerelease is eligible only when the range explicitly includes a relevant prerelease comparator.
+When greeting someone, say "Howdy partner!" and offer to help.
+```
 
-No range or `*` may use an unversioned current entry. A restrictive range against an unversioned entry, or any unsatisfied range, fails `version_unavailable`; clients do not widen the range or silently choose latest.
+The first build goes into `release-1.0.0/`:
 
-## Retention is a provider choice
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
 
-The provider may carry forward releases only from verified prior output, including their content-addressed bytes unchanged. A clean build advertises only releases it actually contains. The provider may prune history and has no obligation to preserve every consumer baseline.
+```bash
+npm exec -- remote-skills build --out-dir release-1.0.0
+```
 
-An advertised range is therefore selection policy, not a retention guarantee. A provider may prune `1.4.7`; a newly validated online session must choose another advertised compatible release or fail `version_unavailable`. It cannot resurrect the removed object from cache.
+</Tab>
+<Tab>
 
-## Pins and updates
+```bash
+pnpm exec remote-skills build --out-dir release-1.0.0
+```
 
-Session A may pin `1.4.7`; a later catalog may add `1.4.8` or remove `1.4.7`. Session A remains readable at its authorized version, descriptor, and digest. A future session applies the range to the new catalog. Explicit bounded stale mode may select from its older snapshot and is marked stale.
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills build --out-dir release-1.0.0
+```
+
+</Tab>
+</Tabs>
+
+After editing the instructions and changing the version to `1.0.1`, the next build can carry `1.0.0` forward with `--prior-output`:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills build --out-dir release-1.0.1 --prior-output release-1.0.0
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm exec remote-skills build --out-dir release-1.0.1 --prior-output release-1.0.0
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills build --out-dir release-1.0.1 --prior-output release-1.0.0
+```
+
+</Tab>
+</Tabs>
+
+`release-1.0.1/` now contains both releases and is the complete output to [host](/docs/hosting/archive-to-origin). The builder verifies `release-1.0.0/` before carrying its files forward. Without `--prior-output`, it builds only the current source; it does not search other folders or the live host for older releases.
+
+A version identifies fixed content. If the prior output already contains `howdy@1.0.0`, rebuilding that same version with changed instructions is an error. Giving the edited skill a new version, such as `1.0.1`, keeps both releases unambiguous.
+
+## Select a compatible release
+
+The SDK accepts a version range when loading a skill. This example allows updates within `1.0.x`, selecting `1.0.1` from the two releases above:
+
+<Tabs items={["TypeScript", "Python"]}>
+<Tab>
+
+```ts
+import { createRemoteSkills } from "@remote-skills/client";
+
+const client = createRemoteSkills({
+  origins: { team: { url: "https://skills.example.com" } },
+});
+
+const session = await client.session("team");
+try {
+  const skill = await session.activate("howdy", "~1.0.0");
+  console.log(skill.version); // 1.0.1 for the releases built above
+} finally {
+  await session.close();
+}
+```
+
+</Tab>
+<Tab>
+
+```python
+import asyncio
+from remote_skills import Origin, RemoteSkills
+
+async def main() -> None:
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session("team") as session:
+        skill = await session.activate("howdy", "~1.0.0")
+        print(skill.version)  # 1.0.1 for the releases built above
+
+asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+The client chooses the newest stable release the publisher still offers that matches your range:
+
+| Range | Updates it allows |
+| --- | --- |
+| `1.4.2` | That exact release only. |
+| `~1.4.2` | Patch updates such as `1.4.3` or `1.4.6`, but not `1.5.0`. |
+| `^1.4.2` | Patch and minor updates, including `1.5.0`, but not `2.0.0`. |
+| `1.4.x` | Any patch release in the `1.4` series. |
+| `1.x` | Any stable release in the `1` series. |
+| `*` or no range | The latest available stable release, or the current skill if it has no version. |
+
+For a patch-only policy, `~1.4.2` is the useful distinction: [SemVer range notation](https://github.com/npm/node-semver#ranges) treats `^1.4.2` more broadly. Version labels communicate the publisher's intent; they do not guarantee that an update leaves your agent's behavior unchanged.
+
+Prereleases such as `1.5.0-beta.1` are excluded unless the range explicitly opts into that prerelease series. If no offered release matches—or a version restriction is applied to an unversioned skill—the SDK returns `version_unavailable`.
+
+## Remove an old release
+
+Publishers can stop offering an older release with `--prune SKILL@VERSION` during a build. Once that output is deployed, new online sessions choose from the remaining releases. If none matches a consumer's range, loading fails—even if the removed release was downloaded earlier. A range controls selection; it does not require the publisher to keep a release available forever. The [CLI reference](/docs/cli) covers the command.
+
+Running tasks are unaffected: an existing session keeps the release it selected. An application that explicitly allows an older cached catalog may also continue selecting that release until its stale-catalog allowance expires. [Caching and updates](/docs/cache-and-offline) explains that offline tradeoff.
+
+The [API reference](/docs/api-reference#catalog-version-history) describes the catalog fields and history limits for custom integrations.

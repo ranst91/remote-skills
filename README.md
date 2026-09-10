@@ -6,25 +6,11 @@ Remote Skills is an open-source toolkit for publishing and consuming [Agent Skil
 
 Publishers keep authority over their skills. Agents discover a compact catalog, activate only what they need, verify the downloaded bytes, and reuse a disposable content-addressed cache.
 
-```text
-Discover metadata → activate by name → verify digest → pin for the session → read resources as needed
-```
-
 No marketplace. No copied installation in every agent. No proprietary skill format.
 
 ## Publish a remote skill origin
 
-Start with ordinary Agent Skills:
-
-```text
-skills/
-├── code-review/
-│   ├── SKILL.md
-│   └── references/
-│       └── security.md
-└── release-notes/
-    └── SKILL.md
-```
+Start with ordinary Agent Skills such as `skills/code-review/SKILL.md`. Optional resources live inside the skill folder, for example `skills/code-review/references/security.md`.
 
 With the CLI installed in your project, validate and serve them locally:
 
@@ -39,16 +25,6 @@ Build deploy-ready static output:
 
 ```bash
 remote-skills build
-```
-
-```text
-dist/
-└── .well-known/
-    └── agent-skills/
-        ├── index.json
-        └── artifacts/
-            ├── sha256-….md
-            └── sha256-….tar.gz
 ```
 
 ## I bundled it; what do I host?
@@ -82,12 +58,12 @@ SKILLS_AUTH='Bearer …' remote-skills verify \
 
 A configured scope only requests a provider-defined catalog view; it does not grant access. The provider still authenticates the caller, authorizes that view, and authorizes every artifact request.
 
-See the [archive-to-origin guide](apps/docs/content/docs/hosting/archive-to-origin.mdx) for static hosting and the [Git, CI, and Pages guide](apps/docs/content/docs/hosting/git-pages.mdx) for Git-backed hosting and origin-root routing. If a small, fixed skill set should update and roll back with one container, copy or clone it into the image instead; the [local or remote guide](apps/docs/content/docs/hosting/local-or-remote.mdx) covers that choice.
+See [Build and host](apps/docs/content/docs/hosting/archive-to-origin.mdx) for static hosting and [Git and Pages hosting](apps/docs/content/docs/hosting/git-pages.mdx) for Git-backed hosting and origin-root routing. If a small, fixed skill set should update and roll back with one container, copy or clone it into the image instead; [When to use remote skills](apps/docs/content/docs/hosting/local-or-remote.mdx) covers that choice.
 
 ## Consume skills from TypeScript
 
 ```bash
-pnpm add ./artifacts/remote-skills-client-0.0.1.tgz
+pnpm add @remote-skills/client
 ```
 
 ```ts
@@ -114,7 +90,7 @@ await session.close();
 ## Consume skills from Python
 
 ```bash
-uv add ./artifacts/remote_skills-0.0.1-py3-none-any.whl
+uv add remote-skills
 ```
 
 ```python
@@ -175,11 +151,15 @@ Remote Skills connects existing open formats:
 
 Remote Skills provides the publisher CLI and model-agnostic consumer SDKs around those standards.
 
-You host the exact static build output and integrate a consumer SDK into your own host application. For Vercel AI SDK, use the [integration package](integrations/ai-sdk/README.md) and [TypeScript chat demo](examples/vercel-ai-sdk/README.md). There is no managed Remote Skills service.
+There is no managed Remote Skills service. You host the exact static build output and integrate a consumer SDK into your own host application. For Vercel AI SDK, the [integration](apps/docs/content/docs/vercel-ai-sdk.mdx) connects remote skills to its existing skill loader.
+
+See the [integration package](integrations/ai-sdk/README.md) and [TypeScript chat demo](examples/vercel-ai-sdk/README.md) for package details and a runnable example.
 
 ## Documentation
 
-The full publisher, hosting, TypeScript, Python, caching, authentication, security, and API documentation lives in the self-hostable Fumadocs site under `apps/docs`.
+Start with the [Quickstart](apps/docs/content/docs/quickstart.mdx): install the packages, publish a greeting skill, and use its instructions in your agent.
+
+The documentation site under `apps/docs` groups the rest into Publish, Consume, Concepts, and Reference.
 Runnable examples and their setup commands are indexed in [examples/README.md](examples/README.md).
 
 ## License
