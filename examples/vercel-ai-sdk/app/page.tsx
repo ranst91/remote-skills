@@ -37,13 +37,12 @@ export default function Chat() {
           {messages.map((message) => (
             <article key={message.id} className={`message ${message.role}`}>
               <p className="author">{message.role === "user" ? "You" : "Agent"}</p>
-              <p>
-                {message.parts
-                  .filter((part) => part.type === "text")
-                  .map((part) => part.text)
-                  .join("")}
-              </p>
-              {message.parts.map((part) => {
+              {message.parts.map((part, index) => {
+                if (part.type === "text")
+                  return (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: AI SDK appends text parts without IDs; their positions stay stable while streaming.
+                    <p key={`text-${index}`}>{part.text}</p>
+                  );
                 if (part.type === "tool-skill" || part.type === "tool-readFile")
                   return (
                     <details key={part.toolCallId}>
