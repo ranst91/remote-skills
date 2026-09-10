@@ -1,42 +1,113 @@
 ---
-title: Authentication and scopes
-description: Host-bound credentials, provider-authorized catalog views, and cache-safe confirmation.
+title: Authentication and authorization
+description: Control who can access your skills and connect agents with the right permissions.
 ---
 
-A configured `scope` is a **request for a provider-defined catalog view**. Naming `engineering` does not grant access. The provider authenticates credentials; the provider authorizes the requested view and confirms its canonical name.
+A private skill host needs to know who is calling and which skills they may access. **Authentication** identifies the caller, for example by checking an agent's token; **authorization** determines what that identity is allowed to discover and download.
+
+## Protect the hosted files
+
+Your host handles access control, whether through an application server, an authentication proxy, or your hosting platform. The CLI builds the files to serve; it does not create accounts or configure permissions. Your application supplies credentials to the SDK, which sends them using standard HTTP headers such as `Authorization`.
+
+That protection applies to **both catalog and artifact requests**. The catalog lists available skills, but the artifacts are the actual downloads: removing a skill from a client's catalog does not prevent someone with its URL from downloading it. The host therefore checks permission before serving either one.
+
+## Connect a client
+
+When you have an authorization token, you can pass it to the SDK like this. The example reads it from `SKILLS_TOKEN`; a secret manager or another source in your application works too. Credentials go in headers because the SDK does not accept them in the connection URL.
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
 
 ```ts
+import { createRemoteSkills } from "@remote-skills/client";
+
+const token = process.env.SKILLS_TOKEN;
+if (!token) throw new Error("SKILLS_TOKEN is required");
+
 const client = createRemoteSkills({
   origins: {
-    acme: {
+    team: {
       url: "https://skills.example.com",
       headers: { Authorization: `Bearer ${token}` },
-      scope: "engineering",
     },
   },
 });
+
+const session = await client.session("team");
+try {
+  const catalog = await session.catalog();
+  // Your agent can discover the skills this identity may access.
+} finally {
+  await session.close();
+}
 ```
+
+</Tab>
+<Tab>
 
 ```python
-Origin(
-    url="https://skills.example.com",
-    headers={"Authorization": f"Bearer {token}"},
-    scope="engineering",
-)
+import asyncio
+import os
+from remote_skills import Origin, RemoteSkills
+
+async def main() -> None:
+    token = os.environ["SKILLS_TOKEN"]
+    client = RemoteSkills(origins={
+        "team": Origin(
+            url="https://skills.example.com",
+            headers={"Authorization": f"Bearer {token}"},
+        ),
+    })
+    async with client.session("team") as session:
+        catalog = await session.catalog()
+        # Your agent can discover the skills this identity may access.
+
+asyncio.run(main())
 ```
 
-## Catalog exchange
+</Tab>
+</Tabs>
 
-The client sends exactly one `Remote-Skills-Scope: engineering` request header on the well-known catalog request. Every successful `200` or `304` scoped response must return exactly one matching `Remote-Skills-Scope` response header. Missing or different confirmation fails closed as `catalog_invalid`.
+## Offer different skills to different clients
 
-`401` maps to `authentication_failed`: the identity is missing or invalid. `403` maps to `authorization_denied`: the identity is valid but the provider refuses that requested view. Errors may name the non-secret scope but exclude credentials, bodies, and complete credential-bearing URLs.
+An engineering agent might need code-review skills, while a finance agent should only see finance-related skills. A **scope** gives each of these catalog views a name, such as `engineering` or `finance`. The host decides which skills belong in each view and which identities may request it.
 
-## Persistence boundary
+### On the host
 
-A matching confirmed scope states that all principals authorized for that name receive a cache-equivalent catalog view. It may participate in the credential-free persistent catalog key. Authenticated responses without confirmed scope remain memory-only; `Cache-Control: no-store` always prevents persistence. Credentials and credential hashes never become cache keys or metadata.
+Scoped access is implemented in the host's request handling, not in `remote-skills.json`. For example, a host can serve separate CLI-built catalogs for engineering and finance, each built from that team's skills. Requests still arrive at the same discovery URL; the host chooses which catalog to return after checking access.
 
-## Artifacts require authorization too
+For a catalog request, the host follows this sequence:
 
-Catalog filtering is not artifact authorization. The provider must authorize every artifact request. Same-origin artifacts receive the configured origin headers. A cross-host artifact receives no origin credentials unless that exact artifact host has separately configured headers. `Remote-Skills-Scope` is not automatically forwarded to an unconfigured artifact host.
+1. It checks the credentials to identify the caller. Missing or invalid credentials receive `401`.
+2. It reads the requested view from `Remote-Skills-Scope` and checks whether that identity may use it. An engineering-only identity requesting `finance` receives `403`.
+3. It serves the authorized catalog with a matching response header, such as `Remote-Skills-Scope: engineering`. This confirmation is also included when the response is `304 Not Modified`, so a cached catalog remains tied to the correct view.
 
-Scope values are non-secret visible ASCII, 1–128 bytes, without leading/trailing whitespace, control characters, commas, or multiple instances.
+When that client later downloads a skill, the provider authorizes the artifact request separately using its credentials. The scope header is a catalog selector, not a download credential, and the SDK does not automatically include it on artifact requests.
+
+### In the client
+
+With the host configured, adding `scope: "engineering"` to the TypeScript origin above, or `scope="engineering"` to Python's `Origin`, requests the engineering catalog. The SDK sends `Remote-Skills-Scope: engineering` and checks that the host confirms the same view.
+
+Setting a scope **does not grant access**: a finance agent cannot gain engineering permissions by changing that string. If the host omits the confirmation or returns a different scope, the SDK rejects the response rather than using a potentially wrong catalog.
+
+| Response | Client error | What to check |
+| --- | --- | --- |
+| `401` | `authentication_failed` | Missing, expired, or invalid credentials. |
+| `403` | `authorization_denied` | Permission to use the requested catalog view. |
+| Scope not confirmed | `catalog_invalid` | Exactly one matching `Remote-Skills-Scope` response header. |
+
+The [scope header contract](/docs/api-reference#scoped-catalogs) includes the allowed name format and response requirements.
+
+## When downloads use another host
+
+Suppose your catalog is at `skills.example.com`, but downloads come from `downloads.example.com`. The SDK sends your configured credentials to the first host—including downloads served there—but does not copy them to the second. A publisher's download link cannot silently send your token elsewhere.
+
+For a private download host, separate credentials go in `artifactHeaders` (TypeScript) or `artifact_headers` (Python), keyed by the exact host name, such as `downloads.example.com`. That host checks access to each requested artifact itself.
+
+## How private catalogs are cached
+
+Confirming a scope means that everyone authorized for it receives equivalent catalogs. Two engineering agents can therefore reuse the same cached catalog, identified by its URL and scope rather than a stored token or token hash. If the host personalizes catalogs by identity, those different views need distinct scopes instead of sharing the name `engineering`.
+
+Without a confirmed scope, an authenticated catalog stays in memory rather than on disk. A host can also return `Cache-Control: no-store` to prevent persistent catalog storage even with a confirmed scope. Downloaded skill files have a separate lifecycle, covered in [Caching and updates](/docs/cache-and-offline).
+
+For a deployment check using credentials, see [Verify a private origin](/docs/hosting/archive-to-origin#verify-a-private-origin).

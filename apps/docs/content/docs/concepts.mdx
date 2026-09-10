@@ -1,33 +1,32 @@
 ---
-title: Model and lifecycle
-description: Remote authority, compact discovery, immutable activation, and explicit sessions.
+title: How it works
+description: What happens between discovering a skill and using it in your agent.
 ---
 
-## Remote means authority
+Remote Skills keeps the same `SKILL.md`, resources, and discover-then-load workflow as filesystem-based Agent Skills. What changes is delivery: instead of installing skill folders into each agent's environment, you publish them once and let agents load them remotely. There is no new skill format to learn or rewrite your skills for.
 
-The configured origin is authoritative for discovery and future updates. It is not a resource-by-resource transport. A catalog request returns compact metadata; activation fetches the selected complete artifact and verifies its declared digest.
+## Discover, then activate
 
-```text
-origin catalog
-    │ compact metadata only
-    ▼
-session snapshot ── activate(name, range?) ── complete artifact
-    │                                         verify + local cache
-    └──────────────────────────────────────── pinned digest
-```
+The publisher hosts a **catalog**: a small index of skill names, descriptions, and download information. A client reads it from the origin's standard discovery URL.
 
-## One session, one snapshot
+`session.catalog()` gets the metadata. Your application or agent chooses a skill by name. `session.activate("howdy")` downloads the selected skill and verifies it before returning the instructions. Remote Skills does not choose a skill or call a model for you.
 
-A session consults one catalog snapshot. Once it activates a skill, its version descriptor and digest stay pinned. A publisher update or `client.refresh()` changes only **future sessions**. Existing sessions keep reading the exact bytes they already verified.
+## One session keeps one version
 
-An online catalog is authoritative for a new session: removed skills or releases cannot be resurrected from object-cache bytes. Explicit stale mode may use an older verified catalog within a configured maximum age and marks the session stale.
+A session is the lifetime of a task in your application. It uses one catalog snapshot, and each activated skill stays fixed to the exact bytes it selected. This is called **pinning**.
 
-## Artifact and context are different budgets
+If you update `howdy` while an agent is using it, that agent's session stays consistent. Future sessions can see the update. `client.refresh()` requests fresh catalog information for future sessions; it never replaces a skill inside an existing one.
 
-Activation downloads the **complete artifact** and, for an archive, extracts all accepted members locally. Resource access is **context-lazy**: `read()` and `readBytes()` select from that pinned local object and make no additional network request. This saves model/application context, not artifact bandwidth or disk.
+A session stays open for as long as the task needs its skills. Closing it releases the cache entries it was keeping in use; [Caching and updates](/docs/cache-and-offline) explains what happens next.
 
-## What the toolkit decides
+## Download size and context size are different
 
-Remote Skills decides whether wire metadata is recognized, destinations satisfy network policy, artifact bytes match a digest, archives are structurally safe, cache publication is complete, and requested resources stay inside the verified root.
+A skill may contain instructions plus references, templates, or other files. Activation downloads the **complete artifact** and extracts archives into a local cache.
 
-The host application decides whether a publisher is trusted, whether a skill is relevant, what permissions tools receive, and whether any read script should ever be executed. `allowed-tools` remains untrusted metadata, not authorization.
+Your agent can start with `skill.instructions` and use `read()` for a resource when the task needs it. Those reads use the verified local copy and make no further network requests. This is **context-lazy** access: it saves context, not download bandwidth or disk space.
+
+## The publisher and the application keep control
+
+The publisher decides what is available from its origin. Your application decides which origins to trust, which skill to use, and what the agent is allowed to do.
+
+Verification confirms that the downloaded bytes match the catalog. It does not judge the instructions or grant permission to run scripts. [Trust and security](/docs/trust-and-security) explains these boundaries in detail.

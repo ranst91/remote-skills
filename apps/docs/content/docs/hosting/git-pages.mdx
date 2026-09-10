@@ -1,49 +1,94 @@
 ---
-title: Git, CI, and Pages
-description: Keep Git as source of truth while deploying generated dist bytes at an origin root.
+title: Git and Pages hosting
+description: Publish skills from a Git repository to a static host.
 ---
 
-The supported flow is **repository source → CI build → generated `dist/` → static origin**. Git stays the authoring source of truth; SDKs do not clone repositories or special-case raw-file URLs.
+Your skills can live in a Git repository and be published by its deployment pipeline. The CLI builds a checked-out copy of that repository; GitHub Pages, GitLab Pages, or another static host serves the result. Agents read those hosted files, not the Git repository itself.
 
-## CI shape
+<Steps>
+<Step>
 
-Commit source skills, `remote-skills.json`, the package-manager lockfile, and CI configuration. Do not hand-edit or normalize the artifact bytes after the build.
+## Build from the repository
 
-```yaml title="CI outline"
-steps:
-  - uses: actions/checkout@v4
-  - uses: pnpm/action-setup@v4
-    with:
-      run_install: false
-  - uses: actions/setup-node@v4
-    with:
-      node-version: 24
-      cache: pnpm
-  - run: pnpm install --frozen-lockfile
-  - run: pnpm exec remote-skills validate --strict
-  - run: pnpm exec remote-skills build
-  - run: pnpm exec remote-skills verify http://127.0.0.1:8787
-    # Start `remote-skills dev` or another exact-byte loopback server for this check.
-  - name: Upload dist unchanged
-    uses: your-pages-provider/upload-artifact@pinned-version
-    with:
-      path: dist
+The CLI runs from the local checkout's root—the directory containing `skills/` and any `remote-skills.json`. On your machine, that means opening a terminal in the repository. In CI, it means running the build after the checkout and dependency-install steps.
+
+With the [CLI installed](/docs/quickstart#serve-it) in that checkout:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills build
 ```
 
-Treat the snippet as provider-neutral structure: pin the actions your organization approves and ensure the CLI is already installed by the lockfile. The deployment job publishes the complete `dist/` tree, not unpacked archives and not only `index.json`.
+</Tab>
+<Tab>
 
-## GitHub Pages and GitLab Pages
+```bash
+pnpm exec remote-skills build
+```
 
-GitHub Pages, GitLab Pages, and other Pages products can serve the output if the deployment maps `dist/` to the hostname root. A custom domain such as `skills.example.com` is the clearest arrangement.
+</Tab>
+<Tab>
 
-The usual project site at `https://example.github.io/repository-name/` is a **project subpath**, not an origin root. Cloudflare discovery still resolves the fixed URL `https://example.github.io/.well-known/agent-skills/index.json`; it will not look under `/repository-name/`. Use one of:
+```bash
+bun run remote-skills build
+```
 
-- a dedicated hostname or custom domain mapped to the Pages project;
-- provider routing that mounts `dist/` at `/`;
-- another static host capable of an origin-root mapping.
+</Tab>
+</Tabs>
 
-Changing the SDK origin to include `/repository-name/` does not relocate the well-known path. Confirm the final URL with [archive-to-origin verification](/docs/hosting/archive-to-origin).
+`build` validates the skills and creates `dist/`. The source, lockfile, and publisher settings in Git give the pipeline the same inputs as your local build. The CLI does not clone a repository URL or accept a separate project-directory argument.
 
-## History and rollback
+</Step>
+<Step>
 
-If version history is advertised, CI must provide verified prior output to the builder so retained artifacts remain present. A clean build promises only what it contains. Roll back a faulty origin by redeploying the prior complete index and immutable artifact set; already pinned sessions remain internally consistent.
+## Serve the output
+
+Your provider's deployment step uploads the contents of `dist/`, including `.well-known`. The [hosting guide](/docs/hosting/archive-to-origin) covers response types and preserving the built files unchanged.
+
+Discovery expects `.well-known` at the hostname's root. A custom domain such as `skills.example.com` gives a Pages project that layout without changing the source repository.
+
+A default project site such as `https://example.github.io/repository-name/` puts the files one level deeper. It needs a custom domain or hosting configuration that serves them at the host root instead—an **origin-root** mapping. Adding `/repository-name/` to the SDK URL does not change where it looks for the catalog.
+
+</Step>
+<Step>
+
+## Check the deployed result
+
+From a machine that can reach the deployed hostname, run:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills verify https://skills.example.com
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm exec remote-skills verify https://skills.example.com
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills verify https://skills.example.com
+```
+
+</Tab>
+</Tabs>
+
+Once verification succeeds, the SDK can connect to `https://skills.example.com`. Future source changes follow the same checkout, build, and deployment process.
+
+</Step>
+</Steps>
+
+## Updates and rollback
+
+To keep older releases available alongside an update, the build needs the previous output as an input. [Versions and history](/docs/versions) shows how to carry those releases forward; without that input, a build contains only the skills in the current checkout.
+
+To roll back, redeploy a previous complete catalog and its artifacts. Existing sessions keep their selected bytes; later sessions discover the restored catalog.

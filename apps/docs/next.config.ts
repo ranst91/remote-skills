@@ -3,6 +3,16 @@ import type { NextConfig } from "next";
 
 const config = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      ...["typescript", "python"].flatMap((language) => [
+        { source: `/docs/${language}`, destination: "/docs/consume", permanent: true },
+        { source: `/docs/${language}.md`, destination: "/docs/consume.md", permanent: true },
+      ]),
+      { source: "/docs/installation", destination: "/docs/quickstart", permanent: true },
+      { source: "/docs/installation.md", destination: "/docs/quickstart.md", permanent: true },
+    ];
+  },
   async rewrites() {
     return {
       beforeFiles: [{ source: "/docs/index.md", destination: "/markdown" }],
