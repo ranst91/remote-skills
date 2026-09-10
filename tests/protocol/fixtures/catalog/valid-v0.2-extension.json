@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "x-catalog-generation": 7,
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "Review code with a security-first checklist.",
+      "type": "skill-md",
+      "url": "./artifacts/code-review.md",
+      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "x-publisher-note": "ignored"
+    }
+  ]
+}

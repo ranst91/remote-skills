@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": true,
+    "noEmit": false,
+    "outDir": "dist",
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": "src"
+  },
+  "include": ["src/**/*.ts", "src/**/*.cts"],
+  "exclude": ["src/cache/protocol-worker.ts", "src/protocol-adapter.ts", "tests"]
+}

@@ -1,0 +1,49 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "cache-v1-valid",
+      "result": {
+        "outcome": "cache_reuse",
+        "layout": "cache-v1",
+        "artifact_requests": 0,
+        "digest": "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d"
+      }
+    },
+    {
+      "id": "cache-v1-partial-writer",
+      "result": {
+        "outcome": "temporary_ignored",
+        "published_object": false,
+        "cleanup_eligible": true
+      }
+    },
+    {
+      "id": "cache-v1-crashed-lease",
+      "result": {
+        "outcome": "lease_reclaimable",
+        "object_retained": true,
+        "requires_process_liveness_check": true
+      }
+    },
+    {
+      "id": "cache-v1-cross-process",
+      "result": {
+        "outcome": "one_immutable_winner",
+        "activations": 2,
+        "published_objects": 1,
+        "partial_observations": 0,
+        "winner": "python",
+        "losing_temp_cleaned": true
+      }
+    },
+    {
+      "id": "cache-v2-unknown",
+      "result": {
+        "outcome": "unsupported_namespace_untouched",
+        "client_namespace": "cache-v1",
+        "opaque_namespace": "cache-v2"
+      }
+    }
+  ]
+}

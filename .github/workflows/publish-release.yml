@@ -1,0 +1,194 @@
+name: release / publish
+
+on:
+  push:
+    branches: [main]
+    paths: [release-state.json]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and smoke-test without publishing
+        type: boolean
+        default: true
+      release_sha:
+        description: Full main-branch release commit SHA (required when publishing)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
+
+jobs:
+  context:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - name: Resolve and validate the immutable release commit
+        id: resolve
+        env:
+          EVENT: ${{ github.event_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          REQUESTED_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          sha=${REQUESTED_SHA:-$GITHUB_SHA}
+          if [ "$EVENT" = workflow_dispatch ] && [ "$DRY_RUN" != true ] && [ -z "$REQUESTED_SHA" ]; then
+            echo 'A full release_sha is required for publication.' >&2; exit 1
+          fi
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "$sha" "$GITHUB_SHA"
+          if [ "$DRY_RUN" != true ]; then node scripts/release/release.ts validate "$sha"; fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+  validate:
+    needs: context
+    uses: ./.github/workflows/ci.yml
+    with:
+      release_ref: ${{ needs.context.outputs.sha }}
+  build:
+    needs: [context, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      npm_version: ${{ steps.metadata.outputs.npm_version }}
+      python_version: ${{ steps.metadata.outputs.python_version }}
+      npm_tag: ${{ steps.metadata.outputs.npm_tag }}
+      git_tag: ${{ steps.metadata.outputs.git_tag }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.context.outputs.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: "0.11.33"
+          python-version: "3.11"
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --locked --all-packages
+      - run: pnpm ci:build:repository
+      - run: pnpm package:cache
+      - name: Read coordinated versions
+        id: metadata
+        run: node scripts/release/release.ts metadata
+      - name: Build the tested package artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p release-dist/npm release-dist/python
+          for package in @remote-skills/cli @remote-skills/client @remote-skills/ai-sdk; do
+            pnpm --silent --filter "$package" run pack:local -- --pack-destination "$GITHUB_WORKSPACE/release-dist/npm"
+          done
+          uv build packages/sdk-python --no-create-gitignore --out-dir release-dist/python
+      - name: Install and exercise the exact release artifacts
+        run: pnpm release:smoke release-dist
+      - name: Prepare release notes
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = true ]; then
+            echo 'Local release rehearsal; nothing published.' > release-dist/release-notes.md
+          else
+            node scripts/release/release.ts notes > release-dist/release-notes.md
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-dist-${{ needs.context.outputs.sha }}
+          path: release-dist/
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: [context, build]
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_dispatch' || inputs.dry_run != true)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-dist-${{ needs.context.outputs.sha }}
+          path: release-dist/
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: "0.11.33"
+      - name: Publish missing npm versions with trusted publishing
+        env:
+          VERSION: ${{ needs.build.outputs.npm_version }}
+          NPM_TAG: ${{ needs.build.outputs.npm_tag }}
+        run: |
+          set -euo pipefail
+          # Publish the client before the integration that peers on it.
+          for name in client cli ai-sdk; do
+            if output=$(npm view "@remote-skills/${name}@${VERSION}" version --json 2>&1); then
+              continue
+            elif ! grep -q E404 <<< "$output"; then
+              echo 'Registry lookup failed; refusing to treat it as a missing version.' >&2; exit 1
+            fi
+            archive="release-dist/npm/remote-skills-${name}-${VERSION}.tgz"
+            test -f "$archive"
+            npm publish "$archive" --access public --tag "$NPM_TAG"
+          done
+      - name: Generate Python publish attestations
+        uses: astral-sh/attest-action@f589a42a7efb6fe400b4f400de60b4bc90390027 # v0.0.6
+        with:
+          paths: release-dist/python/*
+      - name: Publish missing Python artifacts with trusted publishing
+        run: uv publish --check-url https://pypi.org/simple/ release-dist/python/*.whl release-dist/python/*.tar.gz
+      - name: Verify registries before creating the release
+        env:
+          VERSION: ${{ needs.build.outputs.npm_version }}
+          PYTHON_VERSION: ${{ needs.build.outputs.python_version }}
+        run: |
+          set -euo pipefail
+          retry() { for _attempt in $(seq 1 12); do if "$@"; then return 0; fi; sleep 5; done; return 1; }
+          for name in client cli ai-sdk; do retry npm view "@remote-skills/${name}@${VERSION}" version --json; done
+          pypi_complete() {
+            curl --fail --silent --show-error "https://pypi.org/pypi/remote-skills/${PYTHON_VERSION}/json" |
+              jq -e '[.urls[].packagetype] | index("bdist_wheel") != null and index("sdist") != null'
+          }
+          retry pypi_complete
+      - name: Create the GitHub release at the verified commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.npm_version }}
+          RELEASE_SHA: ${{ needs.context.outputs.sha }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          tag="v${VERSION}"
+          if existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" 2>/tmp/tag-error); then
+            test "$(jq -r .object.type <<< "$existing")" = commit
+            test "$(jq -r .object.sha <<< "$existing")" = "$RELEASE_SHA"
+          elif ! grep -q 'HTTP 404' /tmp/tag-error; then exit 1; fi
+          if existing=$(gh release view "$tag" --json targetCommitish,isPrerelease 2>/tmp/release-error); then
+            test "$(jq -r .targetCommitish <<< "$existing")" = "$RELEASE_SHA"
+            test "$(jq -r .isPrerelease <<< "$existing")" = "$PRERELEASE"
+            exit 0
+          elif ! grep -qi 'release not found\|HTTP 404' /tmp/release-error; then exit 1; fi
+          args=("$tag" --target "$RELEASE_SHA" --title "$tag" --notes-file release-dist/release-notes.md)
+          if [ "$PRERELEASE" = true ]; then args+=(--prerelease); fi
+          gh release create "${args[@]}"

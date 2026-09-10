@@ -1,0 +1,26 @@
+{
+  "$max_redirects": 5,
+  "same-host": {
+    "chain": [
+      "https://skills.example.test/artifacts/start",
+      "https://skills.example.test/artifacts/final"
+    ],
+    "origin_header_boundary": [true, true]
+  },
+  "cross-host": {
+    "chain": [
+      "https://skills.example.test/artifacts/start",
+      "https://cdn.example.test/artifacts/final"
+    ],
+    "origin_header_boundary": [true, false]
+  },
+  "private": {
+    "chain": ["https://skills.example.test/artifacts/start", "http://127.0.0.1/private"],
+    "connect_attempts": 1,
+    "terminal_code": "policy_denied"
+  },
+  "overflow": {
+    "hops": 6,
+    "terminal_code": "policy_denied"
+  }
+}

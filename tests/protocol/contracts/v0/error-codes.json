@@ -1,0 +1,115 @@
+{
+  "contract_version": 1,
+  "allowed_context_fields": [
+    "artifact_type",
+    "expected_digest",
+    "field",
+    "layout_version",
+    "limit",
+    "origin_alias",
+    "path",
+    "requested_range",
+    "schema",
+    "scope",
+    "skill_name",
+    "status",
+    "version"
+  ],
+  "errors": [
+    {
+      "code": "archive_unsafe",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name", "expected_digest", "path"]
+    },
+    {
+      "code": "artifact_unsupported",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name", "artifact_type"]
+    },
+    {
+      "code": "authentication_failed",
+      "retryable": false,
+      "context": ["origin_alias", "scope", "status"]
+    },
+    {
+      "code": "authorization_denied",
+      "retryable": false,
+      "context": ["origin_alias", "scope", "status"]
+    },
+    {
+      "code": "cache_corrupt",
+      "retryable": false,
+      "context": ["expected_digest", "layout_version"]
+    },
+    {
+      "code": "catalog_invalid",
+      "retryable": false,
+      "context": ["origin_alias", "field"]
+    },
+    {
+      "code": "configuration_invalid",
+      "retryable": false,
+      "context": ["field"]
+    },
+    {
+      "code": "digest_mismatch",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name", "expected_digest"]
+    },
+    {
+      "code": "limit_exceeded",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name", "limit"]
+    },
+    {
+      "code": "origin_unavailable",
+      "retryable": true,
+      "context": ["origin_alias", "status"]
+    },
+    {
+      "code": "path_invalid",
+      "retryable": false,
+      "context": ["path"]
+    },
+    {
+      "code": "policy_denied",
+      "retryable": false,
+      "context": ["origin_alias"]
+    },
+    {
+      "code": "request_timeout",
+      "retryable": true,
+      "context": ["origin_alias"]
+    },
+    {
+      "code": "resource_not_found",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name", "expected_digest", "path"]
+    },
+    {
+      "code": "resource_not_text",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name", "expected_digest", "path"]
+    },
+    {
+      "code": "session_closed",
+      "retryable": false,
+      "context": ["origin_alias"]
+    },
+    {
+      "code": "skill_not_found",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name"]
+    },
+    {
+      "code": "unsupported_schema",
+      "retryable": false,
+      "context": ["origin_alias", "schema"]
+    },
+    {
+      "code": "version_unavailable",
+      "retryable": false,
+      "context": ["origin_alias", "skill_name", "requested_range"]
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "history-clean-current",
+      "result": {
+        "outcome": "publisher_history_success",
+        "skill_name": "code-review",
+        "releases": ["2.0.0"],
+        "artifacts_retained": 0
+      }
+    },
+    {
+      "id": "history-prior-retained",
+      "result": {
+        "outcome": "publisher_history_success",
+        "skill_name": "code-review",
+        "releases": ["2.0.0", "1.4.7"],
+        "artifacts_retained": 1
+      }
+    },
+    {
+      "id": "history-explicit-prune",
+      "result": {
+        "outcome": "publisher_history_success",
+        "skill_name": "code-review",
+        "releases": ["2.0.0"],
+        "artifacts_retained": 0
+      }
+    },
+    {
+      "id": "history-version-remapped",
+      "result": {
+        "outcome": "publisher_history_error",
+        "error": {
+          "code": "configuration_invalid",
+          "retryable": false,
+          "context": { "field": "skills[code-review].metadata.version" }
+        },
+        "output_replaced": false
+      }
+    },
+    {
+      "id": "history-over-limit",
+      "result": {
+        "outcome": "publisher_history_error",
+        "error": {
+          "code": "limit_exceeded",
+          "retryable": false,
+          "context": { "skill_name": "code-review", "limit": 100 }
+        },
+        "output_replaced": false
+      }
+    }
+  ]
+}

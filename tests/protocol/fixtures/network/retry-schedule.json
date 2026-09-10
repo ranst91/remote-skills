@@ -1,0 +1,20 @@
+{
+  "$defaults": { "retries": 2, "timeout_ms": 30000, "retry_after_cap_ms": 5000 },
+  "408": { "statuses": [408, 200], "attempts": 2, "retryable": true },
+  "429": { "statuses": [429, 200], "retry_after": "2", "delays_ms": [2000], "attempts": 2 },
+  "500": { "statuses": [500, 503, 200], "jitter_slots": [0, 1], "attempts": 3 },
+  "network": {
+    "failures": ["connection_reset", "connection_reset", "connection_reset"],
+    "attempts": 3,
+    "terminal_code": "origin_unavailable"
+  },
+  "disabled-transient": {
+    "per_origin": { "retries": 0 },
+    "failures": ["connection_reset"],
+    "would_succeed_on_retry": true,
+    "attempts": 1,
+    "terminal_code": "origin_unavailable"
+  },
+  "digest": { "statuses": [200], "attempts": 1, "terminal_code": "digest_mismatch" },
+  "$never_retry": ["unsupported_schema", "policy_denied", "archive_unsafe", "digest_mismatch"]
+}

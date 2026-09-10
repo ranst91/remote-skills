@@ -1,0 +1,185 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "validator-initial-200",
+      "category": "http_validator",
+      "scenario": "http-validator.json#initial"
+    },
+    {
+      "id": "validator-conditional-304",
+      "category": "http_validator",
+      "scenario": "http-validator.json#conditional"
+    },
+    {
+      "id": "validator-fresh-no-request",
+      "category": "http_validator",
+      "scenario": "http-validator.json#fresh"
+    },
+    { "id": "redirect-same-host", "category": "redirect", "scenario": "redirects.json#same-host" },
+    {
+      "id": "redirect-cross-host",
+      "category": "redirect",
+      "scenario": "redirects.json#cross-host"
+    },
+    {
+      "id": "redirect-private-address",
+      "category": "redirect",
+      "scenario": "redirects.json#private"
+    },
+    { "id": "redirect-overflow", "category": "redirect", "scenario": "redirects.json#overflow" },
+    {
+      "id": "ip-public-v4",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#public-v4"
+    },
+    {
+      "id": "ip-private-10",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#private-10"
+    },
+    {
+      "id": "ip-private-172",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#private-172"
+    },
+    {
+      "id": "ip-private-192",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#private-192"
+    },
+    {
+      "id": "ip-loopback-v4",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#loopback-v4"
+    },
+    {
+      "id": "ip-link-local-v4",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#link-local-v4"
+    },
+    {
+      "id": "ip-multicast-v4",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#multicast-v4"
+    },
+    {
+      "id": "ip-unspecified-v4",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#unspecified-v4"
+    },
+    {
+      "id": "ip-public-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#public-v6"
+    },
+    {
+      "id": "ip-loopback-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#loopback-v6"
+    },
+    {
+      "id": "ip-unique-local-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#unique-local-v6"
+    },
+    {
+      "id": "ip-link-local-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#link-local-v6"
+    },
+    {
+      "id": "ip-multicast-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#multicast-v6"
+    },
+    {
+      "id": "ip-unspecified-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#unspecified-v6"
+    },
+    {
+      "id": "ip-mapped-loopback-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#mapped-loopback-v6"
+    },
+    {
+      "id": "ip-mapped-private-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#mapped-private-v6"
+    },
+    {
+      "id": "ip-mapped-public-v6",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#mapped-public-v6"
+    },
+    {
+      "id": "ip-dns-rebinding",
+      "category": "dns_ip_policy",
+      "scenario": "dns-ip-policy.json#rebinding"
+    },
+    { "id": "retry-408", "category": "retry", "scenario": "retry-schedule.json#408" },
+    { "id": "retry-429", "category": "retry", "scenario": "retry-schedule.json#429" },
+    { "id": "retry-500", "category": "retry", "scenario": "retry-schedule.json#500" },
+    {
+      "id": "retry-network-failure",
+      "category": "retry",
+      "scenario": "retry-schedule.json#network"
+    },
+    {
+      "id": "retry-disabled-transient",
+      "category": "retry",
+      "scenario": "retry-schedule.json#disabled-transient"
+    },
+    {
+      "id": "retry-digest-mismatch",
+      "category": "retry",
+      "scenario": "retry-schedule.json#digest"
+    },
+    {
+      "id": "offline-active-session",
+      "category": "offline",
+      "scenario": "offline-removal.json#active"
+    },
+    {
+      "id": "offline-new-default",
+      "category": "offline",
+      "scenario": "offline-removal.json#new-default"
+    },
+    {
+      "id": "offline-stale-allowed",
+      "category": "offline",
+      "scenario": "offline-removal.json#stale-allowed"
+    },
+    {
+      "id": "offline-stale-expired",
+      "category": "offline",
+      "scenario": "offline-removal.json#stale-expired"
+    },
+    {
+      "id": "removal-existing-session",
+      "category": "removal",
+      "scenario": "offline-removal.json#removal-existing"
+    },
+    {
+      "id": "removal-future-session",
+      "category": "removal",
+      "scenario": "offline-removal.json#removal-future"
+    },
+    {
+      "id": "credentials-same-host",
+      "category": "credential_forwarding",
+      "scenario": "credential-forwarding.json#same-host"
+    },
+    {
+      "id": "credentials-cross-host-stripped",
+      "category": "credential_forwarding",
+      "scenario": "credential-forwarding.json#cross-host"
+    },
+    {
+      "id": "credentials-explicit-cdn",
+      "category": "credential_forwarding",
+      "scenario": "credential-forwarding.json#explicit-cdn"
+    }
+  ]
+}

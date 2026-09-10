@@ -1,0 +1,61 @@
+---
+title: Archive to origin
+description: The exact bytes, paths, media types, and origin mapping required after a build.
+---
+
+## What to host
+
+`remote-skills build` writes the fixed catalog at `dist/.well-known/agent-skills/index.json` and referenced artifacts beneath `dist/.well-known/agent-skills/artifacts/`.
+
+```text
+dist/
+└── .well-known/
+    └── agent-skills/
+        ├── index.json
+        └── artifacts/
+            ├── sha256-<64-hex>.md
+            ├── sha256-<64-hex>.tar.gz
+            └── sha256-<64-hex>.zip
+```
+
+Upload or mount the **contents of `dist/` at the HTTPS origin root**. At `https://skills.example.com`, the catalog must resolve at:
+
+```text
+https://skills.example.com/.well-known/agent-skills/index.json
+```
+
+The catalog contains relative artifact URLs, so the generated tree can move to any conforming origin unchanged. Configure the SDK with the origin URL (`https://skills.example.com`), not the catalog URL.
+
+## Preserve exact bytes
+
+The catalog digest covers the exact response bytes. **Do not unpack, recompress, rename, or wrap archives.** Archive members already begin at the archive root; `SKILL.md` must remain at that root, not beneath a skill-name directory. A proxy, storage service, or deployment transform that changes bytes breaks digest verification.
+
+Serve these media types:
+
+| Output | `Content-Type` |
+| --- | --- |
+| `index.json` | `application/json` |
+| `*.md` | `text/markdown; charset=utf-8` |
+| `*.zip` | `application/zip` |
+| `*.tar.gz` | `application/gzip` |
+
+Content-addressed artifacts may use immutable caching. The fixed catalog should use ordinary HTTP revalidation with `ETag`, `Last-Modified`, and suitable `Cache-Control`; do not make it permanently immutable.
+
+## Verify from outside
+
+After deployment, verify the public origin from an environment with the same network reachability expected for consumers:
+
+```bash
+pnpm exec remote-skills verify https://skills.example.com
+```
+
+For a private origin, pass credentials via an environment reference rather than a literal shell-history value:
+
+```bash
+SKILLS_AUTH='Bearer …' pnpm exec remote-skills verify \
+  https://skills.example.com \
+  --header-env Authorization=SKILLS_AUTH \
+  --scope engineering
+```
+
+Verification fetches the catalog and every current/historical descriptor it advertises, applies network and size policy, checks exact digests, and validates artifact structure. It performs no deployment or package publication.

@@ -1,0 +1,93 @@
+---
+title: API reference
+description: Public CLI, TypeScript, Python, resources, lifecycle, and stable error surfaces.
+---
+
+## Publisher CLI
+
+```text
+remote-skills validate [--strict]
+remote-skills build [--archive] [--format tar.gz|zip] [--out-dir PATH]
+                    [--prior-output PATH] [--prune SKILL@VERSION]...
+remote-skills dev [--host HOST] [--port PORT] [--unsafe-host]
+remote-skills verify ORIGIN [--header NAME=VALUE]...
+                            [--header-env NAME=ENV_VAR]...
+                            [--scope SCOPE] [--timeout-ms MS] [--retries N]
+```
+
+See [CLI reference](/docs/cli) for behavioral boundaries.
+
+## TypeScript
+
+```ts
+import { createRemoteSkills } from "@remote-skills/client";
+import type {
+  ActivatedResource,
+  ActivatedSessionSkill,
+  AggregateCatalog,
+  CatalogEntry,
+  RemoteSkillsClient,
+  RemoteSkillsConfig,
+  RemoteSkillsSession,
+} from "@remote-skills/client";
+
+declare const config: RemoteSkillsConfig;
+const create: (config: RemoteSkillsConfig) => RemoteSkillsClient = createRemoteSkills;
+declare const client: RemoteSkillsClient;
+declare const session: RemoteSkillsSession;
+declare const skill: ActivatedSessionSkill;
+
+const aggregate: Promise<AggregateCatalog> = client.catalog({ strict: false });
+const opened: Promise<RemoteSkillsSession> = client.session("acme");
+const refreshed: Promise<void> = client.refresh("acme");
+
+const entries: Promise<readonly CatalogEntry[]> = session.catalog();
+const activated: Promise<ActivatedSessionSkill> = session.activate("code-review", "1.4.x");
+const closed: Promise<void> = session.close();
+
+const resources: Promise<readonly ActivatedResource[]> = skill.list("references/");
+const text: Promise<string> = skill.read("references/security.md");
+const bytes: Promise<Uint8Array> = skill.readBytes("assets/template.bin");
+```
+
+`RemoteSkillsConfig` includes explicit `origins`, optional catalog defaults, cache selection/options, and activation limits. An `OriginConfig` supports URL, host-bound headers and artifact-header maps, scope, timeout, retries, catalog-byte limit, stale policy, loopback HTTP acknowledgement, and network policy.
+
+## Python
+
+```python
+RemoteSkills(origins=..., defaults=..., cache=..., limits=...)
+
+await client.catalog(strict=False)
+client.session(origin_alias, stale=None)       # awaitable + async context manager
+await client.refresh(origin_alias=None)
+
+await session.catalog()
+await session.activate(skill_name, version_range=None)
+await session.close()
+
+await skill.list(prefix=None)
+await skill.read(path)
+await skill.read_bytes(path)
+```
+
+`Origin` supports URL, host-bound headers and artifact-header maps, scope, timeout, retries, loopback HTTP acknowledgement, catalog-byte limit, and network policy. `StaleCatalog(max_age_seconds=...)` is an explicit per-session offline fallback.
+
+## Activated data
+
+Activated skills expose origin/scope identity, name, description, optional version, exact digest, parsed standard frontmatter, Markdown instructions, and resource methods. Listing returns normalized path, byte size, and conservative media type—not file contents or permission.
+
+## Stable error codes
+
+Both clients use the same snake-case contract:
+
+```text
+configuration_invalid  origin_unavailable   request_timeout
+catalog_invalid        unsupported_schema   authentication_failed
+authorization_denied   skill_not_found      version_unavailable
+artifact_unsupported   digest_mismatch      archive_unsafe
+limit_exceeded         resource_not_found   resource_not_text
+path_invalid           policy_denied        session_closed
+cache_corrupt
+```
+
+Errors include sanitized structured context such as origin alias, non-secret scope, skill name, digest, path, status, and retryability. Messages may differ by language; secret-bearing headers/URLs, bodies, instructions, and resources are excluded.

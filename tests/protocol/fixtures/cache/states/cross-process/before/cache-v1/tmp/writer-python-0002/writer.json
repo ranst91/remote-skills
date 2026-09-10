@@ -1,0 +1,9 @@
+{
+  "schema": "remote-skills-cache-writer-v1",
+  "writer": "python",
+  "pid": 4102,
+  "process_nonce": "process-python-0002",
+  "expected_digest": "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d",
+  "bytes_received": 83,
+  "complete": true
+}

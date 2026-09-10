@@ -1,0 +1,42 @@
+---
+title: Authentication and scopes
+description: Host-bound credentials, provider-authorized catalog views, and cache-safe confirmation.
+---
+
+A configured `scope` is a **request for a provider-defined catalog view**. Naming `engineering` does not grant access. The provider authenticates credentials; the provider authorizes the requested view and confirms its canonical name.
+
+```ts
+const client = createRemoteSkills({
+  origins: {
+    acme: {
+      url: "https://skills.example.com",
+      headers: { Authorization: `Bearer ${token}` },
+      scope: "engineering",
+    },
+  },
+});
+```
+
+```python
+Origin(
+    url="https://skills.example.com",
+    headers={"Authorization": f"Bearer {token}"},
+    scope="engineering",
+)
+```
+
+## Catalog exchange
+
+The client sends exactly one `Remote-Skills-Scope: engineering` request header on the well-known catalog request. Every successful `200` or `304` scoped response must return exactly one matching `Remote-Skills-Scope` response header. Missing or different confirmation fails closed as `catalog_invalid`.
+
+`401` maps to `authentication_failed`: the identity is missing or invalid. `403` maps to `authorization_denied`: the identity is valid but the provider refuses that requested view. Errors may name the non-secret scope but exclude credentials, bodies, and complete credential-bearing URLs.
+
+## Persistence boundary
+
+A matching confirmed scope states that all principals authorized for that name receive a cache-equivalent catalog view. It may participate in the credential-free persistent catalog key. Authenticated responses without confirmed scope remain memory-only; `Cache-Control: no-store` always prevents persistence. Credentials and credential hashes never become cache keys or metadata.
+
+## Artifacts require authorization too
+
+Catalog filtering is not artifact authorization. The provider must authorize every artifact request. Same-origin artifacts receive the configured origin headers. A cross-host artifact receives no origin credentials unless that exact artifact host has separately configured headers. `Remote-Skills-Scope` is not automatically forwarded to an unconfigured artifact host.
+
+Scope values are non-secret visible ASCII, 1–128 bytes, without leading/trailing whitespace, control characters, commas, or multiple instances.

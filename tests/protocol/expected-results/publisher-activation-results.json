@@ -1,0 +1,85 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "tar-gzip-code-review",
+      "result": {
+        "outcome": "activation_success",
+        "origin_alias": "fixture-publisher",
+        "name": "code-review",
+        "digest": "sha256:af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a",
+        "instructions": "# Code review\n\nInspect the requested change and report only actionable findings.\n",
+        "frontmatter": {
+          "name": "code-review",
+          "description": "Review changes with a concise security checklist.",
+          "license": "Apache-2.0",
+          "metadata": { "fixture": "canonical" }
+        },
+        "files": [{ "path": "SKILL.md", "size": 222, "media_type": "text/markdown" }],
+        "requests": 2
+      }
+    },
+    {
+      "id": "tar-gzip-release-notes",
+      "result": {
+        "outcome": "activation_success",
+        "origin_alias": "fixture-publisher",
+        "name": "release-notes",
+        "digest": "sha256:921ecb597c44cc3adaaca7488b7cf3b9ae54e74f7bdf1084f117d30d37fb6f0e",
+        "instructions": "# Release notes\n\nRead the security reference before drafting concise release notes.\n",
+        "frontmatter": {
+          "name": "release-notes",
+          "description": "Draft release notes from verified project inputs.",
+          "compatibility": "Requires a Git history supplied by the host.",
+          "allowed-tools": "Read"
+        },
+        "files": [
+          { "path": "SKILL.md", "size": 256, "media_type": "text/markdown" },
+          { "path": "assets/template.md", "size": 44, "media_type": "text/markdown" },
+          { "path": "references/security.md", "size": 104, "media_type": "text/markdown" }
+        ],
+        "requests": 2
+      }
+    },
+    {
+      "id": "zip-code-review",
+      "result": {
+        "outcome": "activation_success",
+        "origin_alias": "fixture-publisher",
+        "name": "code-review",
+        "digest": "sha256:af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a",
+        "instructions": "# Code review\n\nInspect the requested change and report only actionable findings.\n",
+        "frontmatter": {
+          "name": "code-review",
+          "description": "Review changes with a concise security checklist.",
+          "license": "Apache-2.0",
+          "metadata": { "fixture": "canonical" }
+        },
+        "files": [{ "path": "SKILL.md", "size": 222, "media_type": "text/markdown" }],
+        "requests": 2
+      }
+    },
+    {
+      "id": "zip-release-notes",
+      "result": {
+        "outcome": "activation_success",
+        "origin_alias": "fixture-publisher",
+        "name": "release-notes",
+        "digest": "sha256:3a81c4ee90f7f0cc8c382af0cb44919bab16a0432aaec18c9d85c210d0f1a05d",
+        "instructions": "# Release notes\n\nRead the security reference before drafting concise release notes.\n",
+        "frontmatter": {
+          "name": "release-notes",
+          "description": "Draft release notes from verified project inputs.",
+          "compatibility": "Requires a Git history supplied by the host.",
+          "allowed-tools": "Read"
+        },
+        "files": [
+          { "path": "SKILL.md", "size": 256, "media_type": "text/markdown" },
+          { "path": "assets/template.md", "size": 44, "media_type": "text/markdown" },
+          { "path": "references/security.md", "size": 104, "media_type": "text/markdown" }
+        ],
+        "requests": 2
+      }
+    }
+  ]
+}

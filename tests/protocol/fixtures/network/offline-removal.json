@@ -1,0 +1,59 @@
+{
+  "active": {
+    "pinned_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "network_available": false,
+    "read_result": "success"
+  },
+  "new-default": {
+    "cached_catalog_age_seconds": 60,
+    "network_available": false,
+    "stale_enabled": false,
+    "terminal_code": "origin_unavailable"
+  },
+  "stale-allowed": {
+    "cached_catalog_age_seconds": 60,
+    "maximum_age_seconds": 300,
+    "stale_enabled": true,
+    "session_stale": true
+  },
+  "stale-expired": {
+    "cached_catalog_age_seconds": 301,
+    "maximum_age_seconds": 300,
+    "stale_enabled": true,
+    "terminal_code": "origin_unavailable"
+  },
+  "removal-existing": {
+    "session_catalog_generation": 1,
+    "pinned_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "read_result": "success"
+  },
+  "removal-future": {
+    "session_catalog_generation": 2,
+    "entry_present": false,
+    "terminal_code": "skill_not_found"
+  },
+  "version-removal-existing": {
+    "session_catalog_generation": 1,
+    "requested_range": "1.4.x",
+    "pinned_version": "1.4.7",
+    "pinned_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "read_result": "success"
+  },
+  "version-removal-future-online": {
+    "session_catalog_generation": 2,
+    "requested_range": "1.4.x",
+    "advertised_versions": ["2.0.0", "1.5.1"],
+    "cached_versions": ["1.4.7"],
+    "terminal_code": "version_unavailable"
+  },
+  "version-removal-explicit-stale": {
+    "session_catalog_generation": 1,
+    "requested_range": "1.4.x",
+    "advertised_versions": ["1.4.7"],
+    "cached_catalog_age_seconds": 60,
+    "maximum_age_seconds": 300,
+    "stale_enabled": true,
+    "selected_version": "1.4.7",
+    "session_stale": true
+  }
+}

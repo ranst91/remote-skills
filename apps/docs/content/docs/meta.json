@@ -1,0 +1,19 @@
+{
+  "title": "Remote Skills",
+  "pages": [
+    "index",
+    "concepts",
+    "publisher",
+    "hosting",
+    "cli",
+    "typescript",
+    "python",
+    "cache-and-offline",
+    "authentication-and-scopes",
+    "versions",
+    "trust-and-security",
+    "configuration",
+    "api-reference",
+    "release"
+  ]
+}

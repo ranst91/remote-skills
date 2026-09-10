@@ -1,0 +1,1 @@
+Opaque future cache namespace. A cache-v1 client must leave these bytes untouched.

@@ -1,0 +1,330 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "version-select-no-constraint",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "selected_version": "2.0.0",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-star",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "*",
+        "selected_version": "2.0.0",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-major-x",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "1.x",
+        "selected_version": "1.5.1",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.tar.gz",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-minor-x",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "1.4.x",
+        "selected_version": "1.4.7",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-caret",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "^1.4.2",
+        "selected_version": "1.5.1",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.tar.gz",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-tilde",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "~1.4.2",
+        "selected_version": "1.4.7",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-exact",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "1.4.2",
+        "selected_version": "1.4.2",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.tar.gz",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-unversioned-star",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "*",
+        "artifact_type": "skill-md",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-unversioned-restrictive",
+      "result": {
+        "outcome": "version_selection_error",
+        "requested_range": "1.4.x",
+        "error": {
+          "code": "version_unavailable",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "skill_name": "code-review",
+            "requested_range": "1.4.x"
+          }
+        },
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-no-compatible",
+      "result": {
+        "outcome": "version_selection_error",
+        "requested_range": "3.x",
+        "error": {
+          "code": "version_unavailable",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "skill_name": "code-review",
+            "requested_range": "3.x"
+          }
+        },
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-prerelease-excluded",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": ">=1.4.0 <1.5.0",
+        "selected_version": "1.4.7",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-prerelease-explicit",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": ">=1.5.0-beta.1 <1.5.0",
+        "selected_version": "1.5.0-beta.2",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff.tar.gz",
+        "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-build-metadata-tie",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "1.4.7",
+        "selected_version": "1.4.7+build.10",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.tar.gz",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-large-core-numeric",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": "*",
+        "selected_version": "9007199254740993.0.0",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-select-large-prerelease-numeric",
+      "result": {
+        "outcome": "version_selection_success",
+        "origin_alias": "acme",
+        "skill_name": "code-review",
+        "requested_range": ">=1.0.0-9007199254740992 <1.0.0",
+        "selected_version": "1.0.0-9007199254740993",
+        "artifact_type": "archive",
+        "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "stale": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "version-invalid-semver",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "skills[0].x-remote-skills.version"
+          }
+        }
+      }
+    },
+    {
+      "id": "version-invalid-historical-semver",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "skills[0].x-remote-skills.releases[1].version"
+          }
+        }
+      }
+    },
+    {
+      "id": "version-invalid-numeric-prerelease",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "skills[0].x-remote-skills.releases[1].version"
+          }
+        }
+      }
+    },
+    {
+      "id": "version-current-mismatch",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "skills[0].x-remote-skills.releases.current"
+          }
+        }
+      }
+    },
+    {
+      "id": "version-invalid-order",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "skills[0].x-remote-skills.releases.order"
+          }
+        }
+      }
+    },
+    {
+      "id": "version-duplicate",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "skills[0].x-remote-skills.releases[3].version"
+          }
+        }
+      }
+    },
+    {
+      "id": "version-over-limit",
+      "result": {
+        "outcome": "catalog_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": {
+            "origin_alias": "acme",
+            "field": "skills[0].x-remote-skills.releases"
+          }
+        }
+      }
+    }
+  ]
+}

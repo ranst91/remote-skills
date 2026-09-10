@@ -1,0 +1,42 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "catalog-scoped-initial",
+      "configuration": {
+        "origin_alias": "acme",
+        "origin": "https://skills.example.test",
+        "scope": "engineering",
+        "headers": {
+          "authorization": "$RUNTIME_SECRET_CANARY"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "remote-skills-scope": "engineering"
+        }
+      }
+    },
+    {
+      "id": "catalog-scoped-conditional",
+      "configuration": {
+        "origin_alias": "acme",
+        "origin": "https://skills.example.test",
+        "scope": "engineering",
+        "headers": {
+          "authorization": "$RUNTIME_SECRET_CANARY"
+        },
+        "validators": {
+          "etag": "\"engineering-v1\""
+        }
+      },
+      "response": {
+        "status": 304,
+        "headers": {
+          "remote-skills-scope": "engineering"
+        }
+      }
+    }
+  ]
+}

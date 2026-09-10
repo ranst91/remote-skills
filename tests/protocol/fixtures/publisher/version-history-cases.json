@@ -1,0 +1,86 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "history-clean-current",
+      "skill_name": "code-review",
+      "current": {
+        "version": "2.0.0",
+        "type": "archive",
+        "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prior_releases": [],
+      "prune": []
+    },
+    {
+      "id": "history-prior-retained",
+      "skill_name": "code-review",
+      "current": {
+        "version": "2.0.0",
+        "type": "archive",
+        "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prior_releases": [
+        {
+          "version": "1.4.7",
+          "type": "archive",
+          "url": "artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "prune": []
+    },
+    {
+      "id": "history-explicit-prune",
+      "skill_name": "code-review",
+      "current": {
+        "version": "2.0.0",
+        "type": "archive",
+        "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prior_releases": [
+        {
+          "version": "1.4.7",
+          "type": "archive",
+          "url": "artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "prune": ["1.4.7"]
+    },
+    {
+      "id": "history-version-remapped",
+      "skill_name": "code-review",
+      "current": {
+        "version": "1.4.7",
+        "type": "archive",
+        "url": "artifacts/sha256-cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.tar.gz",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "prior_releases": [
+        {
+          "version": "1.4.7",
+          "type": "archive",
+          "url": "artifacts/sha256-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.tar.gz",
+          "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "prune": []
+    },
+    {
+      "id": "history-over-limit",
+      "skill_name": "code-review",
+      "current": {
+        "version": "2.0.0",
+        "type": "archive",
+        "url": "artifacts/sha256-dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.tar.gz",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prior_release_count": 100,
+      "prune": []
+    }
+  ]
+}

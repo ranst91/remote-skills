@@ -1,0 +1,34 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "catalog-scoped-initial",
+      "requests": [
+        {
+          "method": "GET",
+          "url": "https://skills.example.test/.well-known/agent-skills/index.json",
+          "headers": {
+            "accept": "application/json",
+            "remote-skills-scope": "engineering"
+          },
+          "sensitive_header_names": ["authorization"]
+        }
+      ]
+    },
+    {
+      "id": "catalog-scoped-conditional",
+      "requests": [
+        {
+          "method": "GET",
+          "url": "https://skills.example.test/.well-known/agent-skills/index.json",
+          "headers": {
+            "accept": "application/json",
+            "if-none-match": "\"engineering-v1\"",
+            "remote-skills-scope": "engineering"
+          },
+          "sensitive_header_names": ["authorization"]
+        }
+      ]
+    }
+  ]
+}

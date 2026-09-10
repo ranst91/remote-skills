@@ -1,0 +1,37 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "authorization-timeout",
+      "diagnostic": {
+        "code": "request_timeout",
+        "retryable": true,
+        "context": { "origin_alias": "acme" }
+      }
+    },
+    {
+      "id": "configured-secret-header",
+      "diagnostic": {
+        "code": "request_timeout",
+        "retryable": true,
+        "context": { "origin_alias": "acme" }
+      }
+    },
+    {
+      "id": "cdn-token-timeout",
+      "diagnostic": {
+        "code": "request_timeout",
+        "retryable": true,
+        "context": { "origin_alias": "cdn" }
+      }
+    },
+    {
+      "id": "credential-bearing-url",
+      "diagnostic": {
+        "code": "policy_denied",
+        "retryable": false,
+        "context": { "origin_alias": "acme" }
+      }
+    }
+  ]
+}

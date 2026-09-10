@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_ref:
+        type: string
+        required: false
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CI: true
+  FORCE_COLOR: 0
+  PYTHONHASHSEED: 0
+  SOURCE_DATE_EPOCH: 0
+  TZ: UTC
+
+jobs:
+  check:
+    name: check (repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: "0.11.33"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          python-version: "3.11"
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --locked --all-packages
+      - name: Use the synced Python environment
+        run: echo "REMOTE_SKILLS_PYTHON=$GITHUB_WORKSPACE/.venv/bin/python" >> "$GITHUB_ENV"
+      - run: pnpm ci:check
+
+  test:
+    name: test (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: core
+            label: cli
+          - group: typescript
+            label: sdk typescript
+          - group: python
+            label: sdk python
+          - group: protocol
+            label: protocol
+          - group: examples
+            label: docs and examples
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: "0.11.33"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          python-version: "3.11"
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --locked --all-packages
+      - name: Use the synced Python environment
+        run: echo "REMOTE_SKILLS_PYTHON=$GITHUB_WORKSPACE/.venv/bin/python" >> "$GITHUB_ENV"
+      - name: Install the browser for chat examples
+        if: matrix.group == 'examples'
+        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm ci:test:${{ matrix.group }}
+
+  package:
+    name: test (packaging)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: "0.11.33"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          python-version: "3.11"
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --locked --all-packages
+      - name: Use the synced Python environment
+        run: echo "REMOTE_SKILLS_PYTHON=$GITHUB_WORKSPACE/.venv/bin/python" >> "$GITHUB_ENV"
+      - name: Cache integration runtime dependencies before offline package checks
+        run: pnpm package:cache
+      - run: pnpm package:check
+      - run: pnpm publication:readiness
+        env:
+          PUBLICATION_READINESS_OUTPUT: ${{ runner.temp }}/remote-skills-publication-readiness.json
+      - run: node scripts/check-no-publication.ts
+        env:
+          NO_PUBLICATION_READINESS_INPUT: ${{ runner.temp }}/remote-skills-publication-readiness.json
+          NO_PUBLICATION_EVIDENCE_OUTPUT: ${{ runner.temp }}/remote-skills-no-publication.json
+
+  windows:
+    name: test (packages windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: "0.11.33"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          python-version: "3.11"
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --locked --all-packages
+      - name: Use the synced Python environment
+        shell: pwsh
+        run: '"REMOTE_SKILLS_PYTHON=$env:GITHUB_WORKSPACE/.venv/Scripts/python.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append'
+      - run: pnpm windows

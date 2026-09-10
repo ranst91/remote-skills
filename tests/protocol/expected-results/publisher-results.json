@@ -1,0 +1,113 @@
+{
+  "contract_version": 1,
+  "formats": {
+    "tar.gz": {
+      "index": {
+        "path": "fixtures/publisher/goldens/tar-gzip/.well-known/agent-skills/index.json",
+        "sha256": "a63e76e79a3fec5579b968e8beeac58eade777f4c6017bc81a19e52b35983870",
+        "bytes": 767
+      },
+      "artifacts": [
+        {
+          "skill": "code-review",
+          "type": "skill-md",
+          "path": "fixtures/publisher/goldens/tar-gzip/.well-known/agent-skills/artifacts/sha256-af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a.md",
+          "sha256": "af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a",
+          "bytes": 222
+        },
+        {
+          "skill": "release-notes",
+          "type": "archive",
+          "format": "tar.gz",
+          "path": "fixtures/publisher/goldens/tar-gzip/.well-known/agent-skills/artifacts/sha256-921ecb597c44cc3adaaca7488b7cf3b9ae54e74f7bdf1084f117d30d37fb6f0e.tar.gz",
+          "sha256": "921ecb597c44cc3adaaca7488b7cf3b9ae54e74f7bdf1084f117d30d37fb6f0e",
+          "bytes": 417
+        }
+      ],
+      "normalized_archive": {
+        "entry_order": ["SKILL.md", "assets/template.md", "references/security.md"],
+        "file_mode": "0644",
+        "directory_entries": "omitted",
+        "uid": 0,
+        "gid": 0,
+        "owner": "",
+        "group": "",
+        "mtime": 0,
+        "gzip_mtime": 0,
+        "gzip_os": 255,
+        "compression_level": 9,
+        "files": [
+          {
+            "path": "SKILL.md",
+            "size": 256,
+            "sha256": "7dbe02c978a1b01b7f5b9e4f14cb6ab9ac7d4980360700eb5a31b0eab138f560"
+          },
+          {
+            "path": "assets/template.md",
+            "size": 44,
+            "sha256": "93d749982b9e10ea97ecb4fee34bc7e1ecc028abd4fe5da060adcdbc50bd071d"
+          },
+          {
+            "path": "references/security.md",
+            "size": 104,
+            "sha256": "63ad46a39cb9c9e8482642f389a0dad5100a543ee8da596f30195a581a1bedea"
+          }
+        ]
+      }
+    },
+    "zip": {
+      "index": {
+        "path": "fixtures/publisher/goldens/zip/.well-known/agent-skills/index.json",
+        "sha256": "9471550cbdbe90819fdea8ff5513af0e9cdecbc3d7f315a30aaa64edb6699d77",
+        "bytes": 764
+      },
+      "artifacts": [
+        {
+          "skill": "code-review",
+          "type": "skill-md",
+          "path": "fixtures/publisher/goldens/zip/.well-known/agent-skills/artifacts/sha256-af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a.md",
+          "sha256": "af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a",
+          "bytes": 222
+        },
+        {
+          "skill": "release-notes",
+          "type": "archive",
+          "format": "zip",
+          "path": "fixtures/publisher/goldens/zip/.well-known/agent-skills/artifacts/sha256-3a81c4ee90f7f0cc8c382af0cb44919bab16a0432aaec18c9d85c210d0f1a05d.zip",
+          "sha256": "3a81c4ee90f7f0cc8c382af0cb44919bab16a0432aaec18c9d85c210d0f1a05d",
+          "bytes": 647
+        }
+      ],
+      "normalized_archive": {
+        "entry_order": ["SKILL.md", "assets/template.md", "references/security.md"],
+        "file_mode": "0644",
+        "directory_entries": "omitted",
+        "timestamp": "1980-01-01T00:00:00",
+        "utf8_flag_for_ascii_paths": false,
+        "comments": "",
+        "extras": "",
+        "compression_level": 9,
+        "files": [
+          {
+            "path": "SKILL.md",
+            "size": 256,
+            "compressed_size": 171,
+            "sha256": "7dbe02c978a1b01b7f5b9e4f14cb6ab9ac7d4980360700eb5a31b0eab138f560"
+          },
+          {
+            "path": "assets/template.md",
+            "size": 44,
+            "compressed_size": 41,
+            "sha256": "93d749982b9e10ea97ecb4fee34bc7e1ecc028abd4fe5da060adcdbc50bd071d"
+          },
+          {
+            "path": "references/security.md",
+            "size": 104,
+            "compressed_size": 89,
+            "sha256": "63ad46a39cb9c9e8482642f389a0dad5100a543ee8da596f30195a581a1bedea"
+          }
+        ]
+      }
+    }
+  }
+}

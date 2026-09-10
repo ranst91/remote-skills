@@ -1,0 +1,216 @@
+{
+  "scope-confirmed-200": {
+    "configuration": {
+      "origin_alias": "acme",
+      "origin": "https://skills.example.test",
+      "scope": "engineering",
+      "headers": { "authorization": "$RUNTIME_SECRET_CANARY" }
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "cache-control": "max-age=300",
+        "remote-skills-scope": "engineering"
+      }
+    }
+  },
+  "scope-confirmed-304": {
+    "configuration": {
+      "origin_alias": "acme",
+      "origin": "https://skills.example.test",
+      "scope": "engineering",
+      "validators": { "etag": "\"engineering-v1\"" }
+    },
+    "response": {
+      "status": 304,
+      "headers": { "remote-skills-scope": "engineering" }
+    }
+  },
+  "scope-304-missing-confirmation": {
+    "configuration": {
+      "origin_alias": "acme",
+      "origin": "https://skills.example.test",
+      "scope": "engineering",
+      "validators": { "etag": "\"engineering-v1\"" }
+    },
+    "response": { "status": 304, "headers": {} }
+  },
+  "scope-304-mismatch-confirmation": {
+    "configuration": {
+      "origin_alias": "acme",
+      "origin": "https://skills.example.test",
+      "scope": "engineering",
+      "validators": { "etag": "\"engineering-v1\"" }
+    },
+    "response": { "status": 304, "headers": { "remote-skills-scope": "sales" } }
+  },
+  "scope-304-duplicate-confirmation": {
+    "configuration": {
+      "origin_alias": "acme",
+      "origin": "https://skills.example.test",
+      "scope": "engineering",
+      "validators": { "etag": "\"engineering-v1\"" }
+    },
+    "response": {
+      "status": 304,
+      "headers": [
+        { "name": "remote-skills-scope", "value": "engineering" },
+        { "name": "remote-skills-scope", "value": "engineering" }
+      ]
+    }
+  },
+  "scope-missing-confirmation": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "response": { "status": 200, "headers": {} }
+  },
+  "scope-mismatch-confirmation": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "response": { "status": 200, "headers": { "remote-skills-scope": "sales" } }
+  },
+  "scope-unauthenticated-401": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "response": { "status": 401, "headers": {} }
+  },
+  "scope-authorization-403": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "response": { "status": 403, "headers": {} }
+  },
+  "scope-no-store": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "response": {
+      "status": 200,
+      "headers": {
+        "cache-control": "no-store",
+        "remote-skills-scope": "engineering"
+      }
+    }
+  },
+  "scope-authenticated-unscoped-memory-only": {
+    "configuration": {
+      "origin_alias": "acme",
+      "headers": { "authorization": "$RUNTIME_SECRET_CANARY" }
+    },
+    "response": { "status": 200, "headers": { "cache-control": "max-age=300" } }
+  },
+  "scope-engineering-cache": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "response": {
+      "status": 200,
+      "headers": { "remote-skills-scope": "engineering" }
+    }
+  },
+  "scope-sales-cache": {
+    "configuration": { "origin_alias": "acme", "scope": "sales" },
+    "response": { "status": 200, "headers": { "remote-skills-scope": "sales" } }
+  },
+  "scope-artifact-denied": {
+    "configuration": {
+      "origin_alias": "acme",
+      "origin": "https://skills.example.test",
+      "scope": "engineering",
+      "headers": { "authorization": "$RUNTIME_SECRET_CANARY" },
+      "artifact_url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.md"
+    },
+    "artifact_request": {
+      "method": "GET",
+      "headers": { "accept": "text/markdown" },
+      "sensitive_header_names": ["authorization"],
+      "forbidden_header_names": ["remote-skills-scope"]
+    },
+    "response": { "status": 403, "headers": {} }
+  },
+  "authorized-range-activation": {
+    "configuration": {
+      "origin_alias": "acme",
+      "origin": "https://skills.example.test",
+      "scope": "engineering",
+      "requested_range": "1.4.x",
+      "headers": { "authorization": "$RUNTIME_SECRET_CANARY" }
+    },
+    "catalog_request": {
+      "method": "GET",
+      "url": "https://skills.example.test/.well-known/agent-skills/index.json",
+      "headers": {
+        "accept": "application/json",
+        "remote-skills-scope": "engineering"
+      },
+      "sensitive_header_names": ["authorization"]
+    },
+    "catalog_response": {
+      "status": 200,
+      "headers": { "remote-skills-scope": "engineering" },
+      "fixture": "catalog/valid-versioned-history.json"
+    },
+    "selection": {
+      "skill_name": "code-review",
+      "selected_version": "1.4.7",
+      "digest": "sha256:e3dd434d090978361c16488c14d525b5824f67b17336f852c094624477a1bbe3"
+    },
+    "artifact_request": {
+      "method": "GET",
+      "url": "https://skills.example.test/.well-known/agent-skills/artifacts/sha256-e3dd434d090978361c16488c14d525b5824f67b17336f852c094624477a1bbe3.md",
+      "headers": { "accept": "text/markdown" },
+      "sensitive_header_names": ["authorization"],
+      "forbidden_header_names": ["remote-skills-scope"]
+    },
+    "artifact_response": {
+      "status": 200,
+      "digest": "sha256:e3dd434d090978361c16488c14d525b5824f67b17336f852c094624477a1bbe3"
+    },
+    "pin": {
+      "version": "1.4.7",
+      "digest": "sha256:e3dd434d090978361c16488c14d525b5824f67b17336f852c094624477a1bbe3"
+    }
+  },
+  "scope-invalid-non-visible-ascii": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering\u007f" },
+    "terminal_code": "configuration_invalid",
+    "requests": 0
+  },
+  "scope-invalid-empty": {
+    "configuration": { "origin_alias": "acme", "scope": "" },
+    "terminal_code": "configuration_invalid",
+    "requests": 0
+  },
+  "scope-invalid-over-128-bytes": {
+    "configuration": {
+      "origin_alias": "acme",
+      "scope": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "terminal_code": "configuration_invalid",
+    "requests": 0
+  },
+  "scope-invalid-whitespace": {
+    "configuration": { "origin_alias": "acme", "scope": " engineering " },
+    "terminal_code": "configuration_invalid",
+    "requests": 0
+  },
+  "scope-invalid-comma": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering,sales" },
+    "terminal_code": "configuration_invalid",
+    "requests": 0
+  },
+  "scope-invalid-multiple-request-headers": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "request": {
+      "headers": [
+        { "name": "remote-skills-scope", "value": "engineering" },
+        { "name": "remote-skills-scope", "value": "engineering" }
+      ]
+    },
+    "terminal_code": "configuration_invalid",
+    "requests": 0
+  },
+  "scope-invalid-multiple-response-headers": {
+    "configuration": { "origin_alias": "acme", "scope": "engineering" },
+    "response": {
+      "status": 200,
+      "headers": [
+        { "name": "remote-skills-scope", "value": "engineering" },
+        { "name": "remote-skills-scope", "value": "engineering" }
+      ]
+    },
+    "terminal_code": "catalog_invalid",
+    "requests": 1
+  }
+}

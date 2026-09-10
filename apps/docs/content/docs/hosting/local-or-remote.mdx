@@ -1,0 +1,31 @@
+---
+title: Local image or remote origin?
+description: Decide between application-owned files and independently released remote skills.
+---
+
+Remote distribution is useful, but it is not automatically simpler.
+
+## Copy or clone into the image when
+
+- a small, fixed skill set belongs to one application;
+- skills should update and roll back with the same container image;
+- every replica needs every skill;
+- no independent publisher or selective activation is required.
+
+In that case, copy or clone the Git content during the trusted container-image build. The image is the release unit, and a remote catalog/cache lifecycle would add moving parts without changing authority.
+
+## Use a Remote Skills origin when
+
+- a publisher owns releases independently of consumers;
+- many applications share a catalog;
+- consumers activate only selected skills;
+- digest verification and immutable session pins matter;
+- a future session should observe updates without redeploying every agent.
+
+## Container cache economics
+
+The default production cache is disk-backed. Put it on a **persistent cache volume** when replicas or restarts should reuse verified immutable objects. The cache is disposable, bounded storage—not an installation—and can be rebuilt from the configured origin.
+
+An **ephemeral** container cache repeats network, hashing, extraction, and storage work after each restart. Activation always downloads the complete artifact and extracts accepted archives before returning. Only instructions and explicitly read resources enter application/model context, so context-lazy access does not remove that network or disk cost.
+
+If a persistent volume is operationally awkward and independent distribution is not needed, image-local files are often the honest cheaper design.

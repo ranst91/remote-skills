@@ -1,0 +1,23 @@
+{
+  "contract_version": 1,
+  "source_files": [
+    "fixtures/publisher/source/skills/code-review/SKILL.md",
+    "fixtures/publisher/source/skills/release-notes/SKILL.md",
+    "fixtures/publisher/source/skills/release-notes/assets/template.md",
+    "fixtures/publisher/source/skills/release-notes/references/security.md"
+  ],
+  "formats": ["tar.gz", "zip"],
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "Review changes with a concise security checklist.",
+      "artifact_type": "skill-md"
+    },
+    {
+      "name": "release-notes",
+      "description": "Draft release notes from verified project inputs.",
+      "artifact_type": "archive",
+      "archive_paths": ["SKILL.md", "assets/template.md", "references/security.md"]
+    }
+  ]
+}

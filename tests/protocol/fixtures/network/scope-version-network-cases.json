@@ -1,0 +1,130 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "scope-confirmed-200",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-confirmed-200"
+    },
+    {
+      "id": "scope-confirmed-304",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-confirmed-304"
+    },
+    {
+      "id": "scope-304-missing-confirmation",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-304-missing-confirmation"
+    },
+    {
+      "id": "scope-304-mismatch-confirmation",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-304-mismatch-confirmation"
+    },
+    {
+      "id": "scope-304-duplicate-confirmation",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-304-duplicate-confirmation"
+    },
+    {
+      "id": "scope-missing-confirmation",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-missing-confirmation"
+    },
+    {
+      "id": "scope-mismatch-confirmation",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-mismatch-confirmation"
+    },
+    {
+      "id": "scope-unauthenticated-401",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-unauthenticated-401"
+    },
+    {
+      "id": "scope-authorization-403",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-authorization-403"
+    },
+    {
+      "id": "scope-no-store",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-no-store"
+    },
+    {
+      "id": "scope-authenticated-unscoped-memory-only",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-authenticated-unscoped-memory-only"
+    },
+    {
+      "id": "scope-engineering-cache",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-engineering-cache"
+    },
+    {
+      "id": "scope-sales-cache",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-sales-cache"
+    },
+    {
+      "id": "scope-artifact-denied",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-artifact-denied"
+    },
+    {
+      "id": "version-removal-existing-session",
+      "category": "removal",
+      "scenario": "offline-removal.json#version-removal-existing"
+    },
+    {
+      "id": "version-removal-future-online",
+      "category": "removal",
+      "scenario": "offline-removal.json#version-removal-future-online"
+    },
+    {
+      "id": "version-removal-explicit-stale",
+      "category": "removal",
+      "scenario": "offline-removal.json#version-removal-explicit-stale"
+    },
+    {
+      "id": "authorized-range-activation",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#authorized-range-activation"
+    },
+    {
+      "id": "scope-invalid-non-visible-ascii",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-invalid-non-visible-ascii"
+    },
+    {
+      "id": "scope-invalid-empty",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-invalid-empty"
+    },
+    {
+      "id": "scope-invalid-over-128-bytes",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-invalid-over-128-bytes"
+    },
+    {
+      "id": "scope-invalid-whitespace",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-invalid-whitespace"
+    },
+    {
+      "id": "scope-invalid-comma",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-invalid-comma"
+    },
+    {
+      "id": "scope-invalid-multiple-request-headers",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-invalid-multiple-request-headers"
+    },
+    {
+      "id": "scope-invalid-multiple-response-headers",
+      "category": "scope_authorization",
+      "scenario": "scope-authorization.json#scope-invalid-multiple-response-headers"
+    }
+  ]
+}

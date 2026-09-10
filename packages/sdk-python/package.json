@@ -1,0 +1,18 @@
+{
+  "name": "@remote-skills/python-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "uv:sync": "uv sync --project ../.. --locked --all-packages",
+    "uv:typecheck": "uv run --project . --locked python -m compileall -q src tests",
+    "uv:test": "uv run --project . --locked python -m unittest discover -s tests",
+    "package:check": "node ../../scripts/run-uv.ts run --no-project --python 3.11 --no-python-downloads python -m unittest discover -s tests -p test_package.py",
+    "typecheck": "uv run --project . --locked python -m compileall -q src tests",
+    "test": "uv run --project . --locked python -m unittest discover -s tests",
+    "check": "pnpm typecheck && pnpm test"
+  }
+}

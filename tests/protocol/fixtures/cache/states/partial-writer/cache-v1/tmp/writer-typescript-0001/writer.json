@@ -1,0 +1,9 @@
+{
+  "schema": "remote-skills-cache-writer-v1",
+  "writer": "typescript",
+  "pid": 4101,
+  "process_nonce": "process-typescript-0001",
+  "expected_digest": "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d",
+  "bytes_received": 20,
+  "complete": false
+}

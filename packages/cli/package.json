@@ -1,0 +1,36 @@
+{
+  "name": "@remote-skills/cli",
+  "version": "0.0.1",
+  "description": "Publisher CLI for standards-compatible Remote Skills origins.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "remote-skills": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "prepack": "pnpm build",
+    "pack:local": "node scripts/pack-local.ts",
+    "package:check": "node --test tests/package.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test tests/*.test.ts",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@remote-skills/core": "workspace:*"
+  },
+  "bundledDependencies": [
+    "@remote-skills/core"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ranst91/remote-skills.git",
+    "directory": "packages/cli"
+  }
+}

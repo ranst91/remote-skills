@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "An entry with a non-canonical digest.",
+      "type": "skill-md",
+      "url": "artifacts/code-review.md",
+      "digest": "sha256:ABC123"
+    }
+  ]
+}

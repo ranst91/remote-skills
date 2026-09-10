@@ -1,0 +1,6 @@
+{
+  "$schema": "https://remote-skills.dev/schemas/config/0.0.1.json",
+  "sourceRoots": ["skills"],
+  "outDir": "dist",
+  "format": "tar.gz"
+}

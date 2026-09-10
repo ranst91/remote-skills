@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "code-review",
+      "description": "Review changes with a concise security checklist.",
+      "type": "skill-md",
+      "url": "artifacts/sha256-af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a.md",
+      "digest": "sha256:af52eadb3fdd21ef8f93fd07bd028df1b38bd2e672953f59c934b90f7e392a0a"
+    },
+    {
+      "name": "release-notes",
+      "description": "Draft release notes from verified project inputs.",
+      "type": "archive",
+      "url": "artifacts/sha256-921ecb597c44cc3adaaca7488b7cf3b9ae54e74f7bdf1084f117d30d37fb6f0e.tar.gz",
+      "digest": "sha256:921ecb597c44cc3adaaca7488b7cf3b9ae54e74f7bdf1084f117d30d37fb6f0e"
+    }
+  ]
+}

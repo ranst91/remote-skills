@@ -1,0 +1,33 @@
+---
+title: Model and lifecycle
+description: Remote authority, compact discovery, immutable activation, and explicit sessions.
+---
+
+## Remote means authority
+
+The configured origin is authoritative for discovery and future updates. It is not a resource-by-resource transport. A catalog request returns compact metadata; activation fetches the selected complete artifact and verifies its declared digest.
+
+```text
+origin catalog
+    │ compact metadata only
+    ▼
+session snapshot ── activate(name, range?) ── complete artifact
+    │                                         verify + local cache
+    └──────────────────────────────────────── pinned digest
+```
+
+## One session, one snapshot
+
+A session consults one catalog snapshot. Once it activates a skill, its version descriptor and digest stay pinned. A publisher update or `client.refresh()` changes only **future sessions**. Existing sessions keep reading the exact bytes they already verified.
+
+An online catalog is authoritative for a new session: removed skills or releases cannot be resurrected from object-cache bytes. Explicit stale mode may use an older verified catalog within a configured maximum age and marks the session stale.
+
+## Artifact and context are different budgets
+
+Activation downloads the **complete artifact** and, for an archive, extracts all accepted members locally. Resource access is **context-lazy**: `read()` and `readBytes()` select from that pinned local object and make no additional network request. This saves model/application context, not artifact bandwidth or disk.
+
+## What the toolkit decides
+
+Remote Skills decides whether wire metadata is recognized, destinations satisfy network policy, artifact bytes match a digest, archives are structurally safe, cache publication is complete, and requested resources stay inside the verified root.
+
+The host application decides whether a publisher is trusted, whether a skill is relevant, what permissions tools receive, and whether any read script should ever be executed. `allowed-tools` remains untrusted metadata, not authorization.

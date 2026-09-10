@@ -1,0 +1,6 @@
+{
+  "schema": "remote-skills-cache-evaluation-inputs-v1",
+  "now": "2026-08-25T10:00:45.000Z",
+  "lease_expiry_seconds": 120,
+  "process_liveness": { "999999": false }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@remote-skills/example-publisher",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@remote-skills/cli": "workspace:*"
+  },
+  "scripts": {
+    "validate": "remote-skills validate",
+    "build": "remote-skills build",
+    "typecheck": "tsc -p ../tsconfig.json --noEmit",
+    "test": "node --test ../../tests/examples/end-to-end.test.ts ../../tests/examples/public-boundaries.test.ts",
+    "check": "pnpm typecheck && pnpm test"
+  }
+}

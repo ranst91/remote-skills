@@ -1,0 +1,657 @@
+{
+  "schemaVersion": 1,
+  "baselineJavaScriptCount": 134,
+  "migrationTargetCount": 128,
+  "finalAuthoredJavaScript": [
+    "apps/docs/postcss.config.mjs",
+    "packages/sdk-typescript/src/cache/protocol-worker.mjs",
+    "tests/protocol/adapters/typescript-protocol-adapter.mjs"
+  ],
+  "fixedExemptions": {
+    "generatedUnicode": "packages/core/src/authoring/unicode-case-fold-v15.mjs",
+    "vendoredPako": "packages/core/src/build/vendor/pako-deflate.mjs",
+    "immutableNoopFixture": "tests/protocol/fixtures/adapters/typescript-noop.mjs"
+  },
+  "stableMigrationPairs": [
+    {
+      "baseline": "apps/docs/next.config.mjs",
+      "successor": "apps/docs/next.config.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "apps/docs/tests/agent-accessibility.test.mjs",
+      "successor": "apps/docs/tests/agent-accessibility.test.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "apps/docs/tests/docs-contract.test.mjs",
+      "successor": "apps/docs/tests/docs-contract.test.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "apps/docs/tests/links.test.mjs",
+      "successor": "apps/docs/tests/links.test.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "apps/docs/tests/production-routes.test.mjs",
+      "successor": "apps/docs/tests/production-routes.test.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "apps/docs/tests/verify-snippets.mjs",
+      "successor": "apps/docs/tests/verify-snippets.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/authenticated-scope/server.mjs",
+      "successor": "tests/examples/helpers/authenticated-origin.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/git-pages/verify-pages-root.mjs",
+      "successor": "tests/examples/helpers/verify-origin.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/lib/public-cli.mjs",
+      "successor": "tests/examples/helpers/public-cli.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/publisher/tests/e2e.test.mjs",
+      "successor": "tests/examples/end-to-end.test.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/publisher/tests/public-boundaries.test.mjs",
+      "successor": "tests/examples/public-boundaries.test.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/python-consumer/run-python.mjs",
+      "successor": "tests/examples/helpers/run-python.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/python-consumer/tests/uv-cache.test.mjs",
+      "successor": "tests/examples/python-runner.test.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/python-consumer/uv-cache.mjs",
+      "successor": "tests/examples/helpers/uv-cache.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/static-host/server.mjs",
+      "successor": "tests/examples/helpers/static-host.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/tests/run-smoke.mjs",
+      "successor": "tests/examples/run-smoke.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "examples/version-range/build-history.mjs",
+      "successor": "tests/examples/helpers/build-history.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "packages/cli/scripts/pack-local.mjs",
+      "successor": "packages/cli/scripts/pack-local.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/build.mjs",
+      "successor": "packages/cli/src/build.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/cli.mjs",
+      "successor": "packages/cli/src/cli.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/config.mjs",
+      "successor": "packages/cli/src/config.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/dev-server.mjs",
+      "successor": "packages/cli/src/dev-server.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/dev.mjs",
+      "successor": "packages/cli/src/dev.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/network.mjs",
+      "successor": "packages/cli/src/network.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/rebuild-queue.mjs",
+      "successor": "packages/cli/src/rebuild-queue.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/validate.mjs",
+      "successor": "packages/cli/src/validate.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/verify-artifact.mjs",
+      "successor": "packages/cli/src/verify-artifact.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/verify-catalog.mjs",
+      "successor": "packages/cli/src/verify-catalog.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/verify-errors.mjs",
+      "successor": "packages/cli/src/verify-errors.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/verify-semver.mjs",
+      "successor": "packages/cli/src/verify-semver.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/src/verify.mjs",
+      "successor": "packages/cli/src/verify.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/build.test.mjs",
+      "successor": "packages/cli/tests/build.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/cli.test.mjs",
+      "successor": "packages/cli/tests/cli.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/config.test.mjs",
+      "successor": "packages/cli/tests/config.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/dev-startup-worker.mjs",
+      "successor": "packages/cli/tests/dev-startup-worker.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/dev.test.mjs",
+      "successor": "packages/cli/tests/dev.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/helpers/async.mjs",
+      "successor": "packages/cli/tests/helpers/async.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/network.test.mjs",
+      "successor": "packages/cli/tests/network.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/package.test.mjs",
+      "successor": "packages/cli/tests/package.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/rebuild-queue.test.mjs",
+      "successor": "packages/cli/tests/rebuild-queue.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/typecheck-gate.test.mjs",
+      "successor": "packages/cli/tests/typecheck-gate.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/validate.test.mjs",
+      "successor": "packages/cli/tests/validate.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/verify-artifact.test.mjs",
+      "successor": "packages/cli/tests/verify-artifact.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/cli/tests/verify.test.mjs",
+      "successor": "packages/cli/tests/verify.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/authoring/diagnostics.mjs",
+      "successor": "packages/core/src/authoring/diagnostics.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/authoring/frontmatter.mjs",
+      "successor": "packages/core/src/authoring/frontmatter.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/authoring/index.mjs",
+      "successor": "packages/core/src/authoring/index.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/authoring/paths.mjs",
+      "successor": "packages/core/src/authoring/paths.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/authoring/validate-project.mjs",
+      "successor": "packages/core/src/authoring/validate-project.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/archive-validation.mjs",
+      "successor": "packages/core/src/build/archive-validation.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/archive.mjs",
+      "successor": "packages/core/src/build/archive.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/catalog-json.mjs",
+      "successor": "packages/core/src/build/catalog-json.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/errors.mjs",
+      "successor": "packages/core/src/build/errors.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/index.mjs",
+      "successor": "packages/core/src/build/index.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/output.mjs",
+      "successor": "packages/core/src/build/output.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/prior-output.mjs",
+      "successor": "packages/core/src/build/prior-output.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/publication.mjs",
+      "successor": "packages/core/src/build/publication.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/build/semver.mjs",
+      "successor": "packages/core/src/build/semver.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/src/config-schema.mjs",
+      "successor": "packages/core/src/config-schema.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/authoring-validation.test.mjs",
+      "successor": "packages/core/tests/authoring-validation.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/build-process-worker.mjs",
+      "successor": "packages/core/tests/build-process-worker.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/build-semver.test.mjs",
+      "successor": "packages/core/tests/build-semver.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/build.test.mjs",
+      "successor": "packages/core/tests/build.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/config-schema.test.mjs",
+      "successor": "packages/core/tests/config-schema.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/frontmatter.test.mjs",
+      "successor": "packages/core/tests/frontmatter.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/platform.mjs",
+      "successor": "packages/core/tests/platform.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/core/tests/unicode-case-fold.test.mjs",
+      "successor": "packages/core/tests/unicode-case-fold.test.ts",
+      "owner": "core-cli"
+    },
+    {
+      "baseline": "packages/sdk-python/tests/helpers/typescript_lease_holder.mjs",
+      "successor": "packages/sdk-python/tests/helpers/typescript_lease_holder.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "packages/sdk-python/tests/helpers/typescript_orphan_registration.mjs",
+      "successor": "packages/sdk-python/tests/helpers/typescript_orphan_registration.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "packages/sdk-python/tests/helpers/typescript_writer_holder.mjs",
+      "successor": "packages/sdk-python/tests/helpers/typescript_writer_holder.ts",
+      "owner": "remaining-surfaces"
+    },
+    {
+      "baseline": "packages/sdk-typescript/scripts/pack-local.mjs",
+      "successor": "packages/sdk-typescript/scripts/pack-local.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/scripts/run-tests.mjs",
+      "successor": "packages/sdk-typescript/scripts/run-tests.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/src/protocol-adapter.mjs",
+      "successor": "packages/sdk-typescript/src/protocol-adapter.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/activation/activation-protocol.test.mjs",
+      "successor": "packages/sdk-typescript/tests/activation/activation-protocol.test.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/activation/activation.test.mjs",
+      "successor": "packages/sdk-typescript/tests/activation/activation.test.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/cache/cache.test.mjs",
+      "successor": "packages/sdk-typescript/tests/cache/cache.test.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/cache/helpers/bigint-directory-identity.mjs",
+      "successor": "packages/sdk-typescript/tests/cache/helpers/bigint-directory-identity.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/cache/helpers/live-lease-holder.mjs",
+      "successor": "packages/sdk-typescript/tests/cache/helpers/live-lease-holder.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/cache/helpers/race-writer.mjs",
+      "successor": "packages/sdk-typescript/tests/cache/helpers/race-writer.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/cache/helpers/typescript-eviction-pauser.mjs",
+      "successor": "packages/sdk-typescript/tests/cache/helpers/typescript-eviction-pauser.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/catalog-discovery.test.mjs",
+      "successor": "packages/sdk-typescript/tests/catalog-discovery.test.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/catalog-protocol.test.mjs",
+      "successor": "packages/sdk-typescript/tests/catalog-protocol.test.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/package-gate.test.mjs",
+      "successor": "packages/sdk-typescript/tests/package-gate.test.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "packages/sdk-typescript/tests/session/session.test.mjs",
+      "successor": "packages/sdk-typescript/tests/session/session.test.ts",
+      "owner": "client"
+    },
+    {
+      "baseline": "scripts/check-config-schema.mjs",
+      "successor": "scripts/check-config-schema.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/check-no-publication.mjs",
+      "successor": "scripts/check-no-publication.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/check-package-artifacts.mjs",
+      "successor": "scripts/check-package-artifacts.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/check-publication-readiness.mjs",
+      "successor": "scripts/check-publication-readiness.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/generate-config-schema.mjs",
+      "successor": "scripts/generate-config-schema.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/lib/pnpm-command.mjs",
+      "successor": "scripts/lib/pnpm-command.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/lib/turbo-command.mjs",
+      "successor": "scripts/lib/turbo-command.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/package-artifact-inputs.mjs",
+      "successor": "scripts/package-artifact-inputs.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/run-ci-test-group.mjs",
+      "successor": "scripts/run-ci-test-group.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/run-package-gate.mjs",
+      "successor": "scripts/run-package-gate.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/run-turbo.mjs",
+      "successor": "scripts/run-turbo.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/validate-config-fixture.mjs",
+      "successor": "scripts/validate-config-fixture.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "scripts/verify-project-gates.mjs",
+      "successor": "scripts/verify-project-gates.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/helpers/cache-race/harness.mjs",
+      "successor": "tests/helpers/cache-race/harness.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/helpers/cache-race/node-worker.mjs",
+      "successor": "tests/helpers/cache-race/node-worker.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/helpers/cache-race/schedules.mjs",
+      "successor": "tests/helpers/cache-race/schedules.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/helpers/network-security/node-runtime-gate.mjs",
+      "successor": "tests/helpers/network-security/node-runtime-gate.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/helpers/run-command.mjs",
+      "successor": "tests/helpers/run-command.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/helpers/scope-version-parity/evidence.mjs",
+      "successor": "tests/helpers/scope-version-parity/evidence.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/helpers/scope-version-parity/node-runtime-gate.mjs",
+      "successor": "tests/helpers/scope-version-parity/node-runtime-gate.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/adapter-contract.test.mjs",
+      "successor": "tests/protocol/adapter-contract.test.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/archive-fixtures.test.mjs",
+      "successor": "tests/protocol/archive-fixtures.test.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/cache-network-fixtures.test.mjs",
+      "successor": "tests/protocol/cache-network-fixtures.test.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/cache-race-gate.test.mjs",
+      "successor": "tests/protocol/cache-race-gate.test.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/contract.test.mjs",
+      "successor": "tests/protocol/contract.test.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/helpers/contract-helpers.mjs",
+      "successor": "tests/protocol/helpers/contract-helpers.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/publisher-goldens.test.mjs",
+      "successor": "tests/protocol/publisher-goldens.test.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/scope-version-contract.test.mjs",
+      "successor": "tests/protocol/scope-version-contract.test.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/tools/consume-built-origin.mjs",
+      "successor": "tests/protocol/tools/consume-built-origin.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/tools/fixture-server.mjs",
+      "successor": "tests/protocol/tools/fixture-server.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/tools/run-determinism-gate.mjs",
+      "successor": "tests/protocol/tools/run-determinism-gate.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/tools/validate-contract-results.mjs",
+      "successor": "tests/protocol/tools/validate-contract-results.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/protocol/tools/verify-manifests.mjs",
+      "successor": "tests/protocol/tools/verify-manifests.ts",
+      "owner": "protocol"
+    },
+    {
+      "baseline": "tests/repository/ci-bootstrap.test.mjs",
+      "successor": "tests/repository/ci-bootstrap.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/determinism-gate.test.mjs",
+      "successor": "tests/repository/determinism-gate.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/foundation.test.mjs",
+      "successor": "tests/repository/foundation.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/network-security-gate.test.mjs",
+      "successor": "tests/repository/network-security-gate.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/no-publication-gate.test.mjs",
+      "successor": "tests/repository/no-publication-gate.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/package-artifacts.test.mjs",
+      "successor": "tests/repository/package-artifacts.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/process-launch.test.mjs",
+      "successor": "tests/repository/process-launch.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/publication-readiness.test.mjs",
+      "successor": "tests/repository/publication-readiness.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/python-turbo.test.mjs",
+      "successor": "tests/repository/python-turbo.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/scope-version-parity-gate.test.mjs",
+      "successor": "tests/repository/scope-version-parity-gate.test.ts",
+      "owner": "foundation-followup"
+    },
+    {
+      "baseline": "tests/repository/windows-core-mutation-probes.test.mjs",
+      "successor": "tests/repository/windows-core-mutation-probes.test.ts",
+      "owner": "foundation-followup"
+    }
+  ]
+}

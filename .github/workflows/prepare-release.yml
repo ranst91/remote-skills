@@ -1,0 +1,90 @@
+name: release / create-pr
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Initial 0.0.1 release, or next version component
+        required: true
+        type: choice
+        options: [initial, patch, minor, major]
+      channel:
+        description: Release channel
+        required: true
+        default: alpha
+        type: choice
+        options: [alpha, stable]
+      dry_run:
+        description: Preview without creating a release PR
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+concurrency:
+  group: release-create-pr
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          run_install: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: "0.11.33"
+          python-version: "3.11"
+      - name: Preview or prepare coordinated versions
+        id: release
+        env:
+          BUMP: ${{ inputs.bump }}
+          CHANNEL: ${{ inputs.channel }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          mode=--dry-run
+          if [ "$DRY_RUN" != true ]; then mode=--write; fi
+          node scripts/release/release.ts prepare "$BUMP" "$CHANNEL" "$mode" | tee /tmp/release-preview.json
+          cat /tmp/release-preview.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Refresh lockfiles
+        if: inputs.dry_run != true
+        run: |
+          pnpm install --lockfile-only --ignore-scripts
+          uv lock
+      - name: Create release PR and explicitly start its CI
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ steps.release.outputs.npm_version }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --heads origin release/next >/dev/null 2>&1; then
+            echo 'release/next already exists; finish or remove the old release branch first.' >&2
+            exit 1
+          fi
+          git config user.name github-actions
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git switch -c release/next
+          git add packages/cli/package.json packages/sdk-typescript/package.json integrations/ai-sdk/package.json packages/sdk-python/pyproject.toml pnpm-lock.yaml uv.lock CHANGELOG.md release-state.json
+          git commit -m "chore: release v${RELEASE_VERSION}"
+          node scripts/release/release.ts validate "$(git rev-parse HEAD)"
+          gh auth setup-git
+          git push --set-upstream origin release/next
+          gh pr create --base main --head release/next --title "chore: release v${RELEASE_VERSION}" --body "Coordinated release of the CLI, TypeScript and Python clients, and Vercel AI SDK integration. Review the version and changelog changes, then merge after CI passes."
+          # GITHUB_TOKEN-created PR events do not start other workflows.
+          gh workflow run ci.yml --ref release/next

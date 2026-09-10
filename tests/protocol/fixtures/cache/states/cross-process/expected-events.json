@@ -1,0 +1,10 @@
+{
+  "schema": "remote-skills-cache-race-fixture-v1",
+  "events": [
+    { "sequence": 1, "writer": "typescript", "event": "verified_private_object" },
+    { "sequence": 2, "writer": "python", "event": "verified_private_object" },
+    { "sequence": 3, "writer": "python", "event": "published_winner" },
+    { "sequence": 4, "writer": "typescript", "event": "verified_existing_winner" },
+    { "sequence": 5, "writer": "typescript", "event": "discarded_private_object" }
+  ]
+}

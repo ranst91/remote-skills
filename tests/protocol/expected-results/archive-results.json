@@ -1,0 +1,743 @@
+{
+  "contract_version": 1,
+  "cases": [
+    {
+      "id": "skill-md-valid",
+      "result": {
+        "outcome": "activation_success",
+        "origin_alias": "fixture",
+        "name": "fixture-skill",
+        "digest": "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d",
+        "instructions": "# Fixture skill\n",
+        "frontmatter": { "name": "fixture-skill", "description": "Exercise archive safety." },
+        "requests": 1,
+        "files": [{ "path": "SKILL.md", "size": 83, "media_type": "text/markdown" }]
+      }
+    },
+    {
+      "id": "skill-md-invalid-utf8",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "field": "SKILL.md" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "skill-md-malformed-yaml",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "field": "SKILL.md.frontmatter" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "skill-md-missing-frontmatter",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "field": "SKILL.md.frontmatter" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "skill-md-missing-name",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "field": "name" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "skill-md-missing-description",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "field": "description" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "skill-md-invalid-name",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "field": "name" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "skill-md-invalid-metadata",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "catalog_invalid",
+          "retryable": false,
+          "context": { "field": "metadata" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-valid",
+      "result": {
+        "outcome": "activation_success",
+        "origin_alias": "fixture",
+        "name": "fixture-skill",
+        "digest": "sha256:a58de7270306afba4742e84ffbd5d4a3889fbd8eca86a4e10e0b2e87a0de875a",
+        "instructions": "# Fixture skill\n",
+        "frontmatter": { "name": "fixture-skill", "description": "Exercise archive safety." },
+        "requests": 1,
+        "files": [
+          { "path": "SKILL.md", "size": 83, "media_type": "text/markdown" },
+          { "path": "assets/template.bin", "size": 4, "media_type": "application/octet-stream" },
+          { "path": "references/security.md", "size": 53, "media_type": "text/markdown" }
+        ]
+      }
+    },
+    {
+      "id": "tar-traversal",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "../escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-duplicate",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/dup.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-case-collision",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "readme.md" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-symlink",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/link" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-hardlink",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/link" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-special-file",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "scripts/pipe" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-invalid-utf8-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": { "code": "archive_unsafe", "retryable": false, "context": {} },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-decompression-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "limit_exceeded",
+          "retryable": false,
+          "context": { "limit": "extracted_bytes" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-count-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": { "code": "limit_exceeded", "retryable": false, "context": { "limit": "files" } },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-size-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "limit_exceeded",
+          "retryable": false,
+          "context": { "limit": "file_bytes" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-absolute-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "/absolute.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-drive-prefix",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "C:/escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-windows-drive-backslash",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "C:\\escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-root-backslash",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "\\escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-unc-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "\\\\server\\share\\escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-mixed-separator-traversal",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references\\../escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-unicode-normalization-collision",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/café.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-nul-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": { "code": "archive_unsafe", "retryable": false, "context": {} },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-dot-segment",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/./dot.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-dot-dot-segment",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/../safe.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-missing-root-skill",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "SKILL.md" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-nonregular-root-skill",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "SKILL.md" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-device",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "devices/null" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "tar-download-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "limit_exceeded",
+          "retryable": false,
+          "context": { "limit": "archive_bytes" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-valid",
+      "result": {
+        "outcome": "activation_success",
+        "origin_alias": "fixture",
+        "name": "fixture-skill",
+        "digest": "sha256:7b9b85ef4fc349fb15a52edb8605cde9d156d495e8ba5597ad453e576fa80f16",
+        "instructions": "# Fixture skill\n",
+        "frontmatter": { "name": "fixture-skill", "description": "Exercise archive safety." },
+        "requests": 1,
+        "files": [
+          { "path": "SKILL.md", "size": 83, "media_type": "text/markdown" },
+          { "path": "assets/template.bin", "size": 4, "media_type": "application/octet-stream" },
+          { "path": "references/security.md", "size": 53, "media_type": "text/markdown" }
+        ]
+      }
+    },
+    {
+      "id": "zip-traversal",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "../escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-duplicate",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/dup.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-case-collision",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "readme.md" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-symlink",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/link" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-special-file",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "scripts/pipe" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-invalid-utf8-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": { "code": "archive_unsafe", "retryable": false, "context": {} },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-decompression-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "limit_exceeded",
+          "retryable": false,
+          "context": { "limit": "extracted_bytes" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-count-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": { "code": "limit_exceeded", "retryable": false, "context": { "limit": "files" } },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-size-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "limit_exceeded",
+          "retryable": false,
+          "context": { "limit": "file_bytes" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-absolute-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "/absolute.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-drive-prefix",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "C:/escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-windows-drive-backslash",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "C:\\escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-root-backslash",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "\\escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-unc-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "\\\\server\\share\\escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-mixed-separator-traversal",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references\\../escape.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-unicode-normalization-collision",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/café.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-nul-path",
+      "result": {
+        "outcome": "activation_error",
+        "error": { "code": "archive_unsafe", "retryable": false, "context": {} },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-dot-segment",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/./dot.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-dot-dot-segment",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "references/../safe.txt" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-missing-root-skill",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "SKILL.md" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-nonregular-root-skill",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "SKILL.md" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-socket",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "sockets/fixture.sock" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-download-limit",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "limit_exceeded",
+          "retryable": false,
+          "context": { "limit": "archive_bytes" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    },
+    {
+      "id": "zip-streamed-size-mismatch",
+      "result": {
+        "outcome": "activation_error",
+        "error": {
+          "code": "archive_unsafe",
+          "retryable": false,
+          "context": { "path": "assets/large.bin" }
+        },
+        "cache_object_published": false,
+        "requests": 1
+      }
+    }
+  ]
+}

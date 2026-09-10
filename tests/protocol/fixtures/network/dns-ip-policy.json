@@ -1,0 +1,38 @@
+{
+  "public-v4": { "address": "93.184.216.34", "decision": "allow" },
+  "private-10": { "address": "10.0.0.1", "decision": "deny" },
+  "private-172": { "address": "172.16.0.1", "decision": "deny" },
+  "private-192": { "address": "192.168.0.1", "decision": "deny" },
+  "loopback-v4": { "address": "127.0.0.1", "decision": "deny" },
+  "link-local-v4": { "address": "169.254.1.1", "decision": "deny" },
+  "multicast-v4": { "address": "224.0.0.1", "decision": "deny" },
+  "unspecified-v4": { "address": "0.0.0.0", "decision": "deny" },
+  "public-v6": { "address": "2606:2800:220:1:248:1893:25c8:1946", "decision": "allow" },
+  "loopback-v6": { "address": "::1", "decision": "deny" },
+  "unique-local-v6": { "address": "fc00::1", "decision": "deny" },
+  "link-local-v6": { "address": "fe80::1", "decision": "deny" },
+  "multicast-v6": { "address": "ff02::1", "decision": "deny" },
+  "unspecified-v6": { "address": "::", "decision": "deny" },
+  "mapped-loopback-v6": {
+    "address": "::ffff:127.0.0.1",
+    "embedded_ipv4": "127.0.0.1",
+    "decision": "deny"
+  },
+  "mapped-private-v6": {
+    "address": "::ffff:10.0.0.1",
+    "embedded_ipv4": "10.0.0.1",
+    "decision": "deny"
+  },
+  "mapped-public-v6": {
+    "address": "::ffff:93.184.216.34",
+    "embedded_ipv4": "93.184.216.34",
+    "decision": "allow"
+  },
+  "rebinding": {
+    "answers": ["93.184.216.34", "127.0.0.1"],
+    "resolve_before_each_connection": true,
+    "decision_per_connection": ["allow", "deny"],
+    "connection_attempts": 1,
+    "terminal_code": "policy_denied"
+  }
+}
