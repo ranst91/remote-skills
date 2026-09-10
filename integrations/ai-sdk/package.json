@@ -1,6 +1,6 @@
 {
   "name": "@remote-skills/ai-sdk",
-  "version": "0.0.1",
+  "version": "0.0.1-alpha.0",
   "description": "Lazy, verified remote skills for Vercel AI SDK agents.",
   "type": "module",
   "license": "Apache-2.0",
@@ -19,7 +19,7 @@
     "README.md"
   ],
   "peerDependencies": {
-    "@remote-skills/client": "^0.0.1",
+    "@remote-skills/client": "^0.0.1-alpha.0",
     "ai": "^7.0.0"
   },
   "devDependencies": {
