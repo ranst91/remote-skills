@@ -8,4 +8,4 @@ dependencies = []
 package = false
 
 [tool.uv.workspace]
-members = ["packages/sdk-python"]
+members = ["packages/sdk-python", "integrations/langchain-python", "examples/langchain"]

@@ -150,7 +150,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
   );
   assert.equal(
     property(scripts, "ci:build:repository"),
-    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk",
+    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk --filter=@remote-skills/langchain",
   );
   for (const group of ["core", "typescript", "python", "protocol", "examples"])
     assert.equal(
@@ -165,8 +165,8 @@ test("CI groups own every default test family without nested Turbo repetition", 
   const groups: unknown = JSON.parse(description.stdout);
   assert.deepEqual(groups, {
     core: ["@remote-skills/core", "@remote-skills/cli"],
-    typescript: ["@remote-skills/client", "@remote-skills/ai-sdk"],
-    python: ["@remote-skills/python-workspace"],
+    typescript: ["@remote-skills/client", "@remote-skills/ai-sdk", "@remote-skills/langchain"],
+    python: ["@remote-skills/python-workspace", "@remote-skills/langchain-python-workspace"],
     protocol: ["test:protocol", "determinism"],
     examples: [
       "@remote-skills/docs",
@@ -174,6 +174,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
       "@remote-skills/example-typescript-consumer",
       "@remote-skills/example-python-consumer",
       "@remote-skills/example-vercel-ai-sdk",
+      "@remote-skills/example-langchain",
     ],
   });
 
@@ -306,11 +307,14 @@ test("the CI project-gate verifier names every workspace", () => {
     "@remote-skills/cli",
     "@remote-skills/client",
     "@remote-skills/ai-sdk",
+    "@remote-skills/langchain",
     "@remote-skills/python-workspace",
+    "@remote-skills/langchain-python-workspace",
     "@remote-skills/example-publisher",
     "@remote-skills/example-typescript-consumer",
     "@remote-skills/example-python-consumer",
     "@remote-skills/example-vercel-ai-sdk",
+    "@remote-skills/example-langchain",
   ])
     assert.ok(verifier.includes(project), `CI verifier does not require ${project}`);
 });

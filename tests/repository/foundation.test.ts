@@ -71,7 +71,11 @@ test("the Python workspace and Apache-2.0 license are explicit", () => {
   const license = readFileSync("LICENSE", "utf8");
 
   assert.ok(pythonWorkspace.includes('requires-python = ">=3.11"'));
-  assert.ok(pythonWorkspace.includes('members = ["packages/sdk-python"]'));
+  assert.ok(
+    pythonWorkspace.includes(
+      'members = ["packages/sdk-python", "integrations/langchain-python", "examples/langchain"]',
+    ),
+  );
   assert.ok(license.startsWith("Apache License\nVersion 2.0, January 2004"));
 });
 
