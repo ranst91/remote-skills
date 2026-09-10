@@ -6,6 +6,17 @@ const prepare = readFileSync(".github/workflows/prepare-release.yml", "utf8");
 const publish = readFileSync(".github/workflows/publish-release.yml", "utf8");
 const ci = readFileSync(".github/workflows/ci.yml", "utf8");
 
+for (const [name, workflow] of [
+  ["release previews", prepare],
+  ["artifact-only publication jobs", publish.slice(publish.indexOf("\n  publish:"))],
+] as const) {
+  test(`${name} do not save a uv dependency cache they never populate`, () => {
+    const uvSetup = workflow.match(/- uses: astral-sh\/setup-uv@[^\n]+\n(?: {8,}[^\n]*\n)+/u)?.[0];
+    assert.ok(uvSetup, `${name} must configure setup-uv`);
+    assert.match(uvSetup, /^ {10}enable-cache: false$/mu);
+  });
+}
+
 test("release preparation is explicit, version-coordinated and dispatches CI for its generated PR", () => {
   assert.match(prepare, /options: \[initial, patch, minor, major\]/u);
   assert.match(prepare, /options: \[alpha, stable\]/u);
