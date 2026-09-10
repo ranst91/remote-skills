@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { selectPythonWheel } from "./python-wheel.ts";
 import {
   parseUvCacheDirectory,
   uvCacheDirectoryArguments,
@@ -99,11 +100,10 @@ try {
     ],
     { cwd: packageRoot, env: buildEnvironment },
   );
-  const wheelName = "remote_skills-0.0.1-py3-none-any.whl";
-  const built = await readdir(distributions);
-  if (built.length !== 1 || built[0] !== wheelName) {
-    throw new Error("local Python build did not produce the expected single wheel");
-  }
+  const wheelName = selectPythonWheel(
+    await readdir(distributions),
+    await readFile(resolve(packageRoot, "pyproject.toml"), "utf8"),
+  );
   const virtualEnvironment = resolve(work, ".venv");
   const installEnvironment = {
     PYTHONNOUSERSITE: "1",

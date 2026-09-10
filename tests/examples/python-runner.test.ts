@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { isAbsolute } from "node:path";
 import test from "node:test";
+import { selectPythonWheel } from "./helpers/python-wheel.ts";
 
 import {
   parseUvCacheDirectory,
@@ -11,6 +12,28 @@ import { runCommand } from "../helpers/run-command.ts";
 
 const windowsCache = String.raw`C:\Users\runneradmin\AppData\Local\uv\cache`;
 const expectedArguments = ["cache", "dir", "--color", "never", "--no-config"];
+
+for (const version of ["0.0.1", "0.0.1a0"]) {
+  test(`the Python example selects the single wheel matching project version ${version}`, () => {
+    const wheel = `remote_skills-${version}-py3-none-any.whl`;
+    assert.equal(selectPythonWheel([wheel], `[project]\nversion = "${version}"\n`), wheel);
+  });
+}
+
+test("the Python example rejects missing, unexpected, or multiple build artifacts", () => {
+  const wheel = "remote_skills-0.0.1a0-py3-none-any.whl";
+  for (const built of [
+    [],
+    ["other-0.0.1a0-py3-none-any.whl"],
+    ["remote_skills-0.0.1-py3-none-any.whl"],
+    [wheel, "extra.whl"],
+  ]) {
+    assert.throws(
+      () => selectPythonWheel(built, '[project]\nversion = "0.0.1a0"\n'),
+      /expected single wheel/u,
+    );
+  }
+});
 
 test("cache discovery preserves exact Windows environment and argument bytes", () => {
   const environment = uvCacheQueryEnvironment({
