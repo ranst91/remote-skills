@@ -48,6 +48,7 @@ function readinessEvidence(commit: string, overrides: ReadinessOverrides = {}) {
     artifacts: [
       { ecosystem: "npm", name: "@remote-skills/cli", localArtifact: true },
       { ecosystem: "npm", name: "@remote-skills/client", localArtifact: true },
+      { ecosystem: "npm", name: "@remote-skills/ai-sdk", localArtifact: true },
       { ecosystem: "pypi", name: "remote-skills", format: "wheel", localArtifact: true },
       { ecosystem: "pypi", name: "remote-skills", format: "sdist", localArtifact: true },
     ],
@@ -141,7 +142,32 @@ test("no-publication gate records commit-bound classified evidence", (testContex
   }
 });
 
+test("no-publication gate allows standalone removal of a registry override", (testContext) => {
+  const fixture = makeFixture(testContext, {
+    "scripts/offline-install.ts":
+      'delete environment.npm_config_registry;\ndelete environment.NPM_CONFIG_REGISTRY;\nspawnSync("pnpm", ["install", "--offline"]);\n',
+  });
+  const result = runGate(fixture);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 for (const forbiddenCase of [
+  {
+    name: "registry deletion mixed with a registry assignment",
+    finding: /publication-registry-or-credential/u,
+    files: {
+      "scripts/registry.ts":
+        'delete environment.npm_config_registry; environment.npm_config_registry = "https://registry.npmjs.org";\n',
+    },
+  },
+  {
+    name: "registry assignment after a standalone deletion",
+    finding: /publication-registry-or-credential/u,
+    files: {
+      "scripts/registry.ts":
+        'delete environment.npm_config_registry;\nenvironment.npm_config_registry = "https://registry.npmjs.org";\n',
+    },
+  },
   {
     name: "npm publish command",
     finding: /package-publication-command/u,

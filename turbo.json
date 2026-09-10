@@ -2,7 +2,12 @@
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": ["tsconfig.base.json"],
   "globalEnv": ["CI", "FORCE_COLOR", "PYTHONHASHSEED", "SOURCE_DATE_EPOCH", "TZ"],
-  "globalPassThroughEnv": ["REMOTE_SKILLS_PYTHON", "npm_execpath", "npm_package_name"],
+  "globalPassThroughEnv": [
+    "REMOTE_SKILLS_PYTHON",
+    "npm_execpath",
+    "npm_package_name",
+    "GITHUB_OUTPUT"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

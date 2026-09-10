@@ -32,6 +32,10 @@ export function checkInstalledIntegration(archives: readonly string[], root = pr
       }),
     );
     // Dependency setup seeds both package contents and metadata before this offline test.
+    // Registry overrides change pnpm's metadata cache key, even with networking disabled.
+    const offlineEnvironment = { ...process.env };
+    delete offlineEnvironment.npm_config_registry;
+    delete offlineEnvironment.NPM_CONFIG_REGISTRY;
     const install = spawnPnpmSync(
       [
         "add",
@@ -44,7 +48,7 @@ export function checkInstalledIntegration(archives: readonly string[], root = pr
       {
         cwd: consumer,
         encoding: "utf8",
-        env: { ...process.env, npm_config_registry: "https://registry.npmjs.org" },
+        env: offlineEnvironment,
       },
     );
     if (install.error) throw install.error;

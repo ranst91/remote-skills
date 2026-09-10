@@ -276,7 +276,12 @@ function scanRegistryConfiguration(text: string, path: string, kind: InspectionC
     );
   }
 
-  const hasNpmRegistryOverride = /\bnpm_config_registry\b/u.test(text);
+  // Removing an inherited override is not registry configuration. Mixed statements remain scanned.
+  const registryConfiguration = text.replace(
+    /^[\t ]*delete [A-Za-z_$][\w$]*\.(?:npm_config_registry|NPM_CONFIG_REGISTRY);[\t ]*$/gmu,
+    "",
+  );
+  const hasNpmRegistryOverride = /\bnpm_config_registry\b/iu.test(registryConfiguration);
   const hasUvRegistryOverride = /\bUV_(?:DEFAULT_INDEX|INDEX)\b/u.test(text);
   if (hasNpmRegistryOverride || hasUvRegistryOverride) {
     const offlineSentinel =
@@ -445,6 +450,7 @@ function inspectReadiness(): NormalizedReadiness {
   const expectedArtifacts = new Set([
     "npm:@remote-skills/cli:",
     "npm:@remote-skills/client:",
+    "npm:@remote-skills/ai-sdk:",
     "pypi:remote-skills:wheel",
     "pypi:remote-skills:sdist",
   ]);
@@ -459,7 +465,7 @@ function inspectReadiness(): NormalizedReadiness {
     readiness.registryAccess !== false ||
     readiness.source?.commit !== sourceCommit ||
     readiness.source?.trackedTreeClean !== true ||
-    artifacts.length !== 4 ||
+    artifacts.length !== 5 ||
     artifacts.some((artifact) => artifact.localArtifact !== true) ||
     expectedArtifacts.size !== 0 ||
     readiness.statement !== "No package was published; these are local artifact checks only."
@@ -489,6 +495,14 @@ for (const entry of treeEntries) {
   inventoryHash.update(`${entry.path}\0${entry.object}\0`);
   const kind = category(entry.path);
   if (kind === undefined) continue;
+  // The release workflows are an explicit maintainer-only exception. Their
+  // permission, trigger and dry-run guards are checked by release-workflows.test.ts.
+  if (
+    entry.path === ".github/workflows/prepare-release.yml" ||
+    entry.path === ".github/workflows/publish-release.yml" ||
+    entry.path === ".github/workflows/README.md"
+  )
+    continue;
   inspectedFiles += 1;
   if (kind === "boundaryDefinition") {
     classifications.boundaryDefinitions += 1;

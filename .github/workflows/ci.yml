@@ -1,6 +1,12 @@
 name: CI
 
 on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_ref:
+        type: string
+        required: false
   pull_request:
   push:
     branches: [main]
@@ -21,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           run_install: false
@@ -59,6 +67,8 @@ jobs:
             label: docs and examples
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           run_install: false
@@ -86,6 +96,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           run_install: false
@@ -103,6 +115,8 @@ jobs:
       - run: uv sync --locked --all-packages
       - name: Use the synced Python environment
         run: echo "REMOTE_SKILLS_PYTHON=$GITHUB_WORKSPACE/.venv/bin/python" >> "$GITHUB_ENV"
+      - name: Cache integration runtime dependencies before offline package checks
+        run: pnpm package:cache
       - run: pnpm package:check
       - run: pnpm publication:readiness
         env:
@@ -117,6 +131,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_ref || github.sha }}
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           run_install: false

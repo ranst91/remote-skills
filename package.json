@@ -15,6 +15,8 @@
     "lint": "biome lint .",
     "package:check": "node scripts/check-package-artifacts.ts",
     "package:inputs": "node scripts/package-artifact-inputs.ts",
+    "package:cache": "node scripts/release/seed-package-cache.ts",
+    "release:smoke": "node scripts/release/smoke-artifacts.ts",
     "publication:readiness": "node scripts/check-publication-readiness.ts",
     "typecheck": "pnpm ci:build:repository && pnpm typecheck:prepared",
     "typecheck:prepared": "tsc -p tsconfig.repository.json && node scripts/run-turbo.ts typecheck && node scripts/check-typescript-policy.ts",
