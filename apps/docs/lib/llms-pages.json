@@ -1,21 +1,29 @@
 [
   {
-    "title": "Quickstarts",
-    "pages": ["index", "publisher", "typescript", "python"]
+    "title": "Getting started",
+    "pages": ["index", "quickstart"]
   },
   {
-    "title": "Hosting",
-    "pages": ["hosting/archive-to-origin", "hosting/git-pages"]
+    "title": "Publish",
+    "pages": ["publisher", "hosting/archive-to-origin", "hosting/git-pages"]
   },
   {
-    "title": "Operations and policy",
+    "title": "Consume",
+    "pages": ["consume", "vercel-ai-sdk"]
+  },
+  {
+    "title": "Concepts",
     "pages": [
-      "cli",
-      "authentication-and-scopes",
-      "versions",
+      "concepts",
+      "hosting/local-or-remote",
       "cache-and-offline",
-      "trust-and-security",
-      "api-reference"
+      "versions",
+      "authentication-and-scopes",
+      "trust-and-security"
     ]
+  },
+  {
+    "title": "Reference",
+    "pages": ["cli", "configuration", "api-reference", "release"]
   }
 ]

@@ -1,9 +1,50 @@
 ---
-title: Publisher configuration
-description: The strict declarative remote-skills.json schema and its defaults.
+title: Configuration
+description: Publisher configuration fields, types, defaults, and constraints.
 ---
 
-`remote-skills.json` is optional, declarative JSON. Loading it never executes repository code. Unknown keys fail validation so a typo cannot silently change a build.
+`remote-skills.json` is an optional JSON file in the skill project's root. Omitted fields use the defaults below; [CLI options](/docs/cli) take precedence without rewriting the file. For creating the source files, see [Prepare a skill](/docs/publisher).
+
+## Fields
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `$schema` | string | [Schema identifier](#schema) | Identifies this configuration format. If supplied, it matches the identifier below. |
+| `sourceRoots` | string array | `["skills"]` | Project-relative folders whose immediate children are skills. At least one unique path is required. |
+| `outDir` | string | `"dist"` | Project-relative directory for completed build output. Cannot overlap a source root. |
+| `format` | string | `"tar.gz"` | Archive format: `"tar.gz"` or `"zip"`. Single-file skills remain Markdown unless `build --archive` is used. |
+| `strict` | boolean | `false` | Treats validation warnings as errors. |
+| `limits` | object | [Limits](#limits) | Build size and file-count limits. Each nested field is optional. |
+| `dev` | object | [Development server](#development-server) | Local server settings. Each nested field is optional. |
+
+Source and output paths stay inside the project. Unknown fields are validation errors; the configuration never executes repository code.
+
+## Limits
+
+Every `limits` field is a positive integer. Byte values describe content size, not character counts.
+
+| Field | Default | Controls |
+| --- | --- | --- |
+| `limits.catalogBytes` | `1048576` (1 MiB) | Generated catalog size. |
+| `limits.archiveBytes` | `52428800` (50 MiB) | Compressed artifact size. |
+| `limits.extractedBytes` | `104857600` (100 MiB) | Total extracted bytes per skill. |
+| `limits.files` | `1000` | Files per skill. |
+| `limits.fileBytes` | `10485760` (10 MiB) | Individual file size. |
+
+These settings apply to publishing. Consumer limits are configured separately in the [SDK](/docs/api-reference#activation-limits).
+
+## Development server
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `dev.host` | string | `"127.0.0.1"` | Listening address. A non-loopback address also requires the CLI's `--unsafe-host` flag. |
+| `dev.port` | integer | `8787` | Listening port, from `1` to `65535`. |
+
+Authentication is configured at the host, not in this file. [Authentication and authorization](/docs/authentication-and-scopes) covers private deployments.
+
+## Example file
+
+This is the complete default configuration; a project using these settings can omit the file entirely.
 
 ```json title="remote-skills.json"
 {
@@ -26,20 +67,9 @@ description: The strict declarative remote-skills.json schema and its defaults.
 }
 ```
 
-All fields are optional and receive the displayed defaults.
+## Schema
 
-## Fields
-
-- `$schema` identifies the versioned publisher configuration schema.
-- `sourceRoots` lists project-relative directories whose immediate children are skill candidates.
-- `outDir` is the project-relative completed deployment tree and must not overlap a source root.
-- `format` is `tar.gz` or `zip`; single-file skills remain `skill-md` unless `--archive` is supplied.
-- `strict` promotes validation warnings to errors.
-- `limits` bounds catalog bytes, compressed artifacts, extracted bytes, file count, and per-file bytes.
-- `dev.host` and `dev.port` control the local development server. A non-loopback host additionally requires the CLI's `--unsafe-host` acknowledgement.
-
-CLI flags override effective configuration without rewriting the file. `--out-dir` and `--prior-output` remain inside the project. Source and output paths cannot escape or overlap.
-
-Credentials never belong in `remote-skills.json`. Supply verify-only headers using `--header-env`, and configure consumer credentials in the host application's secret-management layer.
-
-The checked-in schema is also served from `/schemas/config/0.0.1.json` by this documentation application.
+| Property | Value |
+| --- | --- |
+| Identifier | `https://remote-skills.dev/schemas/config/0.0.1.json` |
+| Schema document | [Download JSON Schema](/schemas/config/0.0.1.json) |

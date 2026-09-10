@@ -1,31 +1,38 @@
 ---
-title: Start here
-description: Publish standards-shaped static output and activate verified, immutable skill snapshots.
+title: Introduction
+description: Serve skills. Don't install them.
 ---
 
-Remote Skills joins two open formats: [Agent Skills](https://agentskills.io/specification) for a skill directory and Cloudflare Agent Skills Discovery **v0.2.0** for remote discovery. It adds a publisher CLI and server-runtime TypeScript and Python clients; it does not add a marketplace or central service.
+Remote Skills is an open-source toolkit for publishing and consuming [Agent Skills](https://agentskills.io/) directly from remote origins.
 
-```text
-Discover metadata → activate by name → verify digest → pin for the session → read resources as needed
-```
+Publish a skill once, then let your agents load it when they need it. Update your skills independently of the applications that use them.
 
-## Choose a path
+<div className="intro-actions">
+  <a className="primary-action" href="/docs/quickstart">Quickstart <span aria-hidden="true">→</span></a>
+  <a className="text-action" href="https://github.com/ranst91/remote-skills">View on GitHub <span aria-hidden="true">↗</span></a>
+</div>
 
-- **Publish:** validate ordinary `skills/<name>/SKILL.md` directories, build `dist/`, then follow [archive to origin](/docs/hosting/archive-to-origin).
-- **Host from Git:** let CI build from repository source, then follow [Git and Pages hosting](/docs/hosting/git-pages).
-- **Consume:** open an origin-bound session from [TypeScript](/docs/typescript) or [Python](/docs/python).
-- **Keep it local:** if skills belong to one application release, use the [local-or-remote decision guide](/docs/hosting/local-or-remote).
+## Publish once. Use from any agent.
 
-## The important boundary
+A **skill** is a folder of instructions and optional resources. Remote Skills connects the two sides of sharing it:
 
-Activation downloads the **complete artifact**, verifies its SHA-256 digest, and extracts archives into a local cache. Progressive disclosure is **context-lazy**, not network-lazy: `SKILL.md` enters context first and a later resource read uses local verified bytes without another network request.
+<div className="two-sides">
+  <section>
+    <h3>Publish</h3>
+    <p>Write a skill. Build it with the CLI. Publish it on your web server.</p>
+    <a href="/docs/publisher">Prepare a skill <span aria-hidden="true">→</span></a>
+  </section>
+  <section>
+    <h3>Consume</h3>
+    <p>Use the SDK to let your agent discover and load skills when it needs them.</p>
+    <a href="/docs/quickstart#use-it-in-your-agent">Connect your agent <span aria-hidden="true">→</span></a>
+  </section>
+</div>
 
-The digest establishes byte integrity against the publisher catalog. It does not prove the instructions, scripts, or assets are safe. Remote Skills never executes them and never treats `allowed-tools` as permission.
+## Built on open formats
 
-## Requirements
+[Agent Skills](https://agentskills.io/specification) defines the skill folder. [Agent Skills Discovery v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc) defines how to find and download skills over HTTP. Remote Skills supplies the publishing tools and clients that bring them together.
 
-- Node.js 24 or newer for the CLI, TypeScript client, and docs.
-- Python 3.11 or newer for the async Python client.
-- HTTPS origins in production. Explicit loopback development may use HTTP.
+You host the files and choose which publishers your agents trust. There is no marketplace or central service to join.
 
-Continue with the [publisher guide](/docs/publisher), then verify the deployed origin before configuring consumers.
+The [Quickstart](/docs/quickstart) brings both sides together with one small greeting skill.

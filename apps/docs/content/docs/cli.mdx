@@ -1,70 +1,184 @@
 ---
 title: CLI reference
-description: Validate, build, serve, and verify a skill origin with the packaged remote-skills binary.
+description: Command syntax, options, defaults, and exit codes.
 ---
 
-Install `@remote-skills/cli` into the project from the release artifact your team has approved, then invoke its `remote-skills` binary through the local package manager. The CLI has four commands; there is no `deploy`, `publish`, or package-upload command.
+The [installed CLI](/docs/quickstart#serve-it) runs from your skill project's root. Options override [project configuration](/docs/configuration); defaults below are the built-in values. For the publishing workflow, see [Build and host](/docs/hosting/archive-to-origin).
 
 ## `remote-skills validate`
 
-Validates `remote-skills.json`, source selection, standard Agent Skills frontmatter, local references, filesystem safety, and configured limits.
+Checks configuration, skill frontmatter, references, file safety, and size limits without creating output.
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills validate
+npm exec -- remote-skills validate --strict
+```
+
+</Tab>
+<Tab>
 
 ```bash
 pnpm exec remote-skills validate
 pnpm exec remote-skills validate --strict
 ```
 
-`--strict` promotes writing-quality warnings to errors. Invalid configuration and usage return a distinct usage exit code; validation failures and internal command failures return failure.
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills validate
+bun run remote-skills validate --strict
+```
+
+</Tab>
+</Tabs>
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| <code className="whitespace-nowrap">--strict</code> | `false` | Treats writing-quality warnings as validation errors. Overrides `strict` in project configuration. |
 
 ## `remote-skills build`
 
-Builds deploy-ready static origin files. It validates first and does not replace completed output on a validation failure.
+Validates the project, then writes a deployable catalog and skill artifacts. A validation failure leaves the previous completed output unchanged.
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
 
 ```bash
-pnpm exec remote-skills build \
-  --format tar.gz \
-  --out-dir dist
+npm exec -- remote-skills build --format tar.gz --out-dir dist
 ```
 
-Options:
+</Tab>
+<Tab>
 
-- `--archive` forces single-file skills into archives.
-- `--format tar.gz|zip` overrides archive format.
-- `--out-dir <project-relative-path>` overrides output.
-- `--prior-output <project-relative-path>` supplies a verified completed generation for history carry-forward.
-- repeatable `--prune SKILL@VERSION` explicitly removes retained release descriptors.
+```bash
+pnpm exec remote-skills build --format tar.gz --out-dir dist
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills build --format tar.gz --out-dir dist
+```
+
+</Tab>
+</Tabs>
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `--archive` | `false` | Packages even a single-file skill as an archive. |
+| `--format <format>` | `tar.gz` | Archive format: `tar.gz` or `zip`. |
+| `--out-dir <path>` | `dist` | Output directory, relative to the project root. |
+| `--prior-output <path>` | None | Reads a previous completed output directory to retain its release history. Path is project-relative. |
+| `--prune SKILL@VERSION` | None | Removes a retained release from the new catalog. Repeat for multiple releases. |
+
+History is carried forward only from verified prior output. [Versions and history](/docs/versions) shows the two-build workflow and pruning behavior.
 
 ## `remote-skills dev`
 
-Builds with the production pipeline, serves the completed well-known tree, watches included sources, and switches only between complete generations.
+Builds and serves the skills, watches source changes, and switches to each successfully completed rebuild.
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills dev
+# http://127.0.0.1:8787
+```
+
+</Tab>
+<Tab>
 
 ```bash
 pnpm exec remote-skills dev
 # http://127.0.0.1:8787
 ```
 
-`--host` and `--port` override bind settings. A non-loopback bind additionally requires `--unsafe-host`; this is acknowledgement, not authentication. Consumers must explicitly allow loopback HTTP. Refresh is ordinary catalog revalidation—there is no proprietary push channel.
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills dev
+# http://127.0.0.1:8787
+```
+
+</Tab>
+</Tabs>
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `--host <host>` | `127.0.0.1` | Address to listen on. Overrides `dev.host`. |
+| `--port <port>` | `8787` | Listening port, from `1` to `65535`. Overrides `dev.port`. |
+| <code className="whitespace-nowrap">--unsafe-host</code> | `false` | Acknowledges listening on a non-loopback address. Does not add authentication. |
+
+Clients opt in to loopback HTTP for local development. They see rebuilt skills through ordinary catalog refreshes; there is no separate push channel.
 
 ## `remote-skills verify <origin>`
 
-Checks the well-known catalog and all advertised current/history artifacts under consumer-equivalent network, size, digest, and archive policy.
+Fetches the catalog and every advertised current or retained release, checking network policy, size limits, digests, and file structure.
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
 
 ```bash
-pnpm exec remote-skills verify https://skills.example.com \
-  --timeout-ms 30000 \
-  --retries 2
+npm exec -- remote-skills verify https://skills.example.com --timeout-ms 30000 --retries 2
 ```
 
-Repeat `--header NAME=VALUE` for non-secret basic use or `--header-env NAME=ENV_VAR` to keep a secret out of the command line. `--scope <name>` requests and verifies a confirmed scoped catalog. Header values, bodies, and credential-bearing URLs are excluded from normal diagnostics.
+</Tab>
+<Tab>
 
-Override verification budgets with positive decimal integers (up to `9007199254740991`); both `--flag VALUE` and `--flag=VALUE` work. Each flag can appear once. Omitted flags retain these defaults:
+```bash
+pnpm exec remote-skills verify https://skills.example.com --timeout-ms 30000 --retries 2
+```
 
-| Flag | Budget | Default |
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills verify https://skills.example.com --timeout-ms 30000 --retries 2
+```
+
+</Tab>
+</Tabs>
+
+### Request options
+
+| Argument or option | Default | Effect |
 | --- | --- | --- |
-| `--catalog-bytes` | Catalog response or reused cached catalog, in bytes | 1048576 (1 MiB) |
-| `--archive-bytes` | Compressed artifact download, in bytes | 52428800 (50 MiB) |
-| `--extracted-bytes` | Total extracted file bytes per archive | 104857600 (100 MiB) |
-| `--files` | Files per archive | 1000 |
-| `--file-bytes` | Bytes per file, including standalone `skill-md` downloads | 10485760 (10 MiB) |
+| `<origin>` | Required | HTTPS base URL, such as `https://skills.example.com`. |
+| `--header NAME=VALUE` | None | Sends an HTTP header. Repeat for different header names. |
+| `--header-env NAME=ENV_VAR` | None | Reads the header value from an environment variable. Repeat for different header names. |
+| `--scope <name>` | None | Requests a scoped catalog and checks the host's confirmation. |
+| `--timeout-ms <integer>` | `30000` | Request timeout in milliseconds, from `1` to `300000`. |
+| `--retries <integer>` | `2` | Retry count, from `0` to `10`. |
 
-For example, `pnpm exec remote-skills verify https://skills.example.com --catalog-bytes 2097152` allows a catalog of up to 2 MiB. Invalid budgets return a usage error before any request.
+Header values, response bodies, and credential-bearing URLs are excluded from normal diagnostics. [Authentication and authorization](/docs/authentication-and-scopes) covers host setup and scopes.
+
+### Size limits
+
+| Option | Default | Maximum allowed content |
+| --- | --- | --- |
+| `--catalog-bytes <integer>` | `1048576` (1 MiB) | Catalog response, including a reused cached catalog. |
+| `--archive-bytes <integer>` | `52428800` (50 MiB) | Compressed artifact download. |
+| `--extracted-bytes <integer>` | `104857600` (100 MiB) | Total extracted bytes per archive. |
+| `--files <integer>` | `1000` | Files per archive. |
+| `--file-bytes <integer>` | `10485760` (10 MiB) | Individual file, including standalone `skill-md` downloads. |
+
+Size limits accept positive decimal integers up to `9007199254740991`. Verification accepts both `--option value` and `--option=value`; only header options are repeatable, and header names cannot be duplicated. Invalid options return a usage error before any request.
+
+## General options and exit codes
+
+| Invocation | Result |
+| --- | --- |
+| `remote-skills --help` or `remote-skills -h` | Displays command help. |
+| `remote-skills --version` or `remote-skills -V` | Displays the installed CLI version. |
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Success. |
+| `1` | Validation, verification, or command failure. |
+| `2` | Invalid arguments or configuration. |

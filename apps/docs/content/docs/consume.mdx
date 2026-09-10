@@ -1,0 +1,160 @@
+---
+title: Consume skills
+description: Discover published skills and load their instructions and resources with the SDK.
+---
+
+With published skills and an [installed SDK](/docs/quickstart#use-it-in-your-agent), your application can discover what's available and load a skill when your agent chooses it. TypeScript and Python follow the same flow; only the syntax differs.
+
+Using Vercel AI SDK? The [integration](/docs/vercel-ai-sdk) connects these operations to its skill loader, so your agent can discover and load skills without writing your own tools.
+
+<Steps>
+<Step>
+
+## Discover and load a skill
+
+The SDK connects to a host such as `https://skills.example.com`. The `team` key below is a local name for that connection, used when opening a session.
+
+This example shows the SDK operations for `howdy`: discovery, activation, and an optional resource read. In your agent integration, the agent chooses the skill name before the call to `activate()`.
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="skills.ts"
+import { createRemoteSkills } from "@remote-skills/client";
+
+const client = createRemoteSkills({
+  origins: { team: { url: "https://skills.example.com" } },
+});
+
+const session = await client.session("team");
+try {
+  const catalog = await session.catalog();
+  // Your agent can choose a skill from these names and descriptions.
+  const available = catalog.map(({ name, description }) => ({ name, description }));
+
+  const skill = await session.activate("howdy");
+  const instructions = skill.instructions;
+
+  const resources = await skill.list();
+  if (resources.some(({ path }) => path === "references/welcome.md")) {
+    const welcome = await skill.read("references/welcome.md");
+    // Include this resource in context when the task needs it.
+  }
+} finally {
+  await session.close();
+}
+```
+
+</Tab>
+<Tab>
+
+```python title="skills.py"
+import asyncio
+from remote_skills import Origin, RemoteSkills
+
+async def main() -> None:
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+
+    async with client.session("team") as session:
+        catalog = await session.catalog()
+        # Your agent can choose a skill from these names and descriptions.
+        available = [(entry.name, entry.description) for entry in catalog]
+
+        skill = await session.activate("howdy")
+        instructions = skill.instructions
+
+        resources = await skill.list()
+        if any(item.path == "references/welcome.md" for item in resources):
+            welcome = await skill.read("references/welcome.md")
+            # Include this resource in context when the task needs it.
+
+asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+`catalog()` returns metadata without downloading the skills. `activate()` downloads and verifies the selected skill, then keeps that copy fixed for the session. Its `instructions` are the text your integration makes available to the agent.
+
+For the [Quickstart's local server](/docs/quickstart#serve-it), the URL is `http://127.0.0.1:8787`, with `allowLoopbackHttp: true` in TypeScript or `allow_loopback_http=True` in Python.
+
+</Step>
+<Step>
+
+## Read resources as needed
+
+The example checks whether the optional welcome note from [Prepare a skill](/docs/publisher#add-resources-optional) exists before reading it. A loaded skill exposes the same resource operations in both languages:
+
+| Operation | TypeScript | Python |
+| --- | --- | --- |
+| List paths, sizes, and media types | `await skill.list("references/")` | `await skill.list("references/")` |
+| Read UTF-8 text | `await skill.read("references/welcome.md")` | `await skill.read("references/welcome.md")` |
+| Read binary data | `await skill.readBytes("assets/template.bin")` | `await skill.read_bytes("assets/template.bin")` |
+
+Activation downloads the **complete artifact**. These later reads use the verified local copy without another network request, so your agent can bring resources into context as the task needs them. Reading a script returns its contents; it does not execute it.
+
+</Step>
+<Step>
+
+## Keep the session open for the task
+
+The session keeps the selected skills available while your agent uses them. In the example, `finally` or `async with` closes it when the work finishes, releasing its cache pins without immediately deleting the downloaded files. Your agent's model calls and resource reads belong inside that lifetime.
+
+You now have the SDK operations for discovery, loading, and resource access. [Caching and updates](/docs/cache-and-offline) covers how later tasks reuse downloads and see published changes.
+
+</Step>
+</Steps>
+
+## Discover across multiple publishers
+
+Each connection has its own alias. The combined catalog keeps that alias with every entry, so two publishers can offer skills with the same name without one silently replacing the other.
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts
+import { createRemoteSkills } from "@remote-skills/client";
+
+const client = createRemoteSkills({
+  origins: {
+    team: { url: "https://skills.example.com" },
+    partner: { url: "https://partner.example.com" },
+  },
+});
+
+const result = await client.catalog({ strict: false });
+for (const entry of result.entries) {
+  console.log(entry.originAlias, entry.name);
+}
+for (const failure of result.failures) {
+  console.error(failure.originAlias, failure.error.code);
+}
+```
+
+</Tab>
+<Tab>
+
+```python
+import asyncio
+from remote_skills import Origin, RemoteSkills
+
+async def main() -> None:
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+        "partner": Origin(url="https://partner.example.com"),
+    })
+    result = await client.catalog(strict=False)
+    for entry in result.entries:
+        print(entry.origin_alias, entry.name)
+    for failure in result.failures:
+        print(failure.origin_alias, failure.error.code)
+
+asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+Non-strict mode returns the available entries alongside explicit failures for any unreachable publishers. With `strict: true` in TypeScript or `strict=True` in Python, a failure from any publisher raises an error instead. The [API reference](/docs/api-reference) lists all options and error codes.

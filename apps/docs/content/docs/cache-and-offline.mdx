@@ -1,34 +1,131 @@
 ---
-title: Cache, updates, and offline use
-description: Disk cost, immutable objects, session refresh, eviction, and explicit stale catalogs.
+title: Caching and updates
+description: Reuse downloaded skills and decide when your agents see new versions.
 ---
 
-## Cache is local storage
+Once an agent has loaded a skill, later tasks can reuse the download. Caching saves that work, while sessions keep a running task on the same instructions even when the publisher releases an update.
 
-The production default is a bounded disk cache under the operating system cache directory. Objects are keyed by verified SHA-256 digest, so two entries with identical bytes share one object. Catalog state is separate and keyed by canonical well-known URL plus confirmed non-secret scope when persistence is allowed.
+## What is cached
 
-The cache is disposable and rebuildable; it is not an installation. Memory-only and custom cache backends are available when their lifecycle better fits the host.
+The SDK keeps downloaded skills on disk in the operating system's cache directory. Each copy is identified by its content digest, so identical downloads share storage. It also remembers the catalog—the list of skills available from a publisher—to decide whether a saved copy is still the one your agent needs.
 
-## Full download, context-lazy reads
+Loading a skill downloads the **complete artifact**, including any resources, and verifies it before adding it to the cache. Later `read()` calls use those local files. This is context-lazy access: your agent can read a resource only when it needs it, although that resource has already been downloaded.
 
-Activation downloads the **complete artifact**, verifies it, and extracts an accepted archive locally before returning. It therefore consumes network bandwidth and disk even if the agent later reads only one reference. Context is **context-lazy**: instructions are exposed first, and `read()` loads selected local resources into application/model memory with no additional network request.
+The cache is disposable, not a skill installation or backup. A persistent volume lets a container reuse it after a restart; without one, the SDK downloads the files again. Memory-only and custom cache backends are also available when disk storage does not fit your application.
 
-For containers, a persistent volume can reuse immutable objects across restarts. An ephemeral cache repeats network, hashing, extraction, and storage after restart. Account for that cost or choose image-local skills when independent remote distribution is unnecessary.
+## See a publisher's update
 
-## Freshness and updates
+An existing session keeps the skills it has selected. When a new session opens, the SDK uses the publisher's HTTP caching headers to decide whether to reuse its catalog or check for an update.
 
-Catalogs honor `ETag`, `Last-Modified`, `Cache-Control`, and `304 Not Modified`. A session consults its catalog once. `client.refresh(alias?)` forces conditional revalidation for **future sessions** only; it never mutates a live session or its digest pins. There is no polling.
+To ask for a fresh catalog before a new task, call `refresh()`:
 
-If an online refreshed catalog removes a skill or release, a new session cannot resurrect it from cached object bytes. The provider's current authorized catalog is authoritative. Existing sessions retain already pinned bytes.
+<Tabs items={["TypeScript", "Python"]}>
+<Tab>
 
-## Offline policy
+```ts
+import { createRemoteSkills } from "@remote-skills/client";
 
-- An existing session continues reading its verified pinned object offline.
-- A new session fails closed by default if it cannot validate its catalog.
-- Explicit stale mode may use a verified older catalog only within a configured maximum age and surfaces `stale` metadata.
+const client = createRemoteSkills({
+  origins: { team: { url: "https://skills.example.com" } },
+});
 
-Stale mode weakens the immediacy of publisher removal, so keep it opt-in and bounded. Corrupt objects are rejected, not treated as cache misses that silently change security semantics.
+await client.refresh("team");
+const session = await client.session("team");
+try {
+  const skill = await session.activate("howdy");
+  // Use skill.instructions for this task.
+} finally {
+  await session.close();
+}
+```
 
-## Eviction and concurrency
+</Tab>
+<Tab>
 
-Least-recently-used eviction respects configured age/size bounds and skips live session leases. Private temporary writers, exact digest verification, no-clobber publication, process registrations, and a shared digest mutation gate let TypeScript and Python processes use one `cache-v1` directory without exposing partial objects. Crashed temporary and coordination records are reclaimed only after bounded age and liveness checks.
+```python
+import asyncio
+from remote_skills import Origin, RemoteSkills
+
+async def main() -> None:
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    await client.refresh("team")
+    async with client.session("team") as session:
+        skill = await session.activate("howdy")
+        # Use skill.instructions for this task.
+
+asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+`refresh()` affects **future sessions** only, so a running task keeps its original instructions. The SDK does not poll for updates in the background.
+
+If a publisher removes a release from its catalog, new online sessions can no longer select it—even if an old download is still on disk. They use the publisher's current list of releases, not a list of everything the agent has ever downloaded.
+
+## Continue offline
+
+If the connection drops during a task, its session can keep reading skills it has already loaded. Starting another task is different: the SDK needs a usable catalog to know which skills are available. By default, the new session fails if it cannot establish that.
+
+You can opt into a bounded fallback to a previously verified catalog. This example permits a catalog up to one hour old:
+
+<Tabs items={["TypeScript", "Python"]}>
+<Tab>
+
+```ts
+import { createRemoteSkills } from "@remote-skills/client";
+
+const client = createRemoteSkills({
+  origins: {
+    team: {
+      url: "https://skills.example.com",
+      stale: { maxAgeMs: 60 * 60 * 1000 },
+    },
+  },
+});
+
+const session = await client.session("team");
+try {
+  console.log({ stale: session.metadata.stale });
+  const skill = await session.activate("howdy");
+} finally {
+  await session.close();
+}
+```
+
+</Tab>
+<Tab>
+
+```python
+import asyncio
+from remote_skills import Origin, RemoteSkills, StaleCatalog
+
+async def main() -> None:
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session(
+        "team", stale=StaleCatalog(max_age_seconds=60 * 60)
+    ) as session:
+        print({"stale": session.metadata.stale})
+        skill = await session.activate("howdy")
+
+asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+For this to work without a connection, both the catalog and the selected skill must already be cached. The session reports `stale: true` when it falls back to an older catalog, making that choice visible to your application. Cached skill files still have to pass integrity checks; offline mode does not allow damaged content through.
+
+The tradeoff is delayed updates: until your agent sees a fresh catalog, it may still select a release the publisher has removed. The one-hour limit above bounds how long that older catalog can be used.
+
+## Cache cleanup
+
+The SDK keeps disk usage within its configured size and age limits by removing eligible cached files. Files in use by a live session are protected from that cleanup, so closing a session makes its files eligible for removal again; it does not delete them immediately.
+
+TypeScript and Python share the same cache format and can reuse the same directory. Writes become available to other sessions only when complete and verified. If a write is interrupted, cleanup can reclaim its temporary files after checking that they are old enough and no longer in use.
+
+For selecting named releases instead of the current skill, see [Versions and history](/docs/versions).

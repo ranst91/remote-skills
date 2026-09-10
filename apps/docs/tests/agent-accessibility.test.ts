@@ -8,12 +8,13 @@ const llmsPagesUrl = new URL("lib/llms-pages.json", appRoot);
 
 const requiredSlugs = [
   "index",
+  "quickstart",
   "publisher",
   "hosting/archive-to-origin",
   "hosting/git-pages",
   "cli",
-  "typescript",
-  "python",
+  "consume",
+  "vercel-ai-sdk",
   "authentication-and-scopes",
   "versions",
   "cache-and-offline",
@@ -49,9 +50,11 @@ function canonicalNavigation() {
     "hosting navigation",
   );
   const hostingPages = stringArray(hosting.pages, "hosting navigation pages");
-  return stringArray(root.pages, "navigation pages").flatMap((slug) =>
-    slug === "hosting" ? hostingPages.map((page) => `hosting/${page}`) : [slug],
-  );
+  return stringArray(root.pages, "navigation pages")
+    .filter((slug) => !slug.startsWith("---"))
+    .flatMap((slug) =>
+      slug === "hosting" ? hostingPages.map((page) => `hosting/${page}`) : [slug],
+    );
 }
 
 test("llms index metadata selects every required page from canonical navigation", () => {

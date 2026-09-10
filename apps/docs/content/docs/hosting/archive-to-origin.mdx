@@ -1,55 +1,129 @@
 ---
-title: Archive to origin
-description: The exact bytes, paths, media types, and origin mapping required after a build.
+title: Build and host
+description: Make your skills available to agents beyond your machine.
 ---
 
-## What to host
+With a prepared skill and the [CLI installed](/docs/quickstart#serve-it), publishing has three parts: building the files, serving them over HTTPS, and checking that clients can use them. A static host or application server can serve the output.
 
-`remote-skills build` writes the fixed catalog at `dist/.well-known/agent-skills/index.json` and referenced artifacts beneath `dist/.well-known/agent-skills/artifacts/`.
+<Steps>
+<Step>
 
-```text
-dist/
-└── .well-known/
-    └── agent-skills/
-        ├── index.json
-        └── artifacts/
-            ├── sha256-<64-hex>.md
-            ├── sha256-<64-hex>.tar.gz
-            └── sha256-<64-hex>.zip
+## Build the files
+
+From your skill project, run:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills build
 ```
 
-Upload or mount the **contents of `dist/` at the HTTPS origin root**. At `https://skills.example.com`, the catalog must resolve at:
+</Tab>
+<Tab>
+
+```bash
+pnpm exec remote-skills build
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills build
+```
+
+</Tab>
+</Tabs>
+
+`build` validates your skills first, then packages them. You do not need to run `validate` beforehand: that command is a check you can use while writing, without creating output. Validation errors stop the build.
+
+A skill with only `SKILL.md` becomes a Markdown file; a skill with resources becomes a compressed archive. The build writes a catalog at `dist/.well-known/agent-skills/index.json`, with skill files in the `artifacts/` directory beside it.
+
+</Step>
+<Step>
+
+## Upload the output
+
+The deployment consists of the **contents of `dist/`**, served from the root of your HTTPS host. At `https://skills.example.com`, the catalog is available at:
 
 ```text
 https://skills.example.com/.well-known/agent-skills/index.json
 ```
 
-The catalog contains relative artifact URLs, so the generated tree can move to any conforming origin unchanged. Configure the SDK with the origin URL (`https://skills.example.com`), not the catalog URL.
+The SDK connects to `https://skills.example.com` and finds this catalog automatically. Path prefixes such as `https://example.com/skills` are not supported as discovery locations: the catalog is always looked up at the host-root `/.well-known/agent-skills/index.json`.
 
-## Preserve exact bytes
+Some deployment tools exclude dot-prefixed directories, so their upload settings need to include `.well-known`. The catalog uses relative artifact URLs, allowing the generated tree to move between hosts unchanged.
 
-The catalog digest covers the exact response bytes. **Do not unpack, recompress, rename, or wrap archives.** Archive members already begin at the archive root; `SKILL.md` must remain at that root, not beneath a skill-name directory. A proxy, storage service, or deployment transform that changes bytes breaks digest verification.
+**Archives are served exactly as built.** Their digest covers the exact response bytes, so unpacking, recompressing, or adding a wrapper folder breaks verification. Keeping the generated filenames also preserves the catalog's download links. Inside each archive, `SKILL.md` is already at the root.
 
-Serve these media types:
+The host serves each file with its corresponding response type:
 
-| Output | `Content-Type` |
+| File | `Content-Type` |
 | --- | --- |
 | `index.json` | `application/json` |
 | `*.md` | `text/markdown; charset=utf-8` |
 | `*.zip` | `application/zip` |
 | `*.tar.gz` | `application/gzip` |
 
-Content-addressed artifacts may use immutable caching. The fixed catalog should use ordinary HTTP revalidation with `ETag`, `Last-Modified`, and suitable `Cache-Control`; do not make it permanently immutable.
+Artifact filenames include their content digest, so those files can use immutable caching. The catalog changes as you publish; give it ordinary HTTP revalidation with `ETag` or `Last-Modified`, not permanent immutable caching.
 
-## Verify from outside
+Using GitHub or GitLab Pages? [Git and Pages hosting](/docs/hosting/git-pages) explains the domain setup.
 
-After deployment, verify the public origin from an environment with the same network reachability expected for consumers:
+</Step>
+<Step>
+
+## Verify the origin
+
+After deployment, run:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills verify https://skills.example.com
+```
+
+</Tab>
+<Tab>
 
 ```bash
 pnpm exec remote-skills verify https://skills.example.com
 ```
 
-For a private origin, pass credentials via an environment reference rather than a literal shell-history value:
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills verify https://skills.example.com
+```
+
+</Tab>
+</Tabs>
+
+Verification fetches the catalog and every current or retained release it lists, checks their digests, and validates their structure. Running it with the same network access as your consumers helps confirm they can reach the files too.
+
+Once verification succeeds, the published skills are ready for the [SDK](/docs/consume). Its connection URL is `https://skills.example.com`, without the catalog path or the local-development HTTP option.
+
+</Step>
+</Steps>
+
+## Verify a private origin
+
+Hosts can require authentication for their skills. The CLI can send the required headers during verification; this example supplies a bearer token through an environment variable:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+SKILLS_AUTH='Bearer …' npm exec -- remote-skills verify \
+  https://skills.example.com \
+  --header-env Authorization=SKILLS_AUTH \
+  --scope engineering
+```
+
+</Tab>
+<Tab>
 
 ```bash
 SKILLS_AUTH='Bearer …' pnpm exec remote-skills verify \
@@ -58,4 +132,19 @@ SKILLS_AUTH='Bearer …' pnpm exec remote-skills verify \
   --scope engineering
 ```
 
-Verification fetches the catalog and every current/historical descriptor it advertises, applies network and size policy, checks exact digests, and validates artifact structure. It performs no deployment or package publication.
+</Tab>
+<Tab>
+
+```bash
+SKILLS_AUTH='Bearer …' bun run remote-skills verify \
+  https://skills.example.com \
+  --header-env Authorization=SKILLS_AUTH \
+  --scope engineering
+```
+
+</Tab>
+</Tabs>
+
+The optional `--scope` selects a catalog view offered by the host. [Authentication and authorization](/docs/authentication-and-scopes) explains how hosts provide those views and how clients request access.
+
+When you publish again, deploy the complete output together and preserve any history you advertise. [Versions and history](/docs/versions) shows how.

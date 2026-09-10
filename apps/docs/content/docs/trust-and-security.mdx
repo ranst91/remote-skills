@@ -1,38 +1,48 @@
 ---
 title: Trust and security
-description: What digest verification establishes, what stays untrusted, and where requests fail closed.
+description: Understand what is verified and what your application must decide.
 ---
 
-## Integrity is not trust
+Remote Skills checks downloaded files before making them available to your agent. Those checks protect the download and loading process; deciding whether to follow a skill's instructions still belongs to your application.
 
-SHA-256 verification establishes **byte integrity**: downloaded bytes match the descriptor in the catalog snapshot. It does not prove the publisher is trustworthy, the instructions are correct, or a bundled script is safe.
+## A verified download is not a trusted instruction
 
-Remote Skills never executes scripts, changes host permissions, selects relevance, grants tools, or treats `allowed-tools` as authorization. Instructions, frontmatter, references, assets, and executable-looking files remain untrusted data. The host agent/application owns trust and execution policy.
+Each catalog entry includes a SHA-256 digest: a fingerprint of the skill's exact bytes. The SDK rejects a download that does not match, catching corruption or changes to the file. This is **byte integrity**, and it does not prove that the instructions are correct or safe: a publisher can publish harmful instructions with a perfectly matching digest.
 
-## Archive boundary
+Your application therefore chooses which publishers to trust and what tools the agent may use. A skill's request to run a command or read a file still goes through your application's permissions. Remote Skills never executes bundled scripts, and a skill's `allowed-tools` field does not grant permission to use those tools. Instructions and resources are content for the agent to consider, not authority to act.
 
-Before publication or use, archives fail closed on absolute, drive-prefixed, escaping, dot-segment, NUL-containing, or invalid UTF-8 paths; duplicate normalized names; portable case collisions; symlinks; hard links; devices; FIFOs; sockets; other special files; or a missing/non-regular root `SKILL.md`.
+## Skill files stay inside their own folder
 
-Default bounds are:
+Skills with resources travel as archives that the SDK unpacks into its cache. Because an archive specifies where its files go, the SDK checks that unpacking it cannot write outside the skill's folder. Only ordinary files and directories are accepted; filesystem links and device files are rejected too.
 
-| Boundary | Default |
+Conflicting paths are also rejected, including two paths pointing to the same file or names such as `Guide.md` and `guide.md` that some operating systems treat as identical. This prevents files from overwriting one another. A failed check rejects the whole skill instead of returning an incomplete result.
+
+For publishers, the build checks the source folder and packages it with an ordinary `SKILL.md` file at the archive's top level, alongside any resources. There is no extra enclosing folder inside the archive.
+
+## Downloads have size limits
+
+A small compressed file can expand into a much larger folder. To keep a skill from consuming unbounded bandwidth or disk space, Remote Skills limits both the download and the extracted contents:
+
+| Resource | Default limit |
 | --- | ---: |
-| catalog | 1 MiB |
-| compressed artifact | 50 MiB |
-| extracted skill | 100 MiB |
-| files per skill | 1,000 |
-| bytes per file | 10 MiB |
+| Catalog | 1 MiB |
+| Compressed artifact | 50 MiB |
+| Extracted skill | 100 MiB |
+| Files per skill | 1,000 |
+| Individual file | 10 MiB |
 
-Metadata-declared sizes are checked before expansion and streamed sizes remain bounded. Digest verification finishes before immutable cache publication.
+These checks apply to the bytes actually received and unpacked, not just the sizes declared by the server or archive. Exceeding a limit stops loading instead of leaving the agent with incomplete content. Publishers can adjust their build limits through [Configuration](/docs/configuration), while applications configure client limits through the [API](/docs/api-reference).
 
-## Network boundary
+## Requests follow your network policy
 
-Production origins require HTTPS. Explicit loopback development can allow HTTP. Userinfo, query-based secrets, denied IP ranges, and unsafe redirects are rejected. Every connection and redirect is re-evaluated under policy; redirects are capped.
+Production hosts use HTTPS to protect traffic in transit. The SDK checks the destination address on each connection and redirect, preventing a download link from reaching a blocked internal address. Non-public addresses are blocked by default; applications using an internal skill host can explicitly allow its addresses in the client's network policy. Local development has a separate opt-in for loopback HTTP.
 
-Credentials belong to one configured host authority. Same-origin requests receive origin headers. Cross-host artifacts receive none unless that host has its own explicit header map. Diagnostics sanitize URLs and exclude headers, response bodies, instructions, and resources.
+Credentials go only to the configured host, so downloads from another private host need their own credentials. [Authentication and authorization](/docs/authentication-and-scopes#when-downloads-use-another-host) explains both the client configuration and the host's access checks.
 
-Only idempotent catalog/artifact GET failures, HTTP `408`, `429`, and `5xx` are retryable within configured bounds. Schema, policy, archive, and digest failures are terminal. The default timeout is 30 seconds with at most two retries.
+If a request fails, diagnostics identify the problem without including credentials, response bodies, or skill content, and URLs are sanitized. Temporary connection failures may be retried, but invalid or unsafe content is rejected; the [request failure reference](/docs/api-reference#request-failures) has the details.
 
-## Local publisher boundary
+## Your build environment remains part of the trust boundary
 
-The publisher rejects at-rest output symlinks/reparse points, serializes cooperative publication, retains directory-generation evidence, and finally re-verifies the intended output and exact bytes. Portable Node.js cannot prevent a malicious same-UID process from redirecting a pathname between the last check and a filesystem syscall; v0 detects an inconsistent intended output before reporting success but does not claim OS access-control guarantees.
+The publisher rejects output paths redirected through filesystem links and verifies the completed files before reporting success. Its locking mechanism also coordinates concurrent CLI builds, helping avoid mixed output.
+
+These checks assume a trusted machine or CI runner: they can detect inconsistent output, but they do not isolate the build from another process running under the same user account. Access to the source and build directory is controlled by that environment, not by Remote Skills.

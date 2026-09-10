@@ -1,93 +1,361 @@
 ---
 title: API reference
-description: Public CLI, TypeScript, Python, resources, lifecycle, and stable error surfaces.
+description: SDK constructors, parameters, return values, data types, and errors.
 ---
 
-## Publisher CLI
+Reference for `@remote-skills/client`, Python's `remote_skills`, and the [Vercel AI SDK integration](#vercel-ai-sdk-integration). Method tables show awaited return values: TypeScript methods return promises, and Python async methods are awaited. For a runnable integration, see [Consume skills](/docs/consume).
 
-```text
-remote-skills validate [--strict]
-remote-skills build [--archive] [--format tar.gz|zip] [--out-dir PATH]
-                    [--prior-output PATH] [--prune SKILL@VERSION]...
-remote-skills dev [--host HOST] [--port PORT] [--unsafe-host]
-remote-skills verify ORIGIN [--header NAME=VALUE]...
-                            [--header-env NAME=ENV_VAR]...
-                            [--scope SCOPE] [--timeout-ms MS] [--retries N]
-```
+## Client creation
 
-See [CLI reference](/docs/cli) for behavioral boundaries.
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
 
-## TypeScript
+`createRemoteSkills(config, dependencies?)` returns a `RemoteSkillsClient`.
 
 ```ts
 import { createRemoteSkills } from "@remote-skills/client";
-import type {
-  ActivatedResource,
-  ActivatedSessionSkill,
-  AggregateCatalog,
-  CatalogEntry,
-  RemoteSkillsClient,
-  RemoteSkillsConfig,
-  RemoteSkillsSession,
-} from "@remote-skills/client";
 
-declare const config: RemoteSkillsConfig;
-const create: (config: RemoteSkillsConfig) => RemoteSkillsClient = createRemoteSkills;
-declare const client: RemoteSkillsClient;
-declare const session: RemoteSkillsSession;
-declare const skill: ActivatedSessionSkill;
-
-const aggregate: Promise<AggregateCatalog> = client.catalog({ strict: false });
-const opened: Promise<RemoteSkillsSession> = client.session("acme");
-const refreshed: Promise<void> = client.refresh("acme");
-
-const entries: Promise<readonly CatalogEntry[]> = session.catalog();
-const activated: Promise<ActivatedSessionSkill> = session.activate("code-review", "1.4.x");
-const closed: Promise<void> = session.close();
-
-const resources: Promise<readonly ActivatedResource[]> = skill.list("references/");
-const text: Promise<string> = skill.read("references/security.md");
-const bytes: Promise<Uint8Array> = skill.readBytes("assets/template.bin");
+const client = createRemoteSkills({
+  origins: {
+    team: { url: "https://skills.example.com" },
+  },
+});
 ```
 
-`RemoteSkillsConfig` includes explicit `origins`, optional catalog defaults, cache selection/options, and activation limits. An `OriginConfig` supports URL, host-bound headers and artifact-header maps, scope, timeout, retries, catalog-byte limit, stale policy, loopback HTTP acknowledgement, and network policy.
+`RemoteSkillsConfig` fields:
 
-## Python
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `origins` | `OriginMap` | Required | Map of local aliases to [origin settings](#origin-settings). At least one origin. |
+| `defaults` | `CatalogDefaults` | Built-in defaults | Shared `timeoutMs`, `retries`, and `catalogBytes`. Per-origin values take precedence. |
+| `cache` | `CacheSelection` | `"disk"` | `"disk"`, `"memory"`, or a custom `CacheBackend`. |
+| `cacheOptions` | `DiskCacheOptions` or `MemoryCacheOptions` | Backend defaults | Options for the selected built-in cache. |
+| `limits` | `ActivationLimits` | [Defaults below](#activation-limits) | Per-skill download and extraction limits. |
+
+The optional second argument, `RemoteSkillsDependencies`, supplies transport, resolution, timing, and session-nonce hooks. Normal use needs only `config`.
+
+</Tab>
+<Tab>
+
+`RemoteSkills(...)` accepts keyword arguments and returns a client. Its network and resource methods are async.
 
 ```python
-RemoteSkills(origins=..., defaults=..., cache=..., limits=...)
+from remote_skills import Origin, RemoteSkills
 
-await client.catalog(strict=False)
-client.session(origin_alias, stale=None)       # awaitable + async context manager
-await client.refresh(origin_alias=None)
-
-await session.catalog()
-await session.activate(skill_name, version_range=None)
-await session.close()
-
-await skill.list(prefix=None)
-await skill.read(path)
-await skill.read_bytes(path)
+client = RemoteSkills(origins={
+    "team": Origin(url="https://skills.example.com"),
+})
 ```
 
-`Origin` supports URL, host-bound headers and artifact-header maps, scope, timeout, retries, loopback HTTP acknowledgement, catalog-byte limit, and network policy. `StaleCatalog(max_age_seconds=...)` is an explicit per-session offline fallback.
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `origins` | `Mapping[str, Origin]` | Required | Map of local aliases to [origin settings](#origin-settings). At least one origin. |
+| `defaults` | `CatalogDefaults` | `CatalogDefaults()` | Shared `timeout`, `retries`, and `catalog_bytes`. Per-origin values take precedence. |
+| `cache` | `CacheBackend` | Disk cache | A `DiskCache`, `MemoryCache`, or custom backend from `remote_skills.cache`. |
+| `limits` | `ActivationLimits` | `ActivationLimits()` | Per-skill download and extraction limits. |
+| `transport` | `AsyncTransport` | `StdlibTransport()` | Custom HTTP transport. |
+| `resolver` | `Resolver` | `default_resolver` | Custom hostname resolver. |
+| `clock` | Callable returning seconds | `time.time` | Clock used for catalog freshness. |
 
-## Activated data
+</Tab>
+</Tabs>
 
-Activated skills expose origin/scope identity, name, description, optional version, exact digest, parsed standard frontmatter, Markdown instructions, and resource methods. Listing returns normalized path, byte size, and conservative media type—not file contents or permission.
+## Origin settings
 
-## Stable error codes
+All fields except `url` are optional. Origins use HTTPS; URL credentials, query strings, and fragments are rejected. Discovery uses the host-root `/.well-known/agent-skills/index.json`, regardless of a path in `url`.
 
-Both clients use the same snake-case contract:
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
 
-```text
-configuration_invalid  origin_unavailable   request_timeout
-catalog_invalid        unsupported_schema   authentication_failed
-authorization_denied   skill_not_found      version_unavailable
-artifact_unsupported   digest_mismatch      archive_unsafe
-limit_exceeded         resource_not_found   resource_not_text
-path_invalid           policy_denied        session_closed
-cache_corrupt
-```
+Each `origins` entry is an `OriginConfig`.
 
-Errors include sanitized structured context such as origin alias, non-secret scope, skill name, digest, path, status, and retryability. Messages may differ by language; secret-bearing headers/URLs, bodies, instructions, and resources are excluded.
+| Field | Type and default | Description |
+| --- | --- | --- |
+| `url` | string or `URL`<br />Required | Host base URL. |
+| `headers` | String-to-string map<br />Default: `{}` | Headers for requests to this host. |
+| `artifactHeaders` | Host-to-header-map<br />Default: `{}` | Separate headers for exact artifact hosts, including ports when present. |
+| `scope` | string<br />Default: unset | Requested catalog view; see [scoped catalogs](#scoped-catalogs). |
+| `timeoutMs` | integer<br />Default: `30000` | Request timeout in milliseconds; `1`–`300000`. |
+| `retries` | integer<br />Default: `2` | Retry count; `0`–`10`. |
+| `catalogBytes` | integer<br />Default: `1048576` | Maximum catalog bytes; `1`–`52428800`. |
+| `stale` | `StaleCatalogConfig`<br />Default: disabled | `{ maxAgeMs: number }` enables age-bounded stale-catalog fallback for new sessions. |
+| `allowLoopbackHttp` | boolean<br />Default: `false` | Allows HTTP for explicitly configured loopback development. |
+| `networkPolicy` | `NetworkPolicyConfig`<br />[Defaults below](#network-policy) | Address exceptions and redirect limit. |
+
+</Tab>
+<Tab>
+
+Each `origins` entry is an `Origin(...)` instance.
+
+| Argument | Type and default | Description |
+| --- | --- | --- |
+| `url` | str<br />Required | Host base URL. |
+| `headers` | `Mapping[str, str]`<br />Default: `{}` | Headers for requests to this host. |
+| `artifact_headers` | Host-to-header-map<br />Default: `{}` | Separate headers for exact artifact hosts, including ports when present. |
+| `scope` | str<br />Default: `None` | Requested catalog view; see [scoped catalogs](#scoped-catalogs). |
+| `timeout` | float<br />Default: `30.0` | Request timeout in seconds; greater than `0`, at most `300`. |
+| `retries` | int<br />Default: `2` | Retry count; `0`–`10`. |
+| `catalog_bytes` | int<br />Default: `1048576` | Maximum catalog bytes; `1`–`52428800`. |
+| `allow_loopback_http` | bool<br />Default: `False` | Allows loopback HTTP. Set only for an HTTP origin. |
+| `network_policy` | `NetworkPolicy`<br />Default: `NetworkPolicy()` | Address exceptions and redirect limit. |
+| `sensitive_header_names` | `frozenset[str]`<br />Default: empty | Additional configured header names treated as sensitive. |
+| `artifact_sensitive_header_names` | Host-to-name-set map<br />Default: `{}` | Additional sensitive header names for configured artifact hosts. |
+
+Python's stale-catalog allowance is a [session argument](#session), not an `Origin` field.
+
+</Tab>
+</Tabs>
+
+### Network policy
+
+| TypeScript field | Python argument | Default and accepted value |
+| --- | --- | --- |
+| `networkPolicy.allowedAddresses` | `NetworkPolicy(allowed_addresses=...)` | Empty collection. Exact IP address exceptions, not hostnames or CIDR ranges. |
+| `networkPolicy.maxRedirects` | `NetworkPolicy(max_redirects=...)` | `5`; integer from `0` to `5`. |
+
+Address checks apply to each connection and redirect. [Trust and security](/docs/trust-and-security) explains the policy; [Authentication and authorization](/docs/authentication-and-scopes) covers credential handling.
+
+## Client methods
+
+### `catalog`
+
+| Language | Signature | Resolves to |
+| --- | --- | --- |
+| TypeScript | `client.catalog(options?: CatalogOptions)` | `AggregateCatalog` |
+| Python | `await client.catalog(strict=False)` | `AggregateCatalog` |
+
+| Parameter | Default | Behavior |
+| --- | --- | --- |
+| `options.strict` / `strict` | `false` / `False` | When enabled, any origin failure throws an aggregate error instead of returning partial results. |
+
+The result contains `entries` and `failures`. Each failure includes `originAlias` (TypeScript) or `origin_alias` (Python) and `error`. Strict-mode exceptions are `CatalogAggregateError` in TypeScript and `AggregateCatalogError` in Python, both exposing `failures`.
+
+### `session`
+
+| Language | Signature | Resolves to |
+| --- | --- | --- |
+| TypeScript | `client.session(originAlias: string)` | `RemoteSkillsSession` |
+| Python | `client.session(origin_alias, stale=None)` | `RemoteSkillsSession` when awaited; also supports `async with`. |
+
+| Parameter | Default | Behavior |
+| --- | --- | --- |
+| `originAlias` / `origin_alias` | Required | Alias from the client's configured origins, not a URL. |
+| Python `stale` | `None` | `StaleCatalog(max_age_seconds=...)` permits a verified cached catalog within that age bound. |
+
+TypeScript configures stale fallback through `OriginConfig.stale.maxAgeMs`. Both default to requiring an online catalog unless an acceptable fresh cached catalog is available. See [Caching and updates](/docs/cache-and-offline) for fallback conditions.
+
+### `refresh`
+
+| Language | Signature | Resolves to |
+| --- | --- | --- |
+| TypeScript | `client.refresh(originAlias?: string)` | `void` |
+| Python | `await client.refresh(origin_alias=None)` | `None` |
+
+Revalidates the selected origin's catalog, or all configured origins when omitted. Affects **future sessions** only; existing sessions and their selected skills stay unchanged.
+
+## Session methods
+
+### `catalog`
+
+| Language | Signature | Resolves to |
+| --- | --- | --- |
+| TypeScript | `session.catalog()` | `readonly CatalogEntry[]` |
+| Python | `await session.catalog()` | `tuple[CatalogEntry, ...]` |
+
+Returns the session's fixed catalog snapshot without loading skill instructions.
+
+### `activate`
+
+| Language | Signature | Resolves to |
+| --- | --- | --- |
+| TypeScript | `session.activate(name: string, requestedRange?: string)` | `ActivatedSessionSkill` |
+| Python | `await session.activate(skill_name, version_range=None)` | `ActivatedSkill` |
+
+| Parameter | Default | Behavior |
+| --- | --- | --- |
+| `name` / `skill_name` | Required | Skill name from the catalog. |
+| `requestedRange` / `version_range` | No restriction | Selects the highest advertised release matching the range; prereleases require explicit inclusion. An unversioned current skill is allowed only without a restriction or with `*`. |
+
+Downloads and verifies the **complete artifact**, then pins the chosen bytes for the session. Later activation calls for the same skill return that pinned selection, even if a different range is passed. Range syntax and prerelease rules are in [Versions and history](/docs/versions).
+
+### `close`
+
+| Language | Signature | Resolves to |
+| --- | --- | --- |
+| TypeScript | `session.close()` | `void` |
+| Python | `await session.close()` | `None` |
+
+Releases the session's cache pins. Further catalog, activation, and resource operations fail with `session_closed`. TypeScript also supports async disposal; Python's `async with` closes the session automatically.
+
+### Session metadata
+
+| TypeScript | Python | Meaning |
+| --- | --- | --- |
+| `metadata.originAlias` | `metadata.origin_alias` | Configured origin alias. |
+| `metadata.confirmedScope` | `metadata.confirmed_scope` | Host-confirmed scope, if any. |
+| `metadata.requestedScope` | — | Requested scope, if configured. |
+| `metadata.stale`, `stale` | `metadata.stale`, `stale` | Whether stale-catalog fallback was used. |
+| `metadata.staleAgeMs`, `staleAgeMs` | `metadata.catalog_age_seconds` | Catalog age for stale fallback, in milliseconds or seconds respectively. |
+| — | `closed` | Whether the Python session is closed. |
+
+## Returned data
+
+### Catalog entries
+
+| TypeScript | Python | Type and meaning |
+| --- | --- | --- |
+| `originAlias` | `origin_alias` | String; configured origin alias. |
+| `name`, `description` | `name`, `description` | Strings; discovery metadata. |
+| `artifactType` | `artifact_type` | `"skill-md"` or `"archive"`. |
+| `url`, `digest` | `url`, `digest` | Strings; resolved artifact URL and SHA-256 digest. |
+| `version` | `version` | String when versioned; otherwise absent or `None`. |
+| `releases` | `releases` | Advertised release descriptors, when provided. Each has version, artifact type, URL, and digest. |
+
+### Activated data
+
+| TypeScript | Python | Type and meaning |
+| --- | --- | --- |
+| `name`, `description` | `name`, `description` | Strings; selected skill metadata. |
+| `instructions` | `instructions` | String; Markdown instructions from `SKILL.md`. |
+| `frontmatter` | `frontmatter` | Read-only mapping of parsed skill metadata. |
+| `version`, `digest` | `version`, `digest` | Selected version, if any, and the exact pinned digest. |
+| `originAlias` | `origin_alias` | Configured origin alias. |
+| `confirmedScope` | `confirmed_scope` | Confirmed catalog scope, if any. |
+| `descriptor` | `pin` | Selected artifact descriptor (TypeScript) or activation identity (Python). |
+| `descriptor.artifactType`, `descriptor.url` | `artifact_type`, `url` | Selected artifact format and URL. |
+| — | `stale` | Whether the Python activation came from a stale catalog. |
+
+## Resource methods
+
+TypeScript methods return promises. Python methods are awaited. All reads use already verified local files; they do not make additional network requests or execute scripts.
+
+| TypeScript | Python | Resolves to |
+| --- | --- | --- |
+| `skill.list(prefix?: string)` | `await skill.list(prefix=None)` | Array or tuple of resource metadata. |
+| `skill.read(path: string)` | `await skill.read(path)` | UTF-8 text string. |
+| `skill.readBytes(path: string)` | `await skill.read_bytes(path)` | `Uint8Array` or `bytes`. |
+
+| Parameter | Accepted value |
+| --- | --- |
+| `prefix` | Optional resource path or directory prefix. Omitted means all resources; a non-empty prefix with no matches returns `resource_not_found`. |
+| `path` | Required skill-relative file path, such as `references/welcome.md`. |
+
+Each listed resource has `path`, `size` (bytes), and `media_type`. Listings describe files; they do not include file contents or grant permission to use them.
+
+## Activation limits
+
+Configured through `limits` in TypeScript or `ActivationLimits(...)` passed as Python's `limits` argument. Values are positive integers; byte limits are measured before text decoding.
+
+| TypeScript | Python | Default | Limit |
+| --- | --- | --- | --- |
+| `archiveBytes` | `archive_bytes` | `52428800` (50 MiB) | Compressed artifact download. |
+| `extractedBytes` | `extracted_bytes` | `104857600` (100 MiB) | Total extracted bytes per skill. |
+| `files` | `files` | `1000` | Files per skill. |
+| `fileBytes` | `file_bytes` | `10485760` (10 MiB) | Individual file, including standalone Markdown skills. |
+
+Catalog size is controlled separately by the [origin's catalog-byte limit](#origin-settings).
+
+## Scoped catalogs
+
+| Contract | Value |
+| --- | --- |
+| Request header | `Remote-Skills-Scope: <name>`, on catalog requests. |
+| Portable name | Non-secret ASCII, 1–128 bytes, without whitespace, control characters, or commas; accepted by both SDKs. |
+| Successful response | Exactly one matching `Remote-Skills-Scope` header on `200` and `304`. |
+| Invalid confirmation | Missing, duplicate, or mismatched confirmation returns `catalog_invalid`. |
+| Artifact requests | The scope header is not automatically included and is not an access credential. |
+
+The provider authorizes catalog views and artifact downloads using the caller's identity. [Authentication and authorization](/docs/authentication-and-scopes) covers both sides of this contract.
+
+## Catalog version history
+
+Optional wire extension for version selection; [Versions and history](/docs/versions) covers authoring and publishing.
+
+| Field or rule | Contract |
+| --- | --- |
+| Skill version | `metadata.version` in `SKILL.md`. |
+| Catalog extension | `x-remote-skills`, with advertised releases for each versioned skill. |
+| Release descriptor | Version, artifact type, URL, and digest. |
+| History limit | 100 release descriptors per skill, including the current release. |
+| Current release | Its descriptor agrees with the ordinary catalog entry. |
+| Build input | Older releases are carried forward only from verified prior output. |
+| Other discovery clients | Can ignore the extension and load the current release. |
+
+## Vercel AI SDK integration
+
+`remoteSkills(options: RemoteSkillsOptions): Promise<RemoteSkillsIntegration>` is exported by `@remote-skills/ai-sdk`. For installation and a complete agent example, see [Vercel AI SDK](/docs/vercel-ai-sdk).
+
+### Source options
+
+Exactly one source form is accepted:
+
+| Form | Type | Behavior |
+| --- | --- | --- |
+| `{ client, origin }` | `RemoteSkillsClient`, `string` | Opens one session for a configured origin alias. |
+| `{ client, origins }` | `RemoteSkillsClient`, `readonly string[]` | Opens one session per alias. The list must be non-empty and contain no duplicates. All origins must open successfully. |
+| `{ session }` | `RemoteSkillsSession` | Uses a caller-owned session without taking ownership of it. |
+
+Every form also accepts:
+
+| Option | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `versions` | `Readonly<Record<string, string>>` | Unset | Application-selected version constraints, passed to SDK activation. Keys name catalog skills: `howdy` for one origin, or `team/howdy` when multiple origins are opened. Unknown skill keys or empty constraints fail setup. |
+
+Creation discovers metadata without activating skills. Authentication, scopes, cache, transport, timeouts, and limits come from the supplied client or session. If setup fails, sessions opened by the integration are closed; a caller-owned session stays open.
+
+### Returned integration
+
+| Member | Type | Contract |
+| --- | --- | --- |
+| `agentOptions` | `{ instructions: string; tools: RemoteSkillsTools }` | Settings to spread into `ToolLoopAgent`, `generateText`, or `streamText`. Does not configure a model or stop condition. |
+| `tools` | `RemoteSkillsTools` | The same `skill` and `readFile` tools exposed by `agentOptions`. |
+| `sessions` | `readonly RemoteSkillsSession[]` | Underlying sessions for catalog access and activation, with staleness and confirmed-scope metadata. |
+| `sandbox` | `Sandbox` from `bash-tool` | Read-only, remote-backed filesystem rooted at `/workspace/skills/`. Command execution and writes are unsupported. |
+| `close()` | `Promise<void>` | Disables tools, waits for pending operations, closes owned sessions, and removes temporary files. Safe to call repeatedly. Does not close a caller-owned session or clear the SDK cache. |
+| `[Symbol.asyncDispose]()` | `Promise<void>` | Same cleanup as `close()`; supports `await using`. |
+
+The package also exports the types `RemoteSkillsOptions`, `RemoteSkillsIntegration`, and `RemoteSkillsTools`.
+
+### Model-facing tools
+
+| Tool | Input | Result |
+| --- | --- | --- |
+| `skill` | `{ skillName: string }` | Vercel's skill-loader result, including instructions and resource paths on success. Downloads and verifies the selected skill through the SDK before returning its instructions. |
+| `readFile` | Vercel's file-reader input, including `path` | UTF-8 file content from the verified skill. Binary reads return `resource_not_text`; binary access remains available through SDK sessions. |
+
+Tool errors retain SDK error codes without diagnostic context. Unexpected tool failures return a fixed message; setup errors remain available to the application. Abort signals are checked around tool operations, but an already-started SDK download follows the client's timeout and session-close behavior rather than per-call cancellation.
+
+## Request failures
+
+| Setting or condition | Behavior |
+| --- | --- |
+| Default timeout | 30 seconds per request. |
+| Default retries | Up to two retries for eligible catalog and artifact `GET` failures. |
+| Retryable HTTP status | `408`, `429`, and `5xx`. |
+| Invalid schema, policy, digest, or archive | No retry. Clients fail closed rather than returning unchecked content. |
+
+### Stable error codes
+
+| Code | Meaning |
+| --- | --- |
+| `configuration_invalid` | Invalid client, origin, or option configuration. |
+| `origin_unavailable` | The origin could not provide a usable response. |
+| `request_timeout` | Request exceeded its timeout. |
+| `catalog_invalid` | Catalog content or scope confirmation is invalid. |
+| `unsupported_schema` | Discovery schema is missing or unsupported. |
+| `authentication_failed` | Credentials are missing, invalid, or expired (`401`). |
+| `authorization_denied` | The caller lacks access (`403`). |
+| `skill_not_found` | The selected catalog does not contain that skill. |
+| `version_unavailable` | No advertised release matches the requested range. |
+| `artifact_unsupported` | Unsupported artifact type or encoding. |
+| `digest_mismatch` | Downloaded bytes do not match the advertised digest. |
+| `archive_unsafe` | Archive structure or entries failed safety checks. |
+| `limit_exceeded` | Configured size or file-count limit exceeded. |
+| `resource_not_found` | No matching resource exists. |
+| `resource_not_text` | Resource cannot be decoded as UTF-8 text. |
+| `path_invalid` | Resource path is invalid or escapes the skill. |
+| `policy_denied` | URL, address, or redirect rejected by network policy. |
+| `session_closed` | Operation attempted after the session closed. |
+| `cache_corrupt` | Cached data or cache coordination is invalid. |
+
+SDK errors expose `code`, `retryable`, and sanitized `context`. Catalog and request errors use `RemoteSkillsError` in TypeScript and `CatalogError` in Python; cache operations can also raise `CacheConfigurationError` or `CacheCorruptError`. Diagnostics exclude credentials, response bodies, instructions, and resource contents; URL context is sanitized.

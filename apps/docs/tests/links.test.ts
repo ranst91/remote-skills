@@ -29,9 +29,11 @@ function resolveInternalTarget(file: string, target: string): string | undefined
 test("every internal documentation link resolves inside the docs application", () => {
   const failures: string[] = [];
   for (const file of markdownFiles(docsRoot)) {
-    const source = readFileSync(file, "utf8");
-    for (const match of source.matchAll(/\[[^\]]+\]\(([^)]+)\)/gu)) {
-      const target = match[1];
+    const source = readFileSync(file, "utf8")
+      .replace(/^```[^\n]*\n[\s\S]*?^```[ \t]*$/gmu, "")
+      .replace(/`[^`\n]+`/gu, "");
+    for (const match of source.matchAll(/\[[^\]]+\]\(([^)]+)\)|href="([^"]+)"/gu)) {
+      const target = match[1] ?? match[2];
       if (target === undefined) throw new Error("Markdown link capture is missing");
       if (/^(?:https?:|mailto:)/u.test(target)) continue;
       const resolved = resolveInternalTarget(file, target);

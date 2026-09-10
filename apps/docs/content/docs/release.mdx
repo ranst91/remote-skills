@@ -1,39 +1,46 @@
 ---
-title: Release and compatibility
-description: V0 package versions, supported environments, local artifact evidence, and deferred features.
+title: Compatibility
+description: Supported skill formats, discovery protocols, and optional extensions.
 ---
 
-## V0 package line
+Remote Skills uses the existing Agent Skills format and an open HTTP discovery protocol. Publishing changes how a skill is delivered, not the format of its instructions and resources.
 
-The initial coordinated version is `0.0.1`:
+## Supported standards
 
-- npm tarball for `@remote-skills/cli`;
-- npm tarball for `@remote-skills/client`;
-- Python wheel and source distribution named `remote-skills`.
+| Standard | Remote Skills support |
+| --- | --- |
+| [Agent Skills](https://agentskills.io/specification) | `SKILL.md` with YAML frontmatter and Markdown instructions, plus optional references, scripts, and assets. |
+| [Agent Skills Discovery](https://github.com/cloudflare/agent-skills-discovery-rfc) | The **v0.2.0 draft**: a well-known catalog, artifact URLs, and SHA-256 digests. |
+| [HTTP caching](https://www.rfc-editor.org/rfc/rfc9111.html) | Catalog caching and revalidation using `Cache-Control`, `ETag`, and `Last-Modified`. |
+| [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) | Optional skill release versions. Version ranges and release history are Remote Skills features, not requirements of Agent Skills. |
 
-These are **local artifacts** built, inspected, installed, and smoke-tested without contacting a package registry. Repository acceptance does not reserve a package name, configure registry/OIDC state, request publication credentials, create a tag, upload bytes, or claim that any artifact is available from npm or PyPI.
+Standard skill fields such as `name`, `description`, `license`, `compatibility`, `metadata`, and `allowed-tools` remain part of the skill. Remote Skills does not execute scripts or interpret `allowed-tools` as permission to run them; the agent application controls execution.
 
-Major-zero SemVer applies: compatibility may change between minor versions. The packages can version independently later even though `0.0.1` starts coordinated.
+## Discovery schema
 
-## Supported environments
+| Property | Supported value |
+| --- | --- |
+| Catalog location | `/.well-known/agent-skills/index.json` at the host root. |
+| Catalog `$schema` | `https://schemas.agentskills.io/discovery/0.2.0/schema.json` |
+| Artifact digest | SHA-256 of the exact downloaded file, written as `sha256:<64 lowercase hex characters>`. |
+| Additional fields | Unrecognized, non-conflicting fields are ignored. |
 
-- Node.js 24 or newer.
-- Python 3.11 or newer.
-- Linux for the complete validation, test, build, and local packaging suite.
-- Windows for clean-installed CLI, TypeScript client, and Python distribution checks.
+Clients accept the schema above. Older catalogs and missing or unknown schema identifiers return `unsupported_schema`; they are not silently converted to the supported format.
 
-Readiness requires the complete Linux suite plus the focused Windows installed-product checks. Platform-specific behavior may not weaken path, archive, link, or cache safety.
+## Artifact formats
 
-## Standards contract
+| Catalog `type` | File format | Contents |
+| --- | --- | --- |
+| `skill-md` | Markdown | One `SKILL.md` file, without bundled resources. |
+| `archive` | `.tar.gz` or `.zip` | `SKILL.md` at the archive root, alongside resources. |
 
-V0 recognizes the canonical Agent Skills source format and exactly Cloudflare Agent Skills Discovery schema `https://schemas.agentskills.io/discovery/0.2.0/schema.json`. Missing, v0.1, and unknown schemas fail as `unsupported_schema`; recognized v0.2.0 catalogs ignore unknown non-conflicting fields.
+Both SDKs accept these formats, subject to the same [file safety and size checks](/docs/trust-and-security). [Build and host](/docs/hosting/archive-to-origin) lists their HTTP content types.
 
-## Deferred from v0
+## Optional Remote Skills extensions
 
-V0 does not include a marketplace, managed hosting, deploy command, browser SDK, OAuth/credential manager, framework adapter, MCP bridge, relevance model, automatic selection, client-side policy language, generated catalog types, custom signing protocol, or execution helper. The provider implements authentication, scope authorization, and artifact access at its origin; the host implements content trust and execution policy.
+| Extension | Purpose | Interoperability |
+| --- | --- | --- |
+| [Versions and history](/docs/versions) | Uses `metadata.version` and the catalog's `x-remote-skills` release history for version selection. | Discovery clients that ignore the extension can still load the current release. |
+| [Scoped catalogs](/docs/authentication-and-scopes) | Uses `Remote-Skills-Scope` to request and confirm a host-defined catalog view. | Requires support in both the client and the host; ordinary HTTP authentication remains separate. |
 
-The provider may prune advertised history. Consumers pin what an authorized session selected, but ranges do not create retention obligations. See [versions and removal](/docs/versions).
-
-## Documentation application
-
-This Fumadocs site is self-hostable. From the repository, `pnpm --filter @remote-skills/docs build` creates the production Next.js application and `pnpm --filter @remote-skills/docs start` serves it on a Node.js host. That documentation deployment is independent of the static skill-origin hosting contract.
+These extensions do not introduce a different skill format. An agent still needs an integration that can discover and load remote skills; format compatibility does not automatically add remote loading to an agent that only reads local folders. The [Consume guide](/docs/consume) documents that SDK interface.
