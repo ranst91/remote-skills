@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,7 +16,17 @@ import { PublisherVerifyError } from "./verify-errors.ts";
 
 export const CLI_EXIT_CODES = Object.freeze({ success: 0, failure: 1, usage: 2 });
 
-const VERSION = "0.0.1";
+const packageMetadata: unknown = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
+if (
+  typeof packageMetadata !== "object" ||
+  packageMetadata === null ||
+  !("version" in packageMetadata) ||
+  typeof packageMetadata.version !== "string"
+)
+  throw new Error("CLI package version is missing");
+const VERSION = packageMetadata.version;
 const HELP_TEXT = `Remote Skills
 
 Usage:

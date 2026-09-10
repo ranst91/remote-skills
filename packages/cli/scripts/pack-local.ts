@@ -51,6 +51,7 @@ const RUNTIME_MANIFEST_FIELDS = [
   "name",
   "version",
   "description",
+  "repository",
   "type",
   "main",
   "module",

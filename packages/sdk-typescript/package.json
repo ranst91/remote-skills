@@ -33,5 +33,10 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ranst91/remote-skills.git",
+    "directory": "packages/sdk-typescript"
   }
 }

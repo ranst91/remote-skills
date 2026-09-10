@@ -16,6 +16,7 @@ import zipfile
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
+PACKAGE_VERSION = tomllib.loads((PACKAGE_ROOT / "pyproject.toml").read_text())["project"]["version"]
 LOCKED_DEPENDENCY_NAME = "uts46"
 LOCKED_DEPENDENCY_VERSION = "0.2.0"
 MATERIALIZE_LOCKED_DEPENDENCY = (
@@ -213,7 +214,7 @@ class PackageMetadataTests(unittest.TestCase):
 
         project = configuration["project"]
         self.assertEqual(project["name"], "remote-skills")
-        self.assertEqual(project["version"], "0.0.1")
+        self.assertEqual(project["version"], PACKAGE_VERSION)
         self.assertEqual(project["requires-python"], ">=3.11")
         self.assertEqual(project["license"], "Apache-2.0")
         self.assertEqual(project["readme"], "README.md")
@@ -227,15 +228,15 @@ class PackageMetadataTests(unittest.TestCase):
             self.assertEqual(
                 sorted(path.name for path in distribution_root.iterdir()),
                 [
-                    "remote_skills-0.0.1-py3-none-any.whl",
-                    "remote_skills-0.0.1.tar.gz",
+                    f"remote_skills-{PACKAGE_VERSION}-py3-none-any.whl",
+                    f"remote_skills-{PACKAGE_VERSION}.tar.gz",
                 ],
             )
 
     def test_artifacts_contain_only_runtime_and_distribution_sources(self) -> None:
         with built_distributions() as distribution_root:
-            wheel = distribution_root / "remote_skills-0.0.1-py3-none-any.whl"
-            source = distribution_root / "remote_skills-0.0.1.tar.gz"
+            wheel = distribution_root / f"remote_skills-{PACKAGE_VERSION}-py3-none-any.whl"
+            source = distribution_root / f"remote_skills-{PACKAGE_VERSION}.tar.gz"
             with zipfile.ZipFile(wheel) as archive:
                 wheel_paths = archive.namelist()
             with tarfile.open(source, mode="r:gz") as archive:
@@ -248,19 +249,19 @@ class PackageMetadataTests(unittest.TestCase):
         ):
             self.assertNotIn(workspace_only, wheel_paths)
         self.assertIn(
-            "remote_skills-0.0.1.dist-info/licenses/LICENSE",
+            f"remote_skills-{PACKAGE_VERSION}.dist-info/licenses/LICENSE",
             wheel_paths,
         )
         for required in (
-            "remote_skills-0.0.1/LICENSE",
-            "remote_skills-0.0.1/README.md",
-            "remote_skills-0.0.1/pyproject.toml",
-            "remote_skills-0.0.1/src/remote_skills/__init__.py",
+            f"remote_skills-{PACKAGE_VERSION}/LICENSE",
+            f"remote_skills-{PACKAGE_VERSION}/README.md",
+            f"remote_skills-{PACKAGE_VERSION}/pyproject.toml",
+            f"remote_skills-{PACKAGE_VERSION}/src/remote_skills/__init__.py",
         ):
             self.assertIn(required, source_paths)
         for workspace_only in (
-            "remote_skills-0.0.1/src/remote_skills/protocol_adapter.py",
-            "remote_skills-0.0.1/src/remote_skills/cache/protocol.py",
+            f"remote_skills-{PACKAGE_VERSION}/src/remote_skills/protocol_adapter.py",
+            f"remote_skills-{PACKAGE_VERSION}/src/remote_skills/cache/protocol.py",
         ):
             self.assertNotIn(workspace_only, source_paths)
         for path in (*wheel_paths, *source_paths):
@@ -275,8 +276,8 @@ class PackageMetadataTests(unittest.TestCase):
         with built_distributions() as distribution_root:
             dependency = materialize_locked_dependency_wheel(distribution_root)
             distributions = [
-                distribution_root / "remote_skills-0.0.1-py3-none-any.whl",
-                distribution_root / "remote_skills-0.0.1.tar.gz",
+                distribution_root / f"remote_skills-{PACKAGE_VERSION}-py3-none-any.whl",
+                distribution_root / f"remote_skills-{PACKAGE_VERSION}.tar.gz",
             ]
             for distribution in distributions:
                 with self.subTest(distribution=distribution.name):
@@ -362,7 +363,7 @@ class PackageMetadataTests(unittest.TestCase):
 
                     self.assertEqual(
                         result.stdout,
-                        "remote-skills 0.0.1 async smoke passed\n",
+                        f"remote-skills {PACKAGE_VERSION} async smoke passed\n",
                     )
 
 
@@ -460,18 +461,18 @@ async def main() -> None:
         b"/.well-known/agent-skills/index.json",
         f"/.well-known/agent-skills/artifacts/sha256-{DIGEST}.md".encode(),
     ]
-    assert version("remote-skills") == "0.0.1"
+    assert version("remote-skills") == "__PACKAGE_VERSION__"
     try:
         version("uv-build")
     except PackageNotFoundError:
         pass
     else:
         raise AssertionError("build backend leaked into the runtime environment")
-    print("remote-skills 0.0.1 async smoke passed")
+    print("remote-skills __PACKAGE_VERSION__ async smoke passed")
 
 
 asyncio.run(main())
-'''
+'''.replace("__PACKAGE_VERSION__", PACKAGE_VERSION)
 
 
 if __name__ == "__main__":

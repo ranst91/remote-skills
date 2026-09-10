@@ -278,7 +278,7 @@ test("the public package manifest exposes an ESM-only Node runtime", async () =>
   const manifest = jsonRecord(await readFile(resolve(packageRoot, "package.json"), "utf8"));
 
   assert.equal(manifest.name, "@remote-skills/client");
-  assert.equal(manifest.version, "0.0.1");
+  assert.match(stringField(manifest, "version"), /^\d+\.\d+\.\d+(?:-alpha\.\d+)?$/u);
   assert.equal(manifest.private, undefined);
   assert.equal(manifest.type, "module");
   assert.equal(manifest.types, "./dist/index.d.ts");
@@ -324,7 +324,13 @@ test("the package build emits every declared runtime and declaration target", as
 test("the locked package manager creates a local SDK tarball", async (t) => {
   const { packed } = await packSdk(t);
   assert.equal(packed.name, "@remote-skills/client");
-  assert.equal(packed.version, "0.0.1");
+  assert.equal(
+    packed.version,
+    stringField(
+      jsonRecord(await readFile(resolve(packageRoot, "package.json"), "utf8")),
+      "version",
+    ),
+  );
   assert.equal(await readFile(packed.filename).then((bytes) => bytes.byteLength > 0), true);
 });
 

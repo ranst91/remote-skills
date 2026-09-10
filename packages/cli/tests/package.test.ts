@@ -284,7 +284,7 @@ after(() => {
 
 test("the public package manifest exposes only the remote-skills binary", () => {
   assert.equal(manifest.name, "@remote-skills/cli");
-  assert.equal(manifest.version, "0.0.1");
+  assert.match(manifest.version, /^\d+\.\d+\.\d+(?:-alpha\.\d+)?$/u);
   assert.equal(manifest.private, undefined);
   assert.deepEqual(manifest.bin, { "remote-skills": "dist/cli.js" });
   assert.deepEqual(manifest.files, ["dist"]);
@@ -457,7 +457,7 @@ test("the local tarball installs offline and runs through direct and no-install 
     0,
     describeSpawnFailure(directVersionRun.launch, directVersion),
   );
-  assert.equal(directVersion.stdout, "0.0.1\n");
+  assert.equal(directVersion.stdout, `${manifest.version}\n`);
   const directValidateRun = runNode(binary, ["validate"], cleanProject);
   assert.equal(
     directValidateRun.result.status,
@@ -480,7 +480,7 @@ test("the local tarball installs offline and runs through direct and no-install 
   assert.equal(forbidden.status, 2);
 
   const noInstall = runPnpm(["exec", "remote-skills", "--version"], cleanProject);
-  assert.equal(noInstall.stdout, "0.0.1\n");
+  assert.equal(noInstall.stdout, `${manifest.version}\n`);
 
   writeFileSync(
     path.join(cleanProject, "skills", "fixture-skill", "SKILL.md"),

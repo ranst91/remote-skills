@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-
+import { readReleaseState } from "../../scripts/release/release-lib.ts";
 import { runCommand } from "../helpers/run-command.ts";
 
 const publicPackages = [
@@ -21,6 +21,7 @@ const publicPackages = [
     manifest: "packages/sdk-python/pyproject.toml",
     name: "remote-skills",
   },
+  { ecosystem: "npm", manifest: "integrations/ai-sdk/package.json", name: "@remote-skills/ai-sdk" },
 ] as const;
 
 interface PackageMaterial {
@@ -135,9 +136,10 @@ test("public package checks are coordinated without coupling package versions", 
     stringProperty(pythonScripts, "package:check"),
     "node ../../scripts/run-uv.ts run --no-project --python 3.11 --no-python-downloads python -m unittest discover -s tests -p test_package.py",
   );
-  assert.equal(stringProperty(cliManifest, "version"), "0.0.1");
-  assert.equal(stringProperty(clientManifest, "version"), "0.0.1");
-  assert.match(pythonProject, /^version = "0\.0\.1"$/mu);
+  const state = readReleaseState();
+  assert.equal(stringProperty(cliManifest, "version"), state.npmVersion);
+  assert.equal(stringProperty(clientManifest, "version"), state.npmVersion);
+  assert.ok(pythonProject.includes(`version = "${state.pythonVersion}"`));
   assert.equal(stringProperty(cliManifest, "license"), "Apache-2.0");
   assert.equal(stringProperty(clientManifest, "license"), "Apache-2.0");
   assert.match(pythonProject, /^license = "Apache-2\.0"$/mu);
@@ -161,7 +163,13 @@ test("package input inventory is deterministic local metadata with verified mate
       name,
       version,
     })),
-    publicPackages.map((entry) => ({ ...entry, version: "0.0.1" })),
+    publicPackages.map((entry) => ({
+      ...entry,
+      version:
+        entry.ecosystem === "pypi"
+          ? readReleaseState().pythonVersion
+          : readReleaseState().npmVersion,
+    })),
   );
   assert.equal(inventory.materials.length > 0, true);
   assert.deepEqual(

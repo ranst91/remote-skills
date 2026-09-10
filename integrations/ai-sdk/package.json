@@ -32,11 +32,18 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --test tests/*.test.ts",
-    "check": "pnpm typecheck && pnpm test"
+    "test": "node --test tests/integration.test.ts",
+    "check": "pnpm typecheck && pnpm test",
+    "pack:local": "node scripts/pack-local.ts",
+    "package:check": "node --test tests/package.test.ts"
   },
   "dependencies": {
     "bash-tool": "1.3.19",
     "just-bash": "3.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ranst91/remote-skills.git",
+    "directory": "integrations/ai-sdk"
   }
 }

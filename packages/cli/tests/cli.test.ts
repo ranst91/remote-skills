@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { type TestContext, test } from "node:test";
@@ -13,6 +13,16 @@ import { PublisherVerifyError } from "../src/verify-errors.ts";
 
 type CliCommands = NonNullable<Parameters<typeof cli.dispatchCli>[1]>;
 type CommandCall = { command: string; options: object };
+const expectedMetadata: unknown = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
+assert.ok(
+  typeof expectedMetadata === "object" &&
+    expectedMetadata !== null &&
+    "version" in expectedMetadata &&
+    typeof expectedMetadata.version === "string",
+);
+const expectedVersion = expectedMetadata.version;
 
 async function runDispatcher(args: string[], commands: CliCommands = {}, projectDir = "/project") {
   let stdout = "";
@@ -243,7 +253,7 @@ for (const args of [["--version"], ["-V"]]) {
   test(`${args[0]} prints the package version`, async () => {
     assert.deepEqual(await runDispatcher(args), {
       exitCode: cli.CLI_EXIT_CODES.success,
-      stdout: "0.0.1\n",
+      stdout: `${expectedVersion}\n`,
       stderr: "",
     });
   });
@@ -335,7 +345,7 @@ test("launching the Node entrypoint executes the dispatcher", () => {
   );
 
   assert.equal(result.status, cli.CLI_EXIT_CODES.success, result.stderr);
-  assert.equal(result.stdout, "0.0.1\n");
+  assert.equal(result.stdout, `${expectedVersion}\n`);
   assert.equal(result.stderr, "");
 });
 

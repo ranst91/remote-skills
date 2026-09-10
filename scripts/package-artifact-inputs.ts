@@ -168,10 +168,12 @@ function addTree(materials: Map<string, PackageMaterial>, relativeRoot: string):
 const cli = readNpmManifest("packages/cli/package.json");
 const core = readNpmManifest("packages/core/package.json");
 const client = readNpmManifest("packages/sdk-typescript/package.json");
+const integration = readNpmManifest("integrations/ai-sdk/package.json");
 const python = pythonProjectMetadata();
 for (const [name, license] of [
   [cli.name, cli.license],
   [client.name, client.license],
+  [integration.name, integration.license],
   [python.name, python.license],
 ]) {
   if (license !== "Apache-2.0") throw new Error(`${name} must declare Apache-2.0`);
@@ -197,6 +199,10 @@ for (const file of [
   "packages/sdk-typescript/scripts/pack-local.ts",
   "packages/sdk-typescript/tsconfig.build.json",
   "packages/sdk-typescript/tsconfig.json",
+  "integrations/ai-sdk/package.json",
+  "integrations/ai-sdk/README.md",
+  "integrations/ai-sdk/scripts/pack-local.ts",
+  "integrations/ai-sdk/tsconfig.build.json",
   "pnpm-lock.yaml",
   "pyproject.toml",
   "tsconfig.base.json",
@@ -209,6 +215,7 @@ for (const directory of [
   "packages/core/src",
   "packages/sdk-python/src",
   "packages/sdk-typescript/src",
+  "integrations/ai-sdk/src",
 ]) {
   addTree(materials, directory);
 }
@@ -248,6 +255,15 @@ const inventory = {
       readme: `packages/sdk-python/${python.readme}`,
       requiresPython: python.requiresPython,
       version: python.version,
+    },
+    {
+      dependencies: npmDependencies(integration),
+      ecosystem: "npm",
+      license: "LICENSE",
+      manifest: "integrations/ai-sdk/package.json",
+      name: integration.name,
+      readme: "integrations/ai-sdk/README.md",
+      version: integration.version,
     },
   ],
   schemaVersion: 1,

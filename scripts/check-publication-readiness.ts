@@ -19,6 +19,8 @@ import { gunzipSync } from "node:zlib";
 
 import { createPnpmCommand } from "./lib/pnpm-command.ts";
 import { resolveCompatibleUvCommand } from "./lib/uv-command.ts";
+import { checkInstalledIntegration } from "./release/installed-integration.ts";
+import { readReleaseState } from "./release/release-lib.ts";
 
 const repositoryRoot = realpathSync(fileURLToPath(new URL("..", import.meta.url)));
 const pythonCommand =
@@ -29,6 +31,7 @@ const contract = {
   artifacts: [
     "@remote-skills/cli npm tarball",
     "@remote-skills/client npm tarball",
+    "@remote-skills/ai-sdk npm tarball",
     "remote-skills Python wheel",
     "remote-skills Python source distribution",
   ],
@@ -217,6 +220,7 @@ if (lstatSync(evidenceOutput, { throwIfNoEntry: false }) !== undefined) {
 }
 
 const sourceCommit = requireRepositoryState();
+const releaseState = readReleaseState(repositoryRoot);
 
 function packNpm(packageName: string, artifactDirectory: string): PackedNpm {
   const output = runPnpm([
@@ -235,7 +239,7 @@ function packNpm(packageName: string, artifactDirectory: string): PackedNpm {
   if (required.size > 0) {
     throw new Error(`${packageName} tarball is missing ${[...required].join(", ")}`);
   }
-  if (packed.name !== packageName || packed.version !== "0.0.1") {
+  if (packed.name !== packageName || packed.version !== releaseState.npmVersion) {
     throw new Error(`unexpected packed identity: ${packed.name}@${packed.version}`);
   }
   return packed;
@@ -348,7 +352,7 @@ function cleanInstallNpm(packed: PackedNpm, workRoot: string): void {
   if (label === "cli") {
     const entrypoint = join(project, "node_modules", "@remote-skills", "cli", "dist", "cli.js");
     const output = run(process.execPath, [entrypoint, "--version"], { cwd: project });
-    if (output !== "0.0.1") throw new Error(`installed CLI reported ${output}`);
+    if (output !== packed.version) throw new Error(`installed CLI reported ${output}`);
   } else {
     run(
       process.execPath,
@@ -406,7 +410,8 @@ function cleanInstallPython(
   run(python, [
     "-I",
     "-c",
-    'from importlib.metadata import version; from pathlib import Path; import remote_skills, sys, uts46; root = Path(sys.prefix).resolve(); assert version("remote-skills") == "0.0.1"; assert version("uts46") == "0.2.0"; assert Path(remote_skills.__file__).resolve().is_relative_to(root); assert Path(uts46.__file__).resolve().is_relative_to(root)',
+    'from importlib.metadata import version; from pathlib import Path; import remote_skills, sys, uts46; root = Path(sys.prefix).resolve(); assert version("remote-skills") == sys.argv[1]; assert version("uts46") == "0.2.0"; assert Path(remote_skills.__file__).resolve().is_relative_to(root); assert Path(uts46.__file__).resolve().is_relative_to(root)',
+    releaseState.pythonVersion,
   ]);
   return version(python, ["--version"]);
 }
@@ -432,6 +437,7 @@ try {
   runPnpm(["package:check"]);
   const cli = packNpm("@remote-skills/cli", artifactDirectory);
   const client = packNpm("@remote-skills/client", artifactDirectory);
+  const integration = packNpm("@remote-skills/ai-sdk", artifactDirectory);
   run(uvCommand, [
     "build",
     "--offline",
@@ -447,8 +453,8 @@ try {
   const names = readdirSync(artifactDirectory).sort();
   const wheelName = names.find((name) => name.endsWith(".whl"));
   const sourceName = names.find((name) => name.endsWith(".tar.gz"));
-  if (!wheelName || !sourceName || names.length !== 4) {
-    throw new Error(`expected four local artifacts, found: ${names.join(", ")}`);
+  if (!wheelName || !sourceName || names.length !== 5) {
+    throw new Error(`expected five local artifacts, found: ${names.join(", ")}`);
   }
   const wheel = join(artifactDirectory, wheelName);
   const source = join(artifactDirectory, sourceName);
@@ -477,6 +483,7 @@ try {
 
   cleanInstallNpm(cli, workRoot);
   cleanInstallNpm(client, workRoot);
+  checkInstalledIntegration([client.filename, integration.filename], repositoryRoot);
   const wheelPython = cleanInstallPython(wheel, dependency, "wheel", workRoot);
   const sourcePython = cleanInstallPython(source, dependency, "sdist", workRoot);
   if (wheelPython !== sourcePython || !/^Python 3\.11\./u.test(wheelPython)) {
@@ -484,6 +491,11 @@ try {
   }
 
   const artifacts = [
+    artifactEvidence(
+      integration.filename,
+      { ecosystem: "npm", name: integration.name, version: integration.version },
+      inspectNpmTarball(integration),
+    ),
     artifactEvidence(
       cli.filename,
       { ecosystem: "npm", name: cli.name, version: cli.version },
@@ -496,16 +508,27 @@ try {
     ),
     artifactEvidence(
       wheel,
-      { ecosystem: "pypi", name: "remote-skills", version: "0.0.1", format: "wheel" },
+      {
+        ecosystem: "pypi",
+        name: "remote-skills",
+        version: releaseState.pythonVersion,
+        format: "wheel",
+      },
       pythonInspectionValue[0],
     ),
     artifactEvidence(
       source,
-      { ecosystem: "pypi", name: "remote-skills", version: "0.0.1", format: "sdist" },
+      {
+        ecosystem: "pypi",
+        name: "remote-skills",
+        version: releaseState.pythonVersion,
+        format: "sdist",
+      },
       pythonInspectionValue[1],
     ),
   ];
   const environment = {
+    integrationDependencies: "preseeded runtime dependency cache; offline resolution",
     platform: process.platform,
     architecture: process.arch,
     node: process.version,

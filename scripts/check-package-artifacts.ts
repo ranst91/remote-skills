@@ -40,6 +40,7 @@ for (const packageName of [
   "@remote-skills/cli",
   "@remote-skills/client",
   "@remote-skills/python-workspace",
+  "@remote-skills/ai-sdk",
 ]) {
   console.log(`package-check ${packageName}`);
   const args = ["--filter", packageName, "run", "package:check"];

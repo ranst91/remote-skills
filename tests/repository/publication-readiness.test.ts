@@ -31,6 +31,9 @@ function makeRepositoryFixture(testContext: TestContext): string {
   const repository = mkdtempSync(join(tmpdir(), "remote-skills-readiness-state-"));
   testContext.after(() => rmSync(repository, { recursive: true, force: true }));
   mkdirSync(join(repository, "scripts", "lib"), { recursive: true });
+  mkdirSync(join(repository, "scripts", "release"), { recursive: true });
+  for (const name of ["release-lib.ts", "installed-integration.ts"])
+    copyFileSync(`scripts/release/${name}`, join(repository, "scripts/release", name));
   copyFileSync(
     "scripts/check-publication-readiness.ts",
     join(repository, "scripts/check-publication-readiness.ts"),
@@ -106,6 +109,7 @@ test("readiness command exposes a local-only evidence contract", () => {
   assert.deepEqual(Reflect.get(contract, "artifacts"), [
     "@remote-skills/cli npm tarball",
     "@remote-skills/client npm tarball",
+    "@remote-skills/ai-sdk npm tarball",
     "remote-skills Python wheel",
     "remote-skills Python source distribution",
   ]);

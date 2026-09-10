@@ -27,5 +27,10 @@
   },
   "bundledDependencies": [
     "@remote-skills/core"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ranst91/remote-skills.git",
+    "directory": "packages/cli"
+  }
 }

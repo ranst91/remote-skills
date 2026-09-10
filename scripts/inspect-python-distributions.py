@@ -76,6 +76,7 @@ def inspect_sdist(path: Path) -> dict[str, object]:
 
 
 def main() -> None:
+    expected_version = tomllib.loads((Path(__file__).resolve().parents[1] / "packages/sdk-python/pyproject.toml").read_text())["project"]["version"]
     if len(sys.argv) != 3:
         raise RuntimeError(
             "usage: inspect-python-distributions.py <wheel> <source-distribution>"
@@ -88,7 +89,7 @@ def main() -> None:
         metadata = artifact["metadata"]
         if (
             metadata.get("Name") != "remote-skills"
-            or metadata.get("Version") != "0.0.1"
+            or metadata.get("Version") != expected_version
             or metadata.get("License-Expression") != "Apache-2.0"
             or metadata.get("Requires-Python") != ">=3.11"
         ):
