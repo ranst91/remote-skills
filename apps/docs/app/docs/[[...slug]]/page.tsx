@@ -9,12 +9,43 @@ export default async function DocumentationPage(props: { params: Promise<{ slug?
   const page = source.getPage(slug);
   if (!page) notFound();
   const Content = page.data.body;
+  const introduction = !slug || slug.length === 0;
 
   return (
-    <DocsPage toc={page.data.toc}>
-      <p className="section-kicker">REMOTE SKILLS FIELD GUIDE</p>
-      <DocsTitle>{page.data.title}</DocsTitle>
-      {page.data.description ? <DocsDescription>{page.data.description}</DocsDescription> : null}
+    <DocsPage
+      toc={page.data.toc}
+      full={introduction}
+      className={introduction ? "docs-page intro-page" : "docs-page"}
+      breadcrumb={{ enabled: false }}
+      tableOfContentPopover={{ enabled: !introduction }}
+      footer={{
+        className: "page-footer",
+        ...(slug?.[0] === "quickstart"
+          ? {
+              items: {
+                previous: { name: "Introduction", url: "/docs" },
+                next: { name: "Prepare a skill", url: "/docs/publisher" },
+              },
+            }
+          : {}),
+      }}
+    >
+      <div className="page-heading">
+        <p className="page-label">{introduction ? "Documentation" : "Remote Skills"}</p>
+        <DocsTitle>
+          {introduction
+            ? page.data.description?.split(". ").map((line, index, lines) => (
+                <span key={line}>
+                  {line}
+                  {index < lines.length - 1 ? "." : ""}
+                </span>
+              ))
+            : page.data.title}
+        </DocsTitle>
+        {!introduction && page.data.description ? (
+          <DocsDescription>{page.data.description}</DocsDescription>
+        ) : null}
+      </div>
       <DocsBody>
         <Content components={getMDXComponents()} />
       </DocsBody>

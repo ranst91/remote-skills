@@ -1,31 +1,25 @@
 ---
-title: Local image or remote origin?
-description: Decide between application-owned files and independently released remote skills.
+title: When to use remote skills
+description: Decide whether your skills should travel with your application or update independently.
 ---
 
-Remote distribution is useful, but it is not automatically simpler.
+Remote Skills is useful when the skill publisher and the application need different release cycles. For example, a team can update shared writing guidance once and make it available to several agents without redeploying each application.
 
-## Copy or clone into the image when
+## Use remote skills when
 
-- a small, fixed skill set belongs to one application;
-- skills should update and roll back with the same container image;
-- every replica needs every skill;
-- no independent publisher or selective activation is required.
+- Several applications share the same skill collection.
+- A publisher owns and updates skills independently of your agent.
+- Agents select a few skills from a larger catalog.
+- Future sessions should receive updates while existing tasks stay consistent.
 
-In that case, copy or clone the Git content during the trusted container-image build. The image is the release unit, and a remote catalog/cache lifecycle would add moving parts without changing authority.
+## Use skills from the local filesystem when
 
-## Use a Remote Skills origin when
+A small, fixed set belongs to one application and should update or roll back with it. Those skills can travel with the application's files or container image. Your existing build then controls both the application and its skills, without a separate publishing step.
 
-- a publisher owns releases independently of consumers;
-- many applications share a catalog;
-- consumers activate only selected skills;
-- digest verification and immutable session pins matter;
-- a future session should observe updates without redeploying every agent.
+## Account for local storage
 
-## Container cache economics
+Remote Skills uses a bounded disk cache by default. In containers, a **persistent cache volume** can reuse verified files across restarts. The cache is disposable and can be rebuilt from the origin.
 
-The default production cache is disk-backed. Put it on a **persistent cache volume** when replicas or restarts should reuse verified immutable objects. The cache is disposable, bounded storage—not an installation—and can be rebuilt from the configured origin.
+An **ephemeral** cache repeats network, hashing, extraction, and storage work after restart. Activation downloads the whole selected skill even if your agent reads only one reference. If independent updates offer little benefit and persistent storage is awkward, image-local skills may be simpler.
 
-An **ephemeral** container cache repeats network, hashing, extraction, and storage work after each restart. Activation always downloads the complete artifact and extracts accepted archives before returning. Only instructions and explicitly read resources enter application/model context, so context-lazy access does not remove that network or disk cost.
-
-If a persistent volume is operationally awkward and independent distribution is not needed, image-local files are often the honest cheaper design.
+See [Caching and updates](/docs/cache-and-offline) for the cache lifecycle and offline options.

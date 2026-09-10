@@ -1,0 +1,213 @@
+---
+title: Quickstart
+description: Publish a greeting skill and use it in your agent.
+---
+
+Give your agent a new greeting: “Howdy partner!” You'll serve the instructions locally and load them with a client. Bring any agent you can pass instructions to.
+
+<Steps>
+<Step>
+
+## Create a skill
+
+In your project, create `skills/howdy/SKILL.md`:
+
+```md title="skills/howdy/SKILL.md"
+---
+name: howdy
+description: Greet someone with a friendly cowboy welcome.
+---
+
+When greeting someone, say "Howdy partner!" and offer to help.
+```
+
+The name identifies the skill. The description helps an agent decide when to use it. The Markdown body contains the instructions.
+
+</Step>
+<Step>
+
+## Serve it
+
+First, install the CLI in your skill project:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm install -D @remote-skills/cli
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm add -D @remote-skills/cli
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun add -D @remote-skills/cli
+```
+
+</Tab>
+</Tabs>
+
+Then, start the development server:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills dev
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm exec remote-skills dev
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun run remote-skills dev
+```
+
+</Tab>
+</Tabs>
+
+Leave this terminal running. Your skill is now available at `http://127.0.0.1:8787`. Changes to the skill are rebuilt automatically.
+
+</Step>
+<Step>
+
+## Use it in your agent
+
+Using Vercel AI SDK? Follow the [integration guide](/docs/vercel-ai-sdk) to connect its skill loader. The example below uses a small interface you can adapt to other agents.
+
+First, install the SDK in your agent's application:
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm install @remote-skills/client
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm add @remote-skills/client
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun add @remote-skills/client
+```
+
+</Tab>
+</Tabs>
+
+</Tab>
+<Tab>
+
+<Tabs items={["pip", "uv"]} groupId="python-installer" persist>
+<Tab>
+
+```bash
+python -m pip install remote-skills
+```
+
+</Tab>
+<Tab>
+
+```bash
+uv add remote-skills
+```
+
+</Tab>
+</Tabs>
+
+</Tab>
+</Tabs>
+
+Then, connect it to the running server. The example activates `howdy` and passes its instructions into your agent's model context.
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="greet.ts"
+import { createRemoteSkills } from "@remote-skills/client";
+
+const skills = createRemoteSkills({
+  origins: {
+    local: { url: "http://127.0.0.1:8787", allowLoopbackHttp: true },
+  },
+});
+
+// Adapt this small interface to your agent's API.
+type Agent = {
+  run(options: { instructions: string; input: string }): Promise<string>;
+};
+
+export async function greet(agent: Agent): Promise<string> {
+  const session = await skills.session("local");
+  try {
+    const skill = await session.activate("howdy");
+    return await agent.run({
+      instructions: skill.instructions,
+      input: "Hello!",
+    });
+  } finally {
+    await session.close();
+  }
+}
+```
+
+</Tab>
+<Tab>
+
+```python title="greet.py"
+from typing import Protocol
+from remote_skills import Origin, RemoteSkills
+
+skills = RemoteSkills(origins={
+    "local": Origin(url="http://127.0.0.1:8787", allow_loopback_http=True),
+})
+
+# Adapt this small interface to your agent's API.
+class Agent(Protocol):
+    async def run(self, *, instructions: str, input: str) -> str: ...
+
+async def greet(agent: Agent) -> str:
+    async with skills.session("local") as session:
+        skill = await session.activate("howdy")
+        return await agent.run(
+            instructions=skill.instructions,
+            input="Hello!",
+        )
+```
+
+</Tab>
+</Tabs>
+
+Call `await greet(yourAgent)` from your application (`await greet(your_agent)` in Python). `agent.run` represents your existing agent; it is the only integration point to adapt. Add the skill instructions alongside your agent's existing instructions, then run its usual model call. Remote Skills makes no model call itself.
+
+To check retrieval on its own, inspect `skill.instructions` before the agent call. It should contain the greeting instruction you wrote above. The intended agent response begins with **“Howdy partner!”**; the exact response depends on your model.
+
+`activate()` downloads and verifies the skill before returning it. The local HTTP option is only for development; use an HTTPS origin in production.
+
+</Step>
+</Steps>
+
+You now have a skill served from a URL and a place to use its instructions in your agent. [Build and host](/docs/hosting/archive-to-origin) covers sharing it online; [Consume skills](/docs/consume) continues with discovery and resource access.

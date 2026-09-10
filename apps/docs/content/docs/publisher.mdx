@@ -1,51 +1,89 @@
 ---
-title: Publish an origin
-description: Validate canonical Agent Skills and build deterministic Cloudflare discovery v0.2.0 output.
+title: Prepare a skill
+description: Turn your instructions into a skill you can share.
 ---
 
-Start with ordinary Agent Skills. Each immediate child of a configured source root is a candidate, and its directory name must match the `name` in `SKILL.md` frontmatter.
+With the [publisher CLI installed](/docs/quickstart#serve-it), a skill starts as a Markdown file in your project. This page covers its instructions, optional resources, and validation. If you followed the [Quickstart](/docs/quickstart), you can extend your existing `howdy` skill.
 
-```text
-skills/
-└── code-review/
-    ├── SKILL.md
-    └── references/
-        └── security.md
+<Steps>
+<Step>
+
+## Write the instructions
+
+Create `skills/howdy/SKILL.md`. The folder name and the `name` field must match.
+
+```md title="skills/howdy/SKILL.md"
+---
+name: howdy
+description: Greet someone with a friendly cowboy welcome.
+---
+
+When greeting someone, say "Howdy partner!" and offer to help.
 ```
 
-```md title="skills/code-review/SKILL.md"
----
-name: code-review
-description: Review changes for correctness and security.
-metadata:
-  version: "1.4.7"
----
+The description helps an agent decide when to use the skill; the body tells it how to carry out the task. Remote Skills uses the [Agent Skills format](https://agentskills.io/specification), so existing skills can use the same structure.
 
-Read the change, then consult `references/security.md` when the change crosses a trust boundary.
+</Step>
+<Step>
+
+## Add resources (optional)
+
+Supporting material lives inside the skill folder. For example, create `skills/howdy/references/welcome.md`:
+
+```md title="skills/howdy/references/welcome.md"
+# Welcome note
+
+Keep the welcome warm and brief. Ask what the person would like help with.
 ```
 
-Version metadata is optional. When present it must be strict SemVer; the builder never invents a version from a digest or timestamp.
+Then add a sentence to the instructions linking to `[the welcome note](references/welcome.md)`. The client can read this file when your agent needs it; it does not have to put every resource into the model's context.
 
-## Validate, build, verify
+</Step>
+<Step>
 
-Use a locally installed CLI; these commands do not download a command on demand.
+## Validate your skill
+
+Check your skill from the project directory:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm exec -- remote-skills validate
+```
+
+</Tab>
+<Tab>
 
 ```bash
 pnpm exec remote-skills validate
-pnpm exec remote-skills build
-pnpm exec remote-skills verify https://skills.example.com
 ```
 
-`validate` reports structural, safety, and broken-local-reference problems as errors. Writing guidance remains a warning unless `--strict` is enabled. Every included symlink and hard link is rejected. Default exclusions cover repository metadata, dependencies, build outputs, common secret files, and `.env*`; `.skillignore` may add exclusions but cannot re-include safety exclusions.
+</Tab>
+<Tab>
 
-## Artifact choice
+```bash
+bun run remote-skills validate
+```
 
-A skill containing only `SKILL.md` becomes a content-addressed `skill-md`. A skill with resources becomes a root-level tar-gzip archive by default. `--archive` forces an archive and `--format zip` selects deterministic ZIP. Source executable bits do not grant authority; scripts remain data.
+</Tab>
+</Tabs>
 
-Output paths, member order, timestamps, ownership, permissions, compression parameters, JSON key order, and trailing newline are normalized for byte-identical builds across supported operating systems.
+Validation checks the skill metadata, local references, file safety, and size limits. Writing suggestions are warnings; `--strict` makes them errors.
 
-## Publication generation
+This checks your source without producing output. When you're ready to publish, [Build and host](/docs/hosting/archive-to-origin) packages it in one command, with validation included.
 
-The builder makes content-addressed artifacts durable before atomically replacing `index.json`. Cooperative builds for one output directory serialize. It preserves the immediately prior generation while readers may still hold it and finally verifies the output chain plus every byte referenced by the new index.
+</Step>
+</Steps>
 
-For version history, use verified prior output and explicit pruning; see [version policy](/docs/versions). Then deploy the whole output exactly as described in [archive to origin](/docs/hosting/archive-to-origin).
+## What gets included
+
+Each folder directly inside `skills/` is a candidate. [Publisher configuration](/docs/configuration) can change that source directory or the output settings.
+
+Repository metadata, dependencies, build output, `.env*`, and common secret files are excluded by default. `.skillignore` can exclude more files, but cannot restore safety exclusions. Symlinks and hard links are rejected.
+
+Review what you share: defaults cannot recognize every secret.
+
+The build normalizes paths, ordering, timestamps, permissions, and compression so the same input produces the same bytes. Executable bits do not grant permission; bundled scripts are data and Remote Skills never runs them.
+
+When you need named releases, add optional `metadata.version` and follow [Versions and history](/docs/versions).
