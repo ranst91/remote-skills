@@ -23,9 +23,9 @@ export function buildLlmsIndex() {
   const lines = [
     "# Remote Skills",
     "",
-    "> Vendor-neutral tooling for publishing standard Agent Skills as static discovery origins and consuming digest-verified, immutable snapshots from TypeScript or Python.",
+    "> Serve skills. Don't install them.",
     "",
-    "Remote Skills uses Agent Skills and Cloudflare Agent Skills Discovery v0.2.0. The linked pages are the canonical documentation in plain Markdown.",
+    "Remote Skills is an open-source toolkit for publishing and consuming Agent Skills directly from remote origins. It uses Agent Skills and Cloudflare Agent Skills Discovery v0.2.0. Start with the Quickstart; the linked pages are the canonical documentation in Markdown.",
   ];
 
   for (const section of llmsPages) {

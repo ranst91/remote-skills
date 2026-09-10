@@ -1,0 +1,119 @@
+---
+title: Vercel AI SDK
+description: Let your AI SDK agent discover and load remote skills.
+---
+
+`@remote-skills/ai-sdk` connects your published skills to Vercel's AI SDK. Your agent sees their names and descriptions, then loads instructions and resources when they fit the task.
+
+<Steps>
+<Step>
+
+## Install the integration
+
+In your agent's application:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm install @remote-skills/ai-sdk @remote-skills/client ai
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm add @remote-skills/ai-sdk @remote-skills/client ai
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun add @remote-skills/ai-sdk @remote-skills/client ai
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+<Step>
+
+## Connect your agent
+
+With your skills [published](/docs/hosting/archive-to-origin), pass their client connection to `remoteSkills()` and spread its `agentOptions` into the agent:
+
+```ts title="agent.ts"
+import { ToolLoopAgent } from "ai";
+import { remoteSkills } from "@remote-skills/ai-sdk";
+import { createRemoteSkills } from "@remote-skills/client";
+
+const client = createRemoteSkills({
+  origins: { team: { url: "https://skills.example.com" } },
+});
+
+const skills = await remoteSkills({ client, origin: "team" });
+try {
+  const agent = new ToolLoopAgent({
+    model: "openai/gpt-5.2",
+    ...skills.agentOptions,
+  });
+
+  const result = await agent.generate({ prompt: "Hello!" });
+  console.log(result.text);
+} finally {
+  await skills.close();
+}
+```
+
+This example uses [AI Gateway](https://ai-sdk.dev/providers/ai-sdk-providers/ai-gateway) with `AI_GATEWAY_API_KEY` in the application's environment. You can use your existing AI SDK model/provider instead; model credentials are separate from credentials for a private skill host.
+
+The agent now has a `skill` tool to load instructions and a `readFile` tool for supporting text files. If you published the `howdy` skill, a greeting gives it a reason to load that skill. The model chooses whether to use it; a direct answer is valid too.
+
+</Step>
+</Steps>
+
+## Keep your existing instructions and tools
+
+`agentOptions` supplies skill-selection instructions and both tools. When combining it with your own agent settings, append your instructions to `skills.agentOptions.instructions` and merge tools with `{ ...skills.tools, ...yourTools }`. The names `skill` and `readFile` belong to the integration and should not be replaced.
+
+## Streaming and conversations
+
+The same integration works with `generateText` and `streamText`. With streaming, its lifetime includes reading the stream—not just calling `streamText()`:
+
+```ts title="stream-reply.ts"
+import { stepCountIs, streamText } from "ai";
+import { remoteSkills } from "@remote-skills/ai-sdk";
+import type { RemoteSkillsClient } from "@remote-skills/client";
+
+export async function* streamReply(client: RemoteSkillsClient, prompt: string) {
+  const skills = await remoteSkills({ client, origin: "team" });
+  try {
+    const result = streamText({
+      model: "openai/gpt-5.2",
+      ...skills.agentOptions,
+      stopWhen: stepCountIs(6),
+      prompt,
+    });
+    for await (const text of result.textStream) yield text;
+  } finally {
+    await skills.close();
+  }
+}
+```
+
+`stepCountIs(6)` allows the model to continue after loading a skill or reading a resource, up to six steps. This function uses the `team` connection from the first example and closes its session when iteration finishes.
+
+For a conversation that needs the same skill versions across turns, keep one integration open for the whole conversation and close it at the end. A new integration can see published updates; an existing one keeps its activated skills pinned. [Caching and updates](/docs/cache-and-offline) explains that lifetime.
+
+## Authentication, versions, and multiple publishers
+
+The integration uses your supplied client's [authentication and scope settings](/docs/authentication-and-scopes), cache, and request limits. There is no second set of host credentials to configure.
+
+`remoteSkills({ client, origin: "team", versions: { howdy: "~1.0.0" } })` restricts which release the agent can load. For multiple publishers, use `origins: ["team", "partner"]`; skills are then named `team/howdy` and `partner/howdy`, and version keys use those same names. The [API reference](/docs/api-reference#vercel-ai-sdk-integration) lists all options, including reusing an existing session.
+
+## Runtime and skill files
+
+The integration uses Vercel's existing [skill loader and file reader](https://github.com/vercel-labs/bash-tool), backed by Remote Skills. It runs server-side in Node.js and needs a writable temporary directory, so it does not run on Edge. Temporary skill files are removed when the integration closes; the SDK cache has its own lifetime.
+
+Only catalog metadata is loaded initially. Selecting a skill downloads and verifies its complete artifact, while later resource reads use that verified copy. The agent can read text files but has no command-execution or file-write tool from this integration. Skills that require running scripts need capabilities supplied separately by your application; loading a skill does not grant those permissions. Binary resources remain available through the [client SDK](/docs/consume#read-resources-as-needed).

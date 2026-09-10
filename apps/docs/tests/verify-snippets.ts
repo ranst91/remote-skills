@@ -119,6 +119,29 @@ const basicChatContract: readonly BashContractEntry[] = [
     reason: "executed-by-tests/examples/vercel-ai-sdk.test.ts",
   },
 ];
+
+function packageManagerContracts(
+  path: string,
+  startOrdinal: number,
+  entries: readonly BashContractEntry[],
+  managers: readonly ("npm" | "pnpm" | "bun")[] = ["npm", "pnpm", "bun"],
+): [string, readonly BashContractEntry[]][] {
+  const commands = {
+    npm: { run: "npm exec -- ", install: "npm install " },
+    pnpm: { run: "pnpm exec ", install: "pnpm add " },
+    bun: { run: "bun run ", install: "bun add " },
+  };
+  return managers.map((manager, offset) => [
+    `${path}#${startOrdinal + offset}`,
+    entries.map((entry) => ({
+      ...entry,
+      command: entry.command
+        .replace("pnpm exec ", commands[manager].run)
+        .replace("pnpm add ", commands[manager].install),
+    })),
+  ]);
+}
+
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
   ["examples/vercel-ai-sdk/README.md#0", basicChatContract],
   [
@@ -154,9 +177,9 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
     "README.md#4",
     [
       {
-        command: "pnpm add ./artifacts/remote-skills-client-0.0.1.tgz",
+        command: "pnpm add @remote-skills/client",
         mode: "static",
-        reason: "local-install",
+        reason: "registry-install",
       },
     ],
   ],
@@ -164,9 +187,9 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
     "README.md#5",
     [
       {
-        command: "uv add ./artifacts/remote_skills-0.0.1-py3-none-any.whl",
+        command: "uv add remote-skills",
         mode: "static",
-        reason: "local-install",
+        reason: "registry-install",
       },
     ],
   ],
@@ -185,101 +208,117 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
       },
     ],
   ],
+  ...packageManagerContracts("apps/docs/content/docs/cli.mdx", 0, [
+    { command: "pnpm exec remote-skills validate", mode: "execute", action: "validate" },
+    {
+      command: "pnpm exec remote-skills validate --strict",
+      mode: "execute",
+      action: "validate-strict",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/cli.mdx", 3, [
+    {
+      command: "pnpm exec remote-skills build --format tar.gz --out-dir dist",
+      mode: "execute",
+      action: "build-configured",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/cli.mdx", 6, [
+    {
+      command: "pnpm exec remote-skills dev",
+      mode: "static",
+      reason: "long-running-server",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/cli.mdx", 9, [
+    {
+      command:
+        "pnpm exec remote-skills verify https://skills.example.com --timeout-ms 30000 --retries 2",
+      mode: "static",
+      reason: "external-origin",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/hosting/archive-to-origin.mdx", 0, [
+    { command: "pnpm exec remote-skills build", mode: "execute", action: "build" },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/hosting/archive-to-origin.mdx", 3, [
+    {
+      command: "pnpm exec remote-skills verify https://skills.example.com",
+      mode: "static",
+      reason: "external-origin",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/hosting/archive-to-origin.mdx", 6, [
+    {
+      command:
+        "SKILLS_AUTH='Bearer …' pnpm exec remote-skills verify https://skills.example.com --header-env Authorization=SKILLS_AUTH --scope engineering",
+      mode: "static",
+      reason: "external-origin",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/publisher.mdx", 0, [
+    { command: "pnpm exec remote-skills validate", mode: "execute", action: "validate" },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/quickstart.mdx", 0, [
+    { command: "pnpm add -D @remote-skills/cli", mode: "static", reason: "registry-install" },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/quickstart.mdx", 3, [
+    { command: "pnpm exec remote-skills dev", mode: "static", reason: "long-running-server" },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/quickstart.mdx", 6, [
+    { command: "pnpm add @remote-skills/client", mode: "static", reason: "registry-install" },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/vercel-ai-sdk.mdx", 0, [
+    {
+      command: "pnpm add @remote-skills/ai-sdk @remote-skills/client ai",
+      mode: "static",
+      reason: "registry-install",
+    },
+  ]),
   [
-    "apps/docs/content/docs/cli.mdx#0",
-    [
-      { command: "pnpm exec remote-skills validate", mode: "execute", action: "validate" },
-      {
-        command: "pnpm exec remote-skills validate --strict",
-        mode: "execute",
-        action: "validate-strict",
-      },
-    ],
-  ],
-  [
-    "apps/docs/content/docs/cli.mdx#1",
+    "apps/docs/content/docs/quickstart.mdx#9",
     [
       {
-        command: "pnpm exec remote-skills build --format tar.gz --out-dir dist",
-        mode: "execute",
-        action: "build-configured",
-      },
-    ],
-  ],
-  [
-    "apps/docs/content/docs/cli.mdx#2",
-    [
-      {
-        command: "pnpm exec remote-skills dev",
+        command: "python -m pip install remote-skills",
         mode: "static",
-        reason: "long-running-server",
+        reason: "registry-install",
       },
     ],
   ],
   [
-    "apps/docs/content/docs/cli.mdx#3",
+    "apps/docs/content/docs/quickstart.mdx#10",
     [
       {
-        command:
-          "pnpm exec remote-skills verify https://skills.example.com --timeout-ms 30000 --retries 2",
+        command: "uv add remote-skills",
         mode: "static",
-        reason: "external-origin",
+        reason: "registry-install",
       },
     ],
   ],
-  [
-    "apps/docs/content/docs/hosting/archive-to-origin.mdx#0",
-    [
-      {
-        command: "pnpm exec remote-skills verify https://skills.example.com",
-        mode: "static",
-        reason: "external-origin",
-      },
-    ],
-  ],
-  [
-    "apps/docs/content/docs/hosting/archive-to-origin.mdx#1",
-    [
-      {
-        command:
-          "SKILLS_AUTH='Bearer …' pnpm exec remote-skills verify https://skills.example.com --header-env Authorization=SKILLS_AUTH --scope engineering",
-        mode: "static",
-        reason: "external-origin",
-      },
-    ],
-  ],
-  [
-    "apps/docs/content/docs/publisher.mdx#0",
-    [
-      { command: "pnpm exec remote-skills validate", mode: "execute", action: "validate" },
-      { command: "pnpm exec remote-skills build", mode: "execute", action: "build" },
-      {
-        command: "pnpm exec remote-skills verify https://skills.example.com",
-        mode: "static",
-        reason: "external-origin",
-      },
-    ],
-  ],
-  [
-    "apps/docs/content/docs/python.mdx#0",
-    [
-      {
-        command: "uv add ./artifacts/remote_skills-0.0.1-py3-none-any.whl",
-        mode: "static",
-        reason: "local-install",
-      },
-    ],
-  ],
-  [
-    "apps/docs/content/docs/typescript.mdx#0",
-    [
-      {
-        command: "pnpm add ./artifacts/remote-skills-client-0.0.1.tgz",
-        mode: "static",
-        reason: "local-install",
-      },
-    ],
-  ],
+  ...packageManagerContracts("apps/docs/content/docs/hosting/git-pages.mdx", 0, [
+    { command: "pnpm exec remote-skills build", mode: "execute", action: "build" },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/hosting/git-pages.mdx", 3, [
+    {
+      command: "pnpm exec remote-skills verify https://skills.example.com",
+      mode: "static",
+      reason: "external-origin",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/versions.mdx", 0, [
+    {
+      command: "pnpm exec remote-skills build --out-dir release-1.0.0",
+      mode: "static",
+      reason: "requires-versioned-source",
+    },
+  ]),
+  ...packageManagerContracts("apps/docs/content/docs/versions.mdx", 3, [
+    {
+      command: "pnpm exec remote-skills build --out-dir release-1.0.1 --prior-output release-1.0.0",
+      mode: "static",
+      reason: "requires-source-version-edit-and-prior-output",
+    },
+  ]),
   [
     "examples/publisher/README.md#0",
     [
@@ -472,9 +511,7 @@ async function executeBashContracts(snippets: readonly Snippet[]) {
   };
 }
 
-async function compileTypeScript(snippets: readonly Snippet[]) {
-  checkedSpawn("pnpm", ["--filter", "@remote-skills/client", "build"]);
-  checkedSpawn("pnpm", ["--filter", "@remote-skills/ai-sdk", "build"]);
+async function compileTypeScriptProject(snippets: readonly Snippet[], integration: boolean) {
   const project = await mkdtemp(resolve(tmpdir(), "remote-skills-doc-typescript-"));
   try {
     const packageScope = resolve(project, "node_modules/@remote-skills");
@@ -484,16 +521,18 @@ async function compileTypeScript(snippets: readonly Snippet[]) {
       resolve(packageScope, "client"),
       process.platform === "win32" ? "junction" : "dir",
     );
-    await symlink(
-      resolve(repositoryRoot, "integrations/ai-sdk"),
-      resolve(packageScope, "ai-sdk"),
-      process.platform === "win32" ? "junction" : "dir",
-    );
-    await symlink(
-      resolve(repositoryRoot, "integrations/ai-sdk/node_modules/ai"),
-      resolve(project, "node_modules/ai"),
-      process.platform === "win32" ? "junction" : "dir",
-    );
+    if (integration) {
+      await symlink(
+        resolve(repositoryRoot, "integrations/ai-sdk"),
+        resolve(packageScope, "ai-sdk"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      await symlink(
+        resolve(repositoryRoot, "integrations/ai-sdk/node_modules/ai"),
+        resolve(project, "node_modules/ai"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+    }
     await writeFile(resolve(project, "package.json"), '{"type":"module"}\n');
     await writeFile(
       resolve(project, "tsconfig.json"),
@@ -504,9 +543,9 @@ async function compileTypeScript(snippets: readonly Snippet[]) {
             moduleResolution: "NodeNext",
             noEmit: true,
             strict: true,
-            // Match the integration: AI SDK 7's published declarations have upstream errors.
-            // Snippet bodies and their public API usage still receive strict checking.
-            skipLibCheck: true,
+            // Match the integration's upstream AI SDK declaration workaround only for
+            // integration snippets. Their bodies still receive strict API checking.
+            skipLibCheck: integration,
             target: "ES2022",
             typeRoots: [resolve(repositoryRoot, "node_modules/@types")],
             types: ["node"],
@@ -543,6 +582,30 @@ async function compileTypeScript(snippets: readonly Snippet[]) {
     );
   } finally {
     await rm(project, { force: true, recursive: true });
+  }
+}
+
+export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
+  checkedSpawn("pnpm", ["--filter", "@remote-skills/client", "build"]);
+  const ordinary: Snippet[] = [];
+  const integration: Snippet[] = [];
+  for (const snippet of snippets) {
+    if (/\bfrom\s+["'](?:@remote-skills\/ai-sdk|ai)["']/u.test(snippet.code)) {
+      integration.push(snippet);
+    } else ordinary.push(snippet);
+  }
+  if (ordinary.length > 0) await compileTypeScriptProject(ordinary, false);
+  if (integration.length > 0) {
+    // pnpm filters alone can succeed without a matching workspace. Require the real
+    // package manifest first so an unmerged prerequisite cannot silently skip coverage.
+    const manifest: unknown = JSON.parse(
+      await readFile(resolve(repositoryRoot, "integrations/ai-sdk/package.json"), "utf8"),
+    );
+    if (!isJsonObject(manifest) || manifest.name !== "@remote-skills/ai-sdk") {
+      throw new Error("documentation requires the real @remote-skills/ai-sdk workspace");
+    }
+    checkedSpawn("pnpm", ["--filter", "@remote-skills/ai-sdk", "build"]);
+    await compileTypeScriptProject(integration, true);
   }
 }
 
@@ -589,7 +652,9 @@ async function validatePublisherInputs(snippets: readonly Snippet[]) {
     for (const skill of skillSnippets) {
       const project = await mkdtemp(resolve(tmpdir(), "remote-skills-doc-config-"));
       try {
-        const skillDirectory = resolve(project, "skills/code-review");
+        const skillName = /^name: ([a-z0-9-]+)$/mu.exec(skill.code)?.[1];
+        if (!skillName) throw new Error(`documented skill has no valid name: ${skill.path}`);
+        const skillDirectory = resolve(project, "skills", skillName);
         await mkdir(skillDirectory, { recursive: true });
         await writeFile(resolve(project, "remote-skills.json"), configuration.code);
         await writeFile(resolve(skillDirectory, "SKILL.md"), skill.code);
@@ -615,7 +680,7 @@ export async function verifyDocumentationSnippets() {
   const bash = await executeBashContracts(
     snippets.filter((snippet) => snippet.language === "bash"),
   );
-  await compileTypeScript(snippets.filter((snippet) => snippet.language === "ts"));
+  await verifyTypeScriptSnippets(snippets.filter((snippet) => snippet.language === "ts"));
   await validatePublisherInputs(snippets);
 
   const source = (await Promise.all(files.map((path) => readFile(path, "utf8")))).join("\n");
