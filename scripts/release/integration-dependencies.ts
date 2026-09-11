@@ -11,7 +11,11 @@ export function writeLockedIntegrationProject(
   const manifest = manifestObject(
     readFileSync(join(root, integrationPath, "package.json"), "utf8"),
   );
-  const runtime = manifestObject(JSON.stringify(Reflect.get(manifest, "dependencies") ?? {}));
+  const runtime = Object.fromEntries(
+    Object.entries(
+      manifestObject(JSON.stringify(Reflect.get(manifest, "dependencies") ?? {})),
+    ).filter(([, value]) => typeof value === "string" && !value.startsWith("workspace:")),
+  );
   const development = manifestObject(
     JSON.stringify(Reflect.get(manifest, "devDependencies") ?? {}),
   );

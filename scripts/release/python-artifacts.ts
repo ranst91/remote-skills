@@ -71,7 +71,7 @@ export function preparePythonArtifactCache(
   root: string,
   directory: string,
   environment: NodeJS.ProcessEnv,
-  packages: readonly { name: string; manifest: string }[] = pythonPackages,
+  packages: readonly { name: string; manifest: string; example?: string }[] = pythonPackages,
 ) {
   const uv = resolveCompatibleUvCommand({ environment });
   const python = environment.REMOTE_SKILLS_PYTHON;
@@ -137,7 +137,11 @@ print(json.dumps({"versions": versions, "build": sorted(build)}))`,
   const exportArguments = [
     "export",
     "--locked",
-    ...packages.flatMap((entry) => ["--package", entry.name]),
+    ...packages.flatMap((entry) => [
+      "--package",
+      entry.name,
+      ...(entry.example ? ["--package", entry.example] : []),
+    ]),
     "--no-emit-workspace",
     "--no-header",
     "--no-annotate",

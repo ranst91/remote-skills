@@ -21,7 +21,7 @@ const root = resolve(sourceRoot ?? process.cwd());
 const output = resolve(destination ?? join(tmpdir(), `remote-skills-verified-${Date.now()}`));
 if (existsSync(output)) throw new Error("Verified artifact output must not already exist");
 const work = mkdtempSync(join(tmpdir(), "remote-skills-artifact-gate-"));
-const environment = {
+const environment: NodeJS.ProcessEnv = {
   ...process.env,
   REMOTE_SKILLS_SOURCE_ROOT: root,
   UV_CACHE_DIR: join(work, "uv-cache"),
@@ -87,6 +87,10 @@ try {
   const candidateEnvironment: NodeJS.ProcessEnv = {
     ...environment,
     REMOTE_SKILLS_E2E_PACKAGES: candidate,
+    UV_OFFLINE: "true",
+    UV_PYTHON: environment.REMOTE_SKILLS_PYTHON,
+    UV_PYTHON_DOWNLOADS: "never",
+    npm_config_offline: "true",
   };
   // Keep Linux Playwright's preinstalled browser visible outside the private package caches.
   if (process.env.XDG_CACHE_HOME === undefined) delete candidateEnvironment.XDG_CACHE_HOME;

@@ -11,12 +11,14 @@ export const releasePackages = [
     id: "ai_sdk",
     name: "@remote-skills/ai-sdk",
     manifest: "integrations/ai-sdk/package.json",
+    example: "examples/vercel-ai-sdk",
     scope: "integration-ai-sdk",
   },
   {
     id: "langchain",
     name: "@remote-skills/langchain",
     manifest: "integrations/langchain/package.json",
+    example: "examples/langchain",
     scope: "integration-langchain",
   },
 ] as const;
@@ -32,6 +34,7 @@ export const pythonPackages = [
     id: "langchain_python",
     name: "remote-skills-langchain",
     manifest: "integrations/langchain-python/pyproject.toml",
+    example: "remote-skills-langchain-example",
     scope: "integration-langchain",
     importName: "remote_skills_langchain",
   },
