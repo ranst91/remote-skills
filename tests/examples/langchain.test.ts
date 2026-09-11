@@ -1,5 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { ReadStream } from "node:fs";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { createConnection } from "node:net";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { chromium, type Page } from "playwright";
 import {
   type AgentPath,
@@ -63,6 +69,53 @@ async function visibleToolPath(page: Page, round: number, path: AgentPath) {
   assert.equal(typeof input.input, "string");
   const parsed: unknown = JSON.parse(String(input.input));
   return object(parsed).file_path;
+}
+
+for (const contents of ["Exact complete archive bytes", ""]) {
+  test(`origin finishes the ${contents ? "complete" : "empty"} archive before a content-length client closes`, async (t) => {
+    const root = await mkdtemp(resolve(tmpdir(), "langchain-origin-eof-"));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const bytes = Buffer.from(contents);
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    const pathname = `/.well-known/agent-skills/artifacts/sha256-${digest}.tar.gz`;
+    await mkdir(resolve(root, ".well-known/agent-skills/artifacts"), { recursive: true });
+    await writeFile(resolve(root, `.${pathname}`), bytes);
+    const originalRead = ReadStream.prototype._read;
+    t.mock.method(ReadStream.prototype, "_read", function (this: ReadStream, size: number) {
+      if ("end" in this && this.end === Infinity && this.bytesRead === bytes.length) {
+        setTimeout(() => {
+          if (!this.destroyed) originalRead.call(this, size);
+        }, 150).unref();
+      } else originalRead.call(this, size);
+    });
+    const origin = await startOrigin(root);
+    t.after(() => origin.close());
+    const target = new URL(origin.url);
+    const body = await new Promise<Buffer>((done, reject) => {
+      const socket = createConnection({ host: target.hostname, port: Number(target.port) });
+      let received = Buffer.alloc(0);
+      socket.setTimeout(5000, () => socket.destroy(new Error("Archive client timed out")));
+      socket.once("error", reject);
+      socket.once("connect", () =>
+        socket.write(`GET ${pathname} HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n`),
+      );
+      socket.on("data", (chunk: Buffer) => {
+        received = Buffer.concat([received, chunk]);
+        const boundary = received.indexOf("\r\n\r\n");
+        if (boundary < 0) return;
+        const content = received.subarray(boundary + 4);
+        if (content.length === bytes.length) {
+          socket.once("close", () => done(content));
+          socket.destroy();
+        }
+      });
+    });
+    assert.deepEqual(body, bytes);
+    assert.deepEqual(origin.requests, [
+      { pathname, completed: true, status: 200, length: bytes.length },
+    ]);
+    origin.assertHealthy();
+  });
 }
 
 test("LangChain browser: all six real Next/native runtimes consume one CLI-published archive", {

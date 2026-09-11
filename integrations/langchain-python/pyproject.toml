@@ -6,7 +6,7 @@ requires-python = ">=3.11,<4.0"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 readme = "README.md"
-dependencies = ["remote-skills==0.0.1a0", "deepagents==0.7.13", "langchain==1.4.0", "langgraph==1.2.11"]
+dependencies = ["remote-skills==0.0.1", "deepagents==0.7.13", "langchain==1.4.0", "langgraph==1.2.11"]
 
 [build-system]
 requires = ["uv_build>=0.11.33,<0.12.0"]

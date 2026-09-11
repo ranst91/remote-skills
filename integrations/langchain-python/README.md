@@ -13,7 +13,7 @@ context only when it requests them.
 
 Install the locally built `remote-skills` and `remote-skills-langchain` wheels
 with your application's locked dependencies. This integration's local alpha
-distribution is `0.0.1a0` and requires `remote-skills==0.0.1a0`. These package
+distribution is `0.0.1a0` and requires `remote-skills==0.0.1`. These package
 checks do not publish it or enroll it in the core release workflow.
 The application supplies its model
 integration; for example, the runnable [six-path demo](../../examples/langchain)

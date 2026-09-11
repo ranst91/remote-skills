@@ -26,6 +26,20 @@ export function inspectionPython(constraints: string) {
   );
 }
 
+export function freezePythonRequirements(
+  python: string,
+  environment: NodeJS.ProcessEnv,
+  cwd: string,
+) {
+  return run(
+    resolveCompatibleUvCommand({ environment }),
+    // stdout becomes a requirements file; FORCE_COLOR=0 still enables uv color.
+    ["pip", "freeze", "--python", python, "--no-config", "--color", "never"],
+    environment,
+    cwd,
+  );
+}
+
 export function preparePythonInspector(
   root: string,
   directory: string,
@@ -258,12 +272,7 @@ for line in sys.argv[1].splitlines():
   }
   // Record the actual isolated build dependency versions too. A later sdist
   // installation cannot resolve a different cached backend or build dependency.
-  const preparedPins = run(
-    uv,
-    ["pip", "freeze", "--python", preparedPython, "--no-config"],
-    environment,
-    root,
-  );
+  const preparedPins = freezePythonRequirements(preparedPython, environment, root);
   const canonicalName = (name: string) => name.toLowerCase().replaceAll(/[-_.]+/gu, "-");
   const runtimeNames = new Set(
     lockedRuntime.split("\n").map((line) => canonicalName(line.split("==")[0] ?? "")),

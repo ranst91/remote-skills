@@ -355,3 +355,32 @@ test("legacy intent never masks a missing newly enrolled tracked manifest", (t) 
   rmSync(join(root, "integrations/langchain/package.json"));
   assert.throws(() => readReleaseState(root), /ENOENT/u);
 });
+
+test("LangChain prereleases retain a reviewed stable Python SDK dependency", (t) => {
+  const { root, git } = fixture(t, "0.0.1", "^0.0.1");
+  const npm = join(root, "integrations/langchain/package.json");
+  writeFileSync(
+    npm,
+    readFileSync(npm, "utf8").replace('"version":"0.0.1"', '"version":"0.0.1-alpha.0"'),
+  );
+  const python = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(
+    python,
+    readFileSync(python, "utf8").replace('version = "0.0.1"', 'version = "0.0.1a0"') +
+      'dependencies = ["remote-skills==0.0.1"]\n',
+  );
+  git("add", ".");
+  git("commit", "--quiet", "-m", "test: reviewed stable SDK compatibility");
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", git("rev-parse", "HEAD"));
+  const state = readReleaseState(root);
+  assert.equal(state.pythonVersion, "0.0.1");
+  assert.equal(
+    state.pythonManifests.find((entry) => entry.name === "remote-skills-langchain")?.version,
+    "0.0.1a1",
+  );
+  assert.match(readFileSync(python, "utf8"), /remote-skills==0\.0\.1"/u);
+  assert.deepEqual(
+    state.selectedPackages.map((entry) => entry.name),
+    ["@remote-skills/langchain", "remote-skills-langchain"],
+  );
+});
