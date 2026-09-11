@@ -6,6 +6,10 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 import { resolveCompatibleUvCommand } from "../../../scripts/lib/uv-command.ts";
+import {
+  assertLockedIntegrationResolution,
+  writeLockedIntegrationProject,
+} from "../../../scripts/release/integration-dependencies.ts";
 import { pythonPackages, releasePackages } from "../../../scripts/release/release-scopes.ts";
 
 export interface PackageSelection {
@@ -111,11 +115,29 @@ export async function installCommand(command: string, args: string[], cwd: strin
   return stdout;
 }
 
-export async function installNpm(root: string, source: PackageSource, exampleManifest?: string) {
+export async function installNpm(
+  root: string,
+  source: PackageSource,
+  exampleManifest?: string,
+  importerPath?: string,
+) {
   const parsedManifest: unknown = JSON.parse(exampleManifest ?? '{"type":"module"}');
   const manifest = parsedManifest;
   assert.ok(object(manifest));
-  const dependencies = object(manifest.dependencies) ? { ...manifest.dependencies } : {};
+  const toolingRoot = resolve(import.meta.dirname, "../../..");
+  await mkdir(root, { recursive: true });
+  assert.ok(
+    !exampleManifest || importerPath,
+    "Example candidates require an explicit locked importer.",
+  );
+  let dependencies = object(manifest.dependencies) ? { ...manifest.dependencies } : {};
+  if (importerPath) {
+    writeLockedIntegrationProject(toolingRoot, root, importerPath, true);
+    const projected: unknown = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+    assert.ok(object(projected) && object(projected.dependencies));
+    dependencies = { ...projected.dependencies };
+    delete manifest.devDependencies;
+  }
   for (const entry of source.npm)
     dependencies[entry.name] = isAbsolute(entry.spec) ? entry.spec : entry.version;
   if (object(manifest.devDependencies)) {
@@ -163,6 +185,12 @@ export async function installNpm(root: string, source: PackageSource, exampleMan
     "--config.link-workspace-packages=false",
   ]);
   await installCommand(launch.command, launch.args, root);
+  if (importerPath)
+    assertLockedIntegrationResolution(
+      toolingRoot,
+      root,
+      source.npm.map((entry) => entry.spec),
+    );
   await assertInstalledNpm(root, source);
 }
 

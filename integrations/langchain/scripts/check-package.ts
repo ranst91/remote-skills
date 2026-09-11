@@ -156,6 +156,7 @@ try {
           "@langchain/langgraph": "1.4.14",
           langsmith: "0.9.0",
           openai: "7.13.0",
+          undici: "7.29.1",
           zod: "4.3.6",
           typescript: "7.0.2",
           "@types/node": "24.13.3",

@@ -6,10 +6,6 @@ import { createServer, ServerResponse } from "node:http";
 import { tmpdir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
 import { resolveCompatibleUvCommand } from "../../../scripts/lib/uv-command.ts";
-import {
-  assertLockedIntegrationResolution,
-  writeLockedIntegrationProject,
-} from "../../../scripts/release/integration-dependencies.ts";
 import { DUMMY_KEY, MODEL, object, type SkillFixture } from "./langchain-model.ts";
 import {
   installCommand,
@@ -81,13 +77,7 @@ export function langchainCandidates(source: PackageSource): PackageSource {
 
 async function installCandidates(root: string, app: string, source: PackageSource) {
   const manifest = await readFile(resolve(app, "package.json"), "utf8");
-  writeLockedIntegrationProject(repository, app, "examples/langchain");
-  await installNpm(app, source, manifest);
-  assertLockedIntegrationResolution(
-    repository,
-    app,
-    source.npm.map((entry) => entry.spec),
-  );
+  await installNpm(app, source, manifest, "examples/langchain");
   const requirements = await installCommand(
     resolveCompatibleUvCommand(),
     [

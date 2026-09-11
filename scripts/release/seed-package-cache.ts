@@ -1,6 +1,6 @@
 import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawnPnpmSync } from "../lib/pnpm-command.ts";
 import { writeLockedIntegrationProject } from "./integration-dependencies.ts";
 import { readReleaseState } from "./release-lib.ts";
@@ -11,13 +11,13 @@ try {
   for (const integration of readReleaseState().manifests.filter(
     (entry) => entry.scope !== "core",
   )) {
-    const paths = [dirname(integration.manifestPath)];
+    const paths = [{ root: process.cwd(), path: dirname(integration.manifestPath) }];
     if ("example" in integration && typeof integration.example === "string")
-      paths.push(integration.example);
-    for (const [index, path] of paths.entries()) {
+      paths.push({ root: resolve(import.meta.dirname, "../.."), path: integration.example });
+    for (const [index, entry] of paths.entries()) {
       const consumer = join(directory, `${integration.id}-${index}`);
       mkdirSync(consumer);
-      writeLockedIntegrationProject(process.cwd(), consumer, path, true);
+      writeLockedIntegrationProject(entry.root, consumer, entry.path, true);
       const result = spawnPnpmSync(["install", "--ignore-scripts", "--frozen-lockfile"], {
         cwd: consumer,
         encoding: "utf8",

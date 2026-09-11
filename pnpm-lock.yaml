@@ -255,6 +255,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      undici:
+        specifier: 7.29.1
+        version: 7.29.1
       zod:
         specifier: 4.3.6
         version: 4.3.6
