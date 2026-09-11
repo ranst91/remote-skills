@@ -1,0 +1,8 @@
+{
+  "title": "Integrations",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "[Vercel AI SDK](/docs/vercel-ai-sdk)"
+  ]
+}

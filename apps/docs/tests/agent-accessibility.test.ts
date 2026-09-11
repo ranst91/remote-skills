@@ -14,6 +14,7 @@ const requiredSlugs = [
   "hosting/git-pages",
   "cli",
   "consume",
+  "integrations",
   "vercel-ai-sdk",
   "authentication-and-scopes",
   "versions",
@@ -50,10 +51,24 @@ function canonicalNavigation() {
     "hosting navigation",
   );
   const hostingPages = stringArray(hosting.pages, "hosting navigation pages");
+  const integrations = parseJsonObject(
+    readFileSync(new URL("integrations/meta.json", docsRoot), "utf8"),
+    "integrations navigation",
+  );
+  const integrationPages = stringArray(integrations.pages, "integrations navigation pages").map(
+    (page) => {
+      const link = /^\[[^\]]+\]\(\/docs\/([^)]+)\)$/u.exec(page);
+      return link?.[1] ?? (page === "index" ? "integrations" : `integrations/${page}`);
+    },
+  );
   return stringArray(root.pages, "navigation pages")
     .filter((slug) => !slug.startsWith("---"))
     .flatMap((slug) =>
-      slug === "hosting" ? hostingPages.map((page) => `hosting/${page}`) : [slug],
+      slug === "hosting"
+        ? hostingPages.map((page) => `hosting/${page}`)
+        : slug === "integrations"
+          ? integrationPages
+          : [slug],
     );
 }
 

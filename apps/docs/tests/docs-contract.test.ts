@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -34,7 +34,7 @@ const rootNavigation = [
   "hosting",
   "---Consume---",
   "consume",
-  "vercel-ai-sdk",
+  "integrations",
   "---Concepts---",
   "concepts",
   "hosting/local-or-remote",
@@ -50,10 +50,15 @@ const rootNavigation = [
 ];
 
 const hostingNavigation = ["archive-to-origin", "git-pages"];
+const integrationNavigation = ["index", "[Vercel AI SDK](/docs/vercel-ai-sdk)"];
 const navigation = rootNavigation
   .filter((slug) => !slug.startsWith("---"))
   .flatMap((slug) =>
-    slug === "hosting" ? hostingNavigation.map((page) => `hosting/${page}`) : [slug],
+    slug === "hosting"
+      ? hostingNavigation.map((page) => `hosting/${page}`)
+      : slug === "integrations"
+        ? ["integrations/index", "vercel-ai-sdk"]
+        : [slug],
   );
 
 test("docs authored runtime and test modules use the final TypeScript paths", () => {
@@ -96,6 +101,15 @@ test("canonical navigation lists every task 8.1 page and every page exists", () 
   assert.ok(hostingMeta !== null && typeof hostingMeta === "object" && "pages" in hostingMeta);
   assert.deepEqual(meta.pages, rootNavigation);
   assert.deepEqual(hostingMeta.pages, hostingNavigation);
+  const integrationsMeta: unknown = JSON.parse(
+    readFileSync(new URL("../content/docs/integrations/meta.json", import.meta.url), "utf8"),
+  );
+  assert.ok(
+    integrationsMeta !== null &&
+      typeof integrationsMeta === "object" &&
+      "pages" in integrationsMeta,
+  );
+  assert.deepEqual(integrationsMeta.pages, integrationNavigation);
   for (const slug of navigation) assert.equal(existsSync(new URL(`${slug}.mdx`, docsRoot)), true);
 });
 
