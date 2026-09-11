@@ -96,6 +96,17 @@ exits and child reaping. Native runtime tests exercise the real TypeScript and
 Python model/tool loops against a loopback-only deterministic provider. These
 are not live-model evidence.
 
+From the repository root, `pnpm test:langchain` connects a real Chromium page to
+the real Next.js API, all six native runtime selections, and a freshly CLI-built
+local skill origin. Only the model provider is scripted, on loopback with dummy
+credentials; `/api/chat` is not mocked. Controlled provider steps prove catalog
+rendering before any artifact download, exact original instruction/reference
+reads, one complete archive response, and chronological UI. The examples CI
+group runs this command explicitly. The browser consumes the terminal event and
+cancels its reader, so this test inspects rendered events instead of asking
+Playwright to reread the canceled response body. The separate native route tests
+retain detailed NDJSON and terminal-order assertions.
+
 To inspect live selection with an authorized real provider, click **Try team
 greeting** or send `Welcome a new teammate using our prescribed greeting style.`
 Look for native `read_file` calls to `/skills/greeting/SKILL.md` and

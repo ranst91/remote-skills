@@ -78,6 +78,7 @@ const groups = {
       },
       { kind: "pnpm", args: ["run", "test:vercel-ai-sdk"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-langchain", "run", "check"] },
+      { kind: "pnpm", args: ["run", "test:langchain"] },
     ],
   },
 } as const;

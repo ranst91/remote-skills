@@ -332,6 +332,7 @@ test("the examples group checks each Vercel workspace and runs browser acceptanc
     );
   }
   assert.equal(commands.filter((command) => command === "pnpm run test:vercel-ai-sdk").length, 1);
+  assert.equal(commands.filter((command) => command === "pnpm run test:langchain").length, 1);
   const workflow = workflowJob(readFileSync(".github/workflows/ci.yml", "utf8"), "test");
   assert.match(
     workflow,

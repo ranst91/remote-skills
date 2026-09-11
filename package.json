@@ -23,6 +23,7 @@
     "test:repository:prepared": "node --test tests/repository/*.test.ts",
     "test:protocol": "node --test tests/protocol/*.test.ts",
     "test:vercel-ai-sdk": "node --test --test-concurrency=1 tests/examples/vercel-ai-sdk.test.ts",
+    "test:langchain": "pnpm ci:build:repository && node --test --test-concurrency=1 tests/examples/langchain.test.ts",
     "test": "pnpm test:repository && pnpm test:protocol && node scripts/run-turbo.ts test",
     "schema:generate": "node scripts/generate-config-schema.ts",
     "schema:check": "node scripts/check-config-schema.ts",
