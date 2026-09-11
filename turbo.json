@@ -3,6 +3,7 @@
   "globalDependencies": ["tsconfig.base.json"],
   "globalEnv": ["CI", "FORCE_COLOR", "PYTHONHASHSEED", "SOURCE_DATE_EPOCH", "TZ"],
   "globalPassThroughEnv": [
+    "XDG_CACHE_HOME",
     "REMOTE_SKILLS_PYTHON",
     "REMOTE_SKILLS_E2E_PACKAGES",
     "REMOTE_SKILLS_E2E_CLI",

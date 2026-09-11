@@ -109,6 +109,19 @@ function runGate(fixture: GateFixture) {
   );
 }
 
+test("the publisher exception is limited to the protected workflow's exact helper", (context) => {
+  const allowed = makeFixture(context, {
+    "scripts/release/publish-artifacts.ts": 'spawnSync("npm", ["publish", archive]);\n',
+  });
+  assert.equal(runGate(allowed).status, 0);
+  const other = makeFixture(context, {
+    "scripts/release/another-publisher.ts": 'spawnSync("npm", ["publish", archive]);\n',
+  });
+  const result = runGate(other);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /publication-command/u);
+});
+
 test("no-publication gate records commit-bound classified evidence", (testContext) => {
   const fixture = makeFixture(testContext);
 

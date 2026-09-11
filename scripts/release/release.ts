@@ -6,19 +6,30 @@ import {
   validateReleaseCommit,
 } from "./release-lib.ts";
 
+import { isScope } from "./release-scopes.ts";
+
 const [command, ...args] = process.argv.slice(2);
 try {
   if (command === "prepare") {
-    const [bump, channel, mode] = args;
+    const [scope, bump, channel, mode, baseSha] = args;
     if (
+      !scope ||
+      !isScope(scope) ||
       (bump !== "initial" && bump !== "patch" && bump !== "minor" && bump !== "major") ||
       (channel !== "alpha" && channel !== "stable") ||
       (mode !== "--dry-run" && mode !== "--write")
     )
       throw new Error(
-        "usage: release.ts prepare <initial|patch|minor|major> <alpha|stable> <--dry-run|--write>",
+        "usage: release.ts prepare <scope> <initial|patch|minor|major> <alpha|stable> <--dry-run|--write>",
       );
-    const result = prepareRelease(process.cwd(), bump, channel, mode === "--dry-run");
+    const result = prepareRelease(
+      process.cwd(),
+      bump,
+      channel,
+      mode === "--dry-run",
+      scope,
+      baseSha,
+    );
     if (process.env.GITHUB_OUTPUT)
       appendFileSync(process.env.GITHUB_OUTPUT, `npm_version=${result.npmVersion}\n`);
     console.log(JSON.stringify(result, null, 2));
@@ -29,7 +40,7 @@ try {
     if (process.env.GITHUB_OUTPUT)
       appendFileSync(
         process.env.GITHUB_OUTPUT,
-        `npm_version=${state.npmVersion}\npython_version=${state.pythonVersion}\nnpm_tag=${state.npmTag}\ngit_tag=${state.gitTag}\nprerelease=${state.prerelease}\n`,
+        `releases=${JSON.stringify(state.releases)}\nselected_packages=${JSON.stringify(state.selectedPackages)}\nnpm_version=${state.npmVersion}\npython_version=${state.pythonVersion}\nnpm_tag=${state.npmTag}\ngit_tag=${state.gitTag}\nprerelease=${state.prerelease}\n`,
       );
     console.log(
       JSON.stringify(
@@ -43,9 +54,24 @@ try {
         2,
       ),
     );
-  } else if (command === "notes" && args.length === 0) {
+  } else if (command === "notes" && args.length <= 1) {
+    const state = readReleaseState();
+    const releases = args[0]
+      ? state.releases.filter((entry) => entry.scope === args[0])
+      : state.releases;
+    if (!releases.length) throw new Error("Unknown or unselected release scope");
     console.log(
-      changelogSection(readFileSync("CHANGELOG.md", "utf8"), readReleaseState().npmVersion),
+      releases
+        .filter(
+          (entry, index) => releases.findIndex((other) => other.gitTag === entry.gitTag) === index,
+        )
+        .map((entry) =>
+          changelogSection(
+            readFileSync("CHANGELOG.md", "utf8"),
+            state.intent ? `${entry.scope}/v${entry.version}` : entry.version,
+          ),
+        )
+        .join("\n"),
     );
   } else throw new Error("usage: release.ts <prepare|validate|metadata|notes>");
 } catch (error) {

@@ -17,12 +17,12 @@ for (const [name, workflow] of [
   });
 }
 
-test("release preparation is explicit, version-coordinated and dispatches CI for its generated PR", () => {
+test("release preparation is explicit, scoped and dispatches CI for its generated PR", () => {
   assert.match(prepare, /options: \[initial, patch, minor, major\]/u);
   assert.match(prepare, /options: \[alpha, stable\]/u);
   assert.match(prepare, /default: true/u);
   assert.doesNotMatch(prepare, /\n {2}(?:push|pull_request):/u);
-  assert.match(prepare, /integrations\/ai-sdk\/package\.json/u);
+  assert.match(prepare, /core, integration-ai-sdk/u);
   assert.match(prepare, /gh workflow run ci\.yml --ref release\/next/u);
   assert.doesNotMatch(prepare, /id-token:|npm publish|uv publish/u);
   assert.match(ci, /workflow_dispatch:/u);
@@ -39,7 +39,7 @@ test("PR packaging verifies the same retained artifacts that publication downloa
 
 test("only intentional main release changes can reach protected publication", () => {
   assert.match(publish, /paths: \[release-state\.json\]/u);
-  assert.match(publish, /release\.ts validate/u);
+  assert.match(publish, /release\.ts" validate/u);
   assert.match(publish, /git merge-base --is-ancestor/u);
   assert.match(publish, /uses: \.\/\.github\/workflows\/ci\.yml/u);
   assert.doesNotMatch(publish, /macos-latest|windows-latest/u);
@@ -50,9 +50,13 @@ test("only intentional main release changes can reach protected publication", ()
   assert.match(publication, /environment: release/u);
   assert.match(publication, /id-token: write/u);
   assert.match(publication, /inputs\.dry_run != true/u);
-  assert.match(publication, /for name in client cli ai-sdk/u);
+  assert.match(publication, /publish-artifacts\.ts npm release-dist/u);
+  assert.match(publication, /steps\.plan\.outputs\.has_python/u);
   assert.match(publication, /needs\.validate\.outputs\.artifact_name/u);
-  assert.ok(publication.indexOf("Verify registries") < publication.indexOf("gh release create"));
+  assert.ok(
+    publication.indexOf("publish-artifacts.ts verify") <
+      publication.indexOf("publish-artifacts.ts release"),
+  );
 });
 
 test("release workflows pin actions and contain no registry token references", () => {
@@ -66,4 +70,13 @@ test("release workflows pin actions and contain no registry token references", (
       /NPM_TOKEN|NODE_AUTH_TOKEN|PYPI_API_TOKEN|UV_PUBLISH_TOKEN|TWINE_PASSWORD/u,
     );
   }
+});
+
+test("candidate packaging installs dependencies beside the current tooling tests", () => {
+  const packageJob = ci.slice(ci.indexOf("\n  package:"), ci.indexOf("\n  windows:"));
+  const install = packageJob.indexOf("pnpm --dir ../release-tooling install --frozen-lockfile");
+  const browser = packageJob.indexOf("pnpm --dir ../release-tooling exec playwright install");
+  const verify = packageJob.indexOf("pnpm --dir ../release-tooling publication:readiness");
+  assert.ok(install > 0 && browser > install && verify > browser);
+  assert.doesNotMatch(packageJob, /id-token: write|secrets\./u);
 });

@@ -240,7 +240,10 @@ function packNpm(packageName: string, artifactDirectory: string): PackedNpm {
   if (required.size > 0) {
     throw new Error(`${packageName} tarball is missing ${[...required].join(", ")}`);
   }
-  if (packed.name !== packageName || packed.version !== releaseState.npmVersion) {
+  const expectedVersion = releaseState.manifests.find(
+    (entry) => entry.name === packageName,
+  )?.version;
+  if (packed.name !== packageName || packed.version !== expectedVersion) {
     throw new Error(`unexpected packed identity: ${packed.name}@${packed.version}`);
   }
   return packed;
