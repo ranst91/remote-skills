@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { resolveCompatibleUvCommand } from "../lib/uv-command.ts";
 import { pythonPackages } from "./release-scopes.ts";
 
@@ -18,6 +18,55 @@ function run(command: string, args: string[], environment: NodeJS.ProcessEnv, cw
   return result.stdout.trim();
 }
 
+export function inspectionPython(constraints: string) {
+  return join(
+    dirname(constraints),
+    "inspection-python",
+    process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
+  );
+}
+
+export function preparePythonInspector(
+  root: string,
+  directory: string,
+  environment: NodeJS.ProcessEnv,
+) {
+  const uv = resolveCompatibleUvCommand({ environment });
+  const python = environment.REMOTE_SKILLS_PYTHON;
+  if (!python) throw new Error("REMOTE_SKILLS_PYTHON must select the synced Python interpreter");
+  const inspector = inspectionPython(join(directory, "runtime-constraints.txt"));
+  run(
+    uv,
+    [
+      "venv",
+      "--python",
+      python,
+      "--no-python-downloads",
+      "--no-config",
+      join(directory, "inspection-python"),
+    ],
+    environment,
+    root,
+  );
+  run(
+    uv,
+    [
+      "pip",
+      "install",
+      "--python",
+      inspector,
+      "--no-config",
+      "--require-hashes",
+      "--only-binary=:all:",
+      "--requirement",
+      join(import.meta.dirname, "python-inspection-requirements.txt"),
+    ],
+    environment,
+    root,
+  );
+  return inspector;
+}
+
 export function preparePythonArtifactCache(
   root: string,
   directory: string,
@@ -29,9 +78,10 @@ export function preparePythonArtifactCache(
   if (!python) throw new Error("REMOTE_SKILLS_PYTHON must select the synced Python interpreter");
   if (!packages.length || new Set(packages.map((entry) => entry.name)).size !== packages.length)
     throw new Error("Python artifact descriptors must be nonempty and unique");
+  const inspector = preparePythonInspector(root, directory, environment);
   const projects: unknown = JSON.parse(
     run(
-      python,
+      inspector,
       [
         "-I",
         "-c",
@@ -101,7 +151,7 @@ print(json.dumps({"versions": versions, "build": sorted(build)}))`,
   // Exported constraints must remain named, exact registry pins. Local archives
   // enter the consumer only through installPythonArtifact's explicit arguments.
   run(
-    python,
+    inspector,
     [
       "-I",
       "-c",
@@ -170,6 +220,38 @@ for line in sys.argv[1].splitlines():
     environment,
     root,
   );
+  // Readiness also installs on the minimum supported Python. Cache its platform
+  // wheels explicitly when the synced workspace uses a newer interpreter.
+  const currentMinor = run(
+    python,
+    ["-I", "-c", "import sys; print('.'.join(map(str,sys.version_info[:2])))"],
+    environment,
+    root,
+  );
+  if (currentMinor !== "3.11") {
+    const minimum = join(directory, "prepare-python-minimum");
+    run(
+      uv,
+      ["venv", "--python", "3.11", "--no-python-downloads", "--no-config", minimum],
+      environment,
+      root,
+    );
+    run(
+      uv,
+      [
+        "pip",
+        "install",
+        "--python",
+        join(minimum, process.platform === "win32" ? "Scripts/python.exe" : "bin/python"),
+        "--require-hashes",
+        "--no-config",
+        "-r",
+        requirements,
+      ],
+      environment,
+      root,
+    );
+  }
   // Record the actual isolated build dependency versions too. A later sdist
   // installation cannot resolve a different cached backend or build dependency.
   const preparedPins = run(

@@ -13,7 +13,7 @@ try {
   )) {
     const consumer = join(directory, integration.id);
     mkdirSync(consumer);
-    writeLockedIntegrationProject(process.cwd(), consumer, dirname(integration.manifestPath));
+    writeLockedIntegrationProject(process.cwd(), consumer, dirname(integration.manifestPath), true);
     const result = spawnPnpmSync(["install", "--ignore-scripts", "--frozen-lockfile"], {
       cwd: consumer,
       encoding: "utf8",

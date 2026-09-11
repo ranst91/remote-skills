@@ -22,7 +22,7 @@ import { createPnpmCommand } from "./lib/pnpm-command.ts";
 import { resolveCompatibleUvCommand } from "./lib/uv-command.ts";
 import { checkInstalledIntegration } from "./release/installed-integration.ts";
 import { checkInstalledPythonIntegration } from "./release/installed-python-integration.ts";
-import { installPythonArtifact } from "./release/python-artifacts.ts";
+import { inspectionPython, installPythonArtifact } from "./release/python-artifacts.ts";
 import { pythonPackages, readReleaseState, releasePackages } from "./release/release-lib.ts";
 
 const repositoryRoot = realpathSync(
@@ -519,13 +519,8 @@ try {
       }),
     );
     const inspection: unknown = JSON.parse(
-      run(uvCommand, [
-        "run",
-        "--project",
-        "packages/sdk-python",
-        "--locked",
-        "--no-sync",
-        "python",
+      run(inspectionPython(constraints), [
+        "-I",
         resolve(import.meta.dirname, "inspect-python-distributions.py"),
         "--descriptor",
         descriptorPath,

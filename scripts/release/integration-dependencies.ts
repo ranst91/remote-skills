@@ -6,6 +6,7 @@ export function writeLockedIntegrationProject(
   root: string,
   directory: string,
   integrationPath = "integrations/ai-sdk",
+  includeCatalog = false,
 ) {
   const manifest = manifestObject(
     readFileSync(join(root, integrationPath, "package.json"), "utf8"),
@@ -19,7 +20,7 @@ export function writeLockedIntegrationProject(
       ([, value]) =>
         typeof value === "string" &&
         !value.startsWith("workspace:") &&
-        !value.startsWith("catalog:"),
+        (includeCatalog || !value.startsWith("catalog:")),
     ),
   );
   const dependencies = { ...runtime, ...consumerDependencies };
@@ -53,6 +54,18 @@ export function writeLockedIntegrationProject(
     const entry = entries.get(name);
     if (!entry?.some((line) => /^ {8}version: /u.test(line)))
       throw new Error(`Missing locked integration dependency: ${name}`);
+    if (String(dependencies[name]).startsWith("catalog:")) {
+      const pinned = entry
+        .find((line) => /^ {8}version: /u.test(line))
+        ?.trim()
+        .slice("version: ".length);
+      if (!pinned || !/^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/u.test(pinned))
+        throw new Error(`Unsupported catalog dependency: ${name}`);
+      dependencies[name] = pinned;
+      return entry
+        .map((line) => (/^ {8}specifier: /u.test(line) ? `        specifier: ${pinned}` : line))
+        .join("\n");
+    }
     return entry.join("\n");
   });
   writeFileSync(

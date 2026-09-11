@@ -12,9 +12,10 @@ class SurfaceTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[3]
         integration = tomllib.loads((root / 'integrations/langchain-python/pyproject.toml').read_text())['project']
         sdk = tomllib.loads((root / 'packages/sdk-python/pyproject.toml').read_text())['project']
-        example = tomllib.loads((root / 'examples/langchain/pyproject.toml').read_text())['project']
+        example = tomllib.loads((root / 'examples/langchain/pyproject.toml').read_text())
         self.assertIn(f"remote-skills=={sdk['version']}", integration['dependencies'])
-        self.assertIn(f"remote-skills-langchain=={integration['version']}", example['dependencies'])
+        self.assertIn("remote-skills-langchain", example['project']['dependencies'])
+        self.assertEqual(example['tool']['uv']['sources']['remote-skills-langchain'], {"workspace": True})
 
     def test_exports_native_backend_factory(self) -> None:
         integration = importlib.import_module('remote_skills_langchain')

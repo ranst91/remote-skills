@@ -6,7 +6,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 import { resolveCompatibleUvCommand } from "../../../scripts/lib/uv-command.ts";
-import { releasePackages } from "../../../scripts/release/release-scopes.ts";
+import { pythonPackages, releasePackages } from "../../../scripts/release/release-scopes.ts";
 
 export interface PackageSelection {
   name: string;
@@ -34,7 +34,10 @@ function pythonSelection(value: unknown): PackageSelection {
   assert.ok(object(value));
   const { name, version, spec } = value;
   assert.ok(typeof name === "string" && typeof version === "string" && typeof spec === "string");
-  assert.match(name, /^remote-skills(?:-[a-z0-9]+)*$/u);
+  assert.ok(
+    pythonPackages.some((entry) => entry.name === name),
+    "Unsupported Python package selection.",
+  );
   assert.match(version, /^\d+\.\d+\.\d+(?:(?:a|b|rc)\d+)?$/u);
   assert.ok((isAbsolute(spec) && spec.endsWith(".whl")) || spec === `${name}==${version}`);
   return { name, version, spec };

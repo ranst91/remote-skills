@@ -3,13 +3,26 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { type TestContext, test } from "node:test";
-import { preparePythonArtifactCache } from "../../scripts/release/python-artifacts.ts";
+import { after, before, type TestContext, test } from "node:test";
+import {
+  preparePythonArtifactCache,
+  preparePythonInspector,
+} from "../../scripts/release/python-artifacts.ts";
 
 const python =
   process.env.REMOTE_SKILLS_PYTHON ??
   resolve(process.platform === "win32" ? ".venv/Scripts/python.exe" : ".venv/bin/python");
 const inspector = resolve("scripts/inspect-python-distributions.py");
+
+const inspectionRoot = mkdtempSync(join(tmpdir(), "release-inspector-tests-"));
+let toolingPython: string;
+before(() => {
+  toolingPython = preparePythonInspector(process.cwd(), inspectionRoot, {
+    ...process.env,
+    REMOTE_SKILLS_PYTHON: python,
+  });
+});
+after(() => rmSync(inspectionRoot, { recursive: true, force: true }));
 
 const fixtureScript = String.raw`
 from io import BytesIO
@@ -71,7 +84,7 @@ function fixture(t: TestContext, options: object = {}) {
 }
 function inspect(path: string) {
   return spawnSync(
-    python,
+    toolingPython,
     [
       "-I",
       inspector,
@@ -172,12 +185,16 @@ test("Python dependency preparation rejects an incompatible candidate SDK before
       "remote-skills==9.0.0",
     ),
   );
+  const base = spawnSync(python, ["-I", "-c", "import sys; print(sys._base_executable)"], {
+    encoding: "utf8",
+  });
+  assert.equal(base.status, 0);
   assert.throws(
     () =>
       preparePythonArtifactCache(
         root,
         root,
-        { ...process.env, UV_OFFLINE: "true", REMOTE_SKILLS_PYTHON: python },
+        { ...process.env, UV_OFFLINE: "true", REMOTE_SKILLS_PYTHON: base.stdout.trim() },
         [
           { name: "remote-skills", manifest: "sdk/pyproject.toml" },
           { name: "remote-skills-langchain", manifest: "integration/pyproject.toml" },
