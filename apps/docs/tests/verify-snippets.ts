@@ -568,7 +568,18 @@ async function executeBashContracts(snippets: readonly Snippet[]) {
   };
 }
 
-async function compileTypeScriptProject(snippets: readonly Snippet[], integration: boolean) {
+type TypeScriptGroup = "core" | "ai-sdk" | "langchain";
+
+function langChainDocumentation(snippet: Snippet) {
+  const path = relative(repositoryRoot, snippet.path).replaceAll("\\", "/");
+  return (
+    path === "integrations/langchain/README.md" ||
+    path === "integrations/langchain-python/README.md" ||
+    path === "apps/docs/content/docs/integrations/langchain.mdx"
+  );
+}
+
+async function compileTypeScriptProject(snippets: readonly Snippet[], group: TypeScriptGroup) {
   const project = await mkdtemp(resolve(tmpdir(), "remote-skills-doc-typescript-"));
   try {
     const packageScope = resolve(project, "node_modules/@remote-skills");
@@ -578,7 +589,7 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], integratio
       resolve(packageScope, "client"),
       process.platform === "win32" ? "junction" : "dir",
     );
-    if (integration) {
+    if (group === "ai-sdk") {
       await symlink(
         resolve(repositoryRoot, "integrations/ai-sdk"),
         resolve(packageScope, "ai-sdk"),
@@ -590,19 +601,26 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], integratio
         process.platform === "win32" ? "junction" : "dir",
       );
     }
-    await symlink(
-      resolve(repositoryRoot, "integrations/langchain"),
-      resolve(packageScope, "langchain"),
-      process.platform === "win32" ? "junction" : "dir",
-    );
-    for (const dependency of ["deepagents", "langchain", "@langchain/core", "@langchain/langgraph"]) {
-      const target = resolve(project, "node_modules", dependency);
-      await mkdir(dirname(target), { recursive: true });
+    if (group === "langchain") {
       await symlink(
-        resolve(repositoryRoot, "integrations/langchain/node_modules", dependency),
-        target,
+        resolve(repositoryRoot, "integrations/langchain"),
+        resolve(packageScope, "langchain"),
         process.platform === "win32" ? "junction" : "dir",
       );
+      for (const dependency of [
+        "deepagents",
+        "langchain",
+        "@langchain/core",
+        "@langchain/langgraph",
+      ]) {
+        const target = resolve(project, "node_modules", dependency);
+        await mkdir(dirname(target), { recursive: true });
+        await symlink(
+          resolve(repositoryRoot, "integrations/langchain/node_modules", dependency),
+          target,
+          process.platform === "win32" ? "junction" : "dir",
+        );
+      }
     }
     await writeFile(resolve(project, "package.json"), '{"type":"module"}\n');
     await writeFile(
@@ -614,9 +632,11 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], integratio
             moduleResolution: "NodeNext",
             noEmit: true,
             strict: true,
-            // Match the integration's upstream AI SDK declaration workaround only for
-            // integration snippets. Their bodies still receive strict API checking.
-            skipLibCheck: integration,
+            // Each integration has an isolated upstream declaration workaround:
+            // AI SDK retains main's existing exception; DeepAgents 1.13.4 references
+            // ZodPreprocess absent in Zod 4.3.6. Snippet bodies stay strict in both.
+            // Core consumers continue checking all declarations.
+            skipLibCheck: group === "ai-sdk" || group === "langchain",
             target: "ES2022",
             typeRoots: [resolve(repositoryRoot, "node_modules/@types")],
             types: ["node"],
@@ -685,27 +705,33 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], integratio
 }
 
 export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
-  checkedSpawn("pnpm", ["--filter", "@remote-skills/langchain", "build"]);
   checkedSpawn("pnpm", ["--filter", "@remote-skills/client", "build"]);
-  const ordinary: Snippet[] = [];
-  const integration: Snippet[] = [];
+  const groups: Record<TypeScriptGroup, Snippet[]> = { core: [], "ai-sdk": [], langchain: [] };
   for (const snippet of snippets) {
     if (/\bfrom\s+["'](?:@remote-skills\/ai-sdk|ai)["']/u.test(snippet.code)) {
-      integration.push(snippet);
-    } else ordinary.push(snippet);
+      groups["ai-sdk"].push(snippet);
+    } else if (
+      langChainDocumentation(snippet) ||
+      /\bfrom\s+["'](?:@remote-skills\/langchain|deepagents|langchain|@langchain\/[^"']+)["']/u.test(
+        snippet.code,
+      )
+    ) {
+      groups.langchain.push(snippet);
+    } else groups.core.push(snippet);
   }
-  if (ordinary.length > 0) await compileTypeScriptProject(ordinary, false);
-  if (integration.length > 0) {
+  if (groups.core.length > 0) await compileTypeScriptProject(groups.core, "core");
+  for (const integration of ["ai-sdk", "langchain"] as const) {
+    if (groups[integration].length === 0) continue;
     // pnpm filters alone can succeed without a matching workspace. Require the real
     // package manifest first so an unmerged prerequisite cannot silently skip coverage.
     const manifest: unknown = JSON.parse(
-      await readFile(resolve(repositoryRoot, "integrations/ai-sdk/package.json"), "utf8"),
+      await readFile(resolve(repositoryRoot, `integrations/${integration}/package.json`), "utf8"),
     );
-    if (!isJsonObject(manifest) || manifest.name !== "@remote-skills/ai-sdk") {
-      throw new Error("documentation requires the real @remote-skills/ai-sdk workspace");
+    if (!isJsonObject(manifest) || manifest.name !== `@remote-skills/${integration}`) {
+      throw new Error(`documentation requires the real @remote-skills/${integration} workspace`);
     }
-    checkedSpawn("pnpm", ["--filter", "@remote-skills/ai-sdk", "build"]);
-    await compileTypeScriptProject(integration, true);
+    checkedSpawn("pnpm", ["--filter", `@remote-skills/${integration}`, "build"]);
+    await compileTypeScriptProject(groups[integration], integration);
   }
 }
 
@@ -721,9 +747,30 @@ function compilePython(snippet: Snippet) {
       repositoryRoot,
       process.platform === "win32" ? ".venv/Scripts/python.exe" : ".venv/bin/python",
     );
-  checkedSpawn(python, ["-c", "import sys; compile(sys.stdin.read(), '<docs>', 'exec')"], {
+  const program = langChainDocumentation(snippet)
+    ? `import ast, importlib, sys
+source = sys.stdin.read()
+compile(source, '<docs>', 'exec')
+for node in ast.walk(ast.parse(source)):
+    if isinstance(node, ast.Import):
+        for alias in node.names:
+            importlib.import_module(alias.name)
+    elif isinstance(node, ast.ImportFrom):
+        if node.level or node.module is None:
+            raise ValueError('Documentation requires absolute public imports')
+        module = importlib.import_module(node.module)
+        for alias in node.names:
+            getattr(module, alias.name)
+`
+    : "import sys; compile(sys.stdin.read(), '<docs>', 'exec')";
+  // Validate public imports without executing example bodies or making model calls.
+  checkedSpawn(python, ["-c", program], {
     input: wrapped,
   });
+}
+
+export function verifyPythonSnippets(snippets: readonly Snippet[]) {
+  for (const snippet of snippets) compilePython(snippet);
 }
 
 function validateYaml(snippet: Snippet) {
@@ -774,9 +821,9 @@ export async function verifyDocumentationSnippets() {
 
   for (const snippet of snippets) {
     if (snippet.language === "json") JSON.parse(snippet.code);
-    else if (snippet.language === "python") compilePython(snippet);
     else if (snippet.language === "yaml") validateYaml(snippet);
   }
+  verifyPythonSnippets(snippets.filter((snippet) => snippet.language === "python"));
   const bash = await executeBashContracts(
     snippets.filter((snippet) => snippet.language === "bash"),
   );

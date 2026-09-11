@@ -21,6 +21,7 @@ const migratedTypeScriptFiles = [
   "tests/agent-accessibility.test.ts",
   "tests/docs-contract.test.ts",
   "tests/links.test.ts",
+  "tests/langchain.test.ts",
   "tests/production-routes.test.ts",
   "tests/verify-snippets.ts",
 ];
@@ -50,14 +51,14 @@ const rootNavigation = [
 ];
 
 const hostingNavigation = ["archive-to-origin", "git-pages"];
-const integrationNavigation = ["index", "[Vercel AI SDK](/docs/vercel-ai-sdk)"];
+const integrationNavigation = ["index", "[Vercel AI SDK](/docs/vercel-ai-sdk)", "langchain"];
 const navigation = rootNavigation
   .filter((slug) => !slug.startsWith("---"))
   .flatMap((slug) =>
     slug === "hosting"
       ? hostingNavigation.map((page) => `hosting/${page}`)
       : slug === "integrations"
-        ? ["integrations/index", "vercel-ai-sdk"]
+        ? ["integrations/index", "vercel-ai-sdk", "integrations/langchain"]
         : [slug],
   );
 

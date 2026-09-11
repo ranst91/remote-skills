@@ -1,0 +1,257 @@
+---
+title: LangChain and DeepAgents
+description: Connect native skills in TypeScript and Python agents to a verified remote origin.
+---
+
+Connect your existing LangChain or DeepAgents application to [published skills](/docs/hosting/archive-to-origin). Your agent discovers their names and descriptions through native skills middleware, chooses what fits the task, and uses the native `read_file` tool to load instructions and resources.
+
+The same adapter works in three compositions, in both languages:
+
+| Application | TypeScript | Python |
+| --- | --- | --- |
+| DeepAgents | `createDeepAgent` with `remote.deepAgentOptions` | `create_deep_agent` with `source.deep_agent_options()` |
+| Plain LangChain | `createAgent` with `remote.middleware` | `create_agent` with `source.middleware()` |
+| Manually assembled LangGraph | Native agent's compiled `.graph` as a subgraph node | Native agent as a subgraph node |
+
+<Steps>
+<Step>
+
+## Prepare your application
+
+Use Node.js 24 or newer for TypeScript, or Python 3.11 or newer for the async Python integration. Bring your configured LangChain chat model and its provider credentials. Model credentials stay separate from authentication for your skill origin.
+
+These integrations are alpha software. The examples target the TypeScript SDK (`@remote-skills/client`) version `0.0.1-alpha.0` and the Python SDK (`remote-skills`) version `0.0.1a0`. Install the locally built adapter and matching SDK artifacts from the same checkout into your application; registry publication is a separate maintainer action. The [TypeScript package](https://github.com/ranst91/remote-skills/blob/main/integrations/langchain/README.md) and [Python package](https://github.com/ranst91/remote-skills/blob/main/integrations/langchain-python/README.md) document local package verification. Do not substitute a stable SDK version for the matching prerelease.
+
+Keep the tested upstream versions locked together:
+
+| Language | Tested dependencies |
+| --- | --- |
+| TypeScript | `deepagents@1.13.4`, `langchain@1.5.11`, `@langchain/langgraph@1.4.14`, `@langchain/core@1.2.10`, `langsmith@0.9.0`, `zod@4.3.6` |
+| Python | `deepagents==0.7.13`, `langchain==1.4.0`, `langgraph==1.2.11` |
+
+TypeScript needs one shared copy of the LangChain peer dependencies. In particular, this DeepAgents release requires LangSmith below 0.10. Later upstream releases need compatibility testing before you update these pins.
+
+With these TypeScript pins, use `strict: true` and `skipLibCheck: true` in your application's compiler options. The latter accommodates an upstream DeepAgents declaration that references `ZodPreprocess`, which the pinned Zod release does not export; your application code still receives strict type checking.
+
+</Step>
+<Step>
+
+## Choose your native agent
+
+Each example below is a complete function. Pass your existing model and the user's message, and replace `https://skills.example.com` with your origin root. The `team` key is a local connection name. The caller opens an SDK session, gives it to the adapter, and keeps it open until the native invocation finishes.
+
+For the [Quickstart's local origin](/docs/quickstart#serve-it), use `http://127.0.0.1:8787` with `allowLoopbackHttp: true` in the TypeScript origin configuration or `allow_loopback_http=True` in Python's `Origin`.
+
+### DeepAgents
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="deepagents.ts"
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/langchain";
+import { createDeepAgent } from "deepagents";
+
+export async function runAgent(model: BaseChatModel, message: string) {
+  const client = createRemoteSkills({
+    origins: { team: { url: "https://skills.example.com" } },
+  });
+  await using session = await client.session("team");
+  await using remote = await remoteSkills({ session });
+
+  const agent = createDeepAgent({ model, ...remote.deepAgentOptions });
+  return await agent.invoke({
+    messages: [{ role: "user", content: message }],
+  });
+}
+```
+
+</Tab>
+<Tab>
+
+```python title="deepagents_example.py"
+from deepagents import create_deep_agent
+from langchain_core.language_models.chat_models import BaseChatModel
+from remote_skills import Origin, RemoteSkills
+from remote_skills_langchain import create_remote_skills_backend
+
+async def run_agent(model: BaseChatModel, message: str):
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session("team") as session:
+        source = await create_remote_skills_backend(session)
+        agent = create_deep_agent(model=model, **source.deep_agent_options())
+        return await agent.ainvoke({
+            "messages": [{"role": "user", "content": message}],
+        })
+```
+
+</Tab>
+</Tabs>
+
+Keep the helper's `backend`, `skills`, and `middleware` options together. They connect native skills middleware to the metadata view and native filesystem middleware to verified content, including in the default general-purpose subagent. Passing the content backend with automatic `skills` loading alone would download artifacts during discovery. Passing only the middleware would leave the default subagent without its skill catalog.
+
+For custom named subagents that should share these skills, explicitly pass the same native middleware through their public `middleware` option: `remote.middleware` in TypeScript or `source.middleware()` in Python. The SDK session and its activated digest pins remain shared.
+
+### Plain LangChain
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="langchain.ts"
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/langchain";
+import { createAgent } from "langchain";
+
+export async function runAgent(model: BaseChatModel, message: string) {
+  const client = createRemoteSkills({
+    origins: { team: { url: "https://skills.example.com" } },
+  });
+  await using session = await client.session("team");
+  await using remote = await remoteSkills({ session });
+
+  const agent = createAgent({ model, middleware: remote.middleware });
+  return await agent.invoke({
+    messages: [{ role: "user", content: message }],
+  });
+}
+```
+
+</Tab>
+<Tab>
+
+```python title="langchain_example.py"
+from langchain.agents import create_agent
+from langchain_core.language_models.chat_models import BaseChatModel
+from remote_skills import Origin, RemoteSkills
+from remote_skills_langchain import create_remote_skills_backend
+
+async def run_agent(model: BaseChatModel, message: str):
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session("team") as session:
+        source = await create_remote_skills_backend(session)
+        agent = create_agent(model=model, middleware=source.middleware())
+        return await agent.ainvoke({
+            "messages": [{"role": "user", "content": message}],
+        })
+```
+
+</Tab>
+</Tabs>
+
+This uses the upstream skills and filesystem middleware directly. There are no replacement selection prompts or skill tools. The native middleware formats the catalog and instructs the model how to use `read_file`; native tool dispatch, line numbering, and pagination remain in place.
+
+### Manually assembled LangGraph
+
+Build your own nodes and edges around the native agent subgraph:
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="langgraph.ts"
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { END, MessagesAnnotation, START, StateGraph } from "@langchain/langgraph";
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/langchain";
+import { createAgent } from "langchain";
+
+export async function runAgent(model: BaseChatModel, message: string) {
+  const client = createRemoteSkills({
+    origins: { team: { url: "https://skills.example.com" } },
+  });
+  await using session = await client.session("team");
+  await using remote = await remoteSkills({ session });
+
+  const nativeAgent = createAgent({ model, middleware: remote.middleware });
+  const graph = new StateGraph(MessagesAnnotation)
+    .addNode("prepare", () => ({}))
+    .addNode("skills", nativeAgent.graph)
+    .addNode("complete", () => ({}))
+    .addEdge(START, "prepare")
+    .addEdge("prepare", "skills")
+    .addEdge("skills", "complete")
+    .addEdge("complete", END)
+    .compile();
+
+  return await graph.invoke({
+    messages: [{ role: "user", content: message }],
+  });
+}
+```
+
+</Tab>
+<Tab>
+
+```python title="langgraph_example.py"
+from langchain.agents import create_agent
+from langchain_core.language_models.chat_models import BaseChatModel
+from langgraph.graph import END, START, MessagesState, StateGraph
+from remote_skills import Origin, RemoteSkills
+from remote_skills_langchain import create_remote_skills_backend
+
+async def run_agent(model: BaseChatModel, message: str):
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session("team") as session:
+        source = await create_remote_skills_backend(session)
+        native_agent = create_agent(model=model, middleware=source.middleware())
+        graph = StateGraph(MessagesState)
+        graph.add_node("prepare", lambda state: {})
+        graph.add_node("skills", native_agent)
+        graph.add_node("complete", lambda state: {})
+        graph.add_edge(START, "prepare")
+        graph.add_edge("prepare", "skills")
+        graph.add_edge("skills", "complete")
+        graph.add_edge("complete", END)
+        agent = graph.compile()
+        return await agent.ainvoke({
+            "messages": [{"role": "user", "content": message}],
+        })
+```
+
+</Tab>
+</Tabs>
+
+This support requires a real native agent subgraph. Arbitrary raw model or tool nodes do not run LangChain middleware, and the tested releases do not expose a standalone middleware runtime for those nodes. TypeScript uses the native agent's public compiled `.graph` property; Python's `create_agent` already returns a compiled graph.
+
+</Step>
+<Step>
+
+## Let the agent choose and load a skill
+
+Call your chosen function with a task that matches one of your published descriptions. If you published the Quickstart's `howdy` skill, use a greeting. The model can read `/skills/howdy/SKILL.md` through native `read_file`, then read any referenced files when needed. An unrelated request can receive a direct answer without activating a skill.
+
+Adapter creation and native discovery fetch catalog metadata and **zero artifact bytes**. The adapter has two explicit backend views: the discovery view serves catalog-derived frontmatter for the native scan, and the content view serves original verified files. The discovery projection is metadata, not the original `SKILL.md`.
+
+The first content read downloads and verifies the **complete original artifact** through the SDK, then pins its digest for the session. Listing inside a specific skill also activates it so its verified file names can be listed; listing the source root remains metadata-only. Later resource reads are **context-lazy**: they use the already verified local artifact without another origin request, and enter the model's context only when requested.
+
+Your agent now selects and loads remote skills using its native middleware and tools. The [six-path chat demo](https://github.com/ranst91/remote-skills/blob/main/examples/langchain/README.md) runs these TypeScript and Python compositions from one application.
+
+</Step>
+</Steps>
+
+## Keep sessions, streams, and checkpoints together
+
+Both adapters borrow the supplied SDK session. TypeScript's `await using` disposes the adapter first, then the session when the function finishes. If you manage disposal manually, await `remote.close()` before `session.close()`; closing the adapter alone leaves the SDK session open. Python has no independent adapter close method: the session's `async with` owns cleanup.
+
+For streaming, consume the entire stream inside this same lifetime. Python uses `ainvoke`, `astream`, or `astream_events` on the event loop that created the source; synchronous backend reads are unsupported. For conversations, retain the session until the conversation ends so activated skills keep their [version pins](/docs/versions).
+
+Bind one adapter, native agent, and checkpoint thread to one session, origin, and authorization context. Use a fresh adapter and checkpoint thread for a new session or changed credentials. Multiple origins require separate adapters and agents; concatenating native middleware tuples produces duplicate middleware names.
+
+## Configure versions and private origins
+
+The adapter uses your SDK client's [authentication, scope settings](/docs/authentication-and-scopes), [cache and stale policy](/docs/cache-and-offline), network limits, and digest verification. A requested scope is a provider-defined catalog view and does not grant access.
+
+TypeScript accepts `remoteSkills({ session, root: "/remote/team/", versions: { howdy: "^1.0.0" } })`. Python accepts `create_remote_skills_backend(session, root="/remote/team/", versions={"howdy": "^1.0.0"})`. The root is an absolute virtual directory ending in `/`, not a host filesystem path. Keep one version policy per session: the first activation pins a release, and later options cannot replace that pin. Version ranges select only releases the provider still advertises; cached bytes do not restore a pruned release for a new online session.
+
+## Keep tool permissions explicit
+
+The helper exposes native `ls` and `read_file`. It supplies no write, search, or command-execution tool, and disables filesystem offloading because remote content is read-only. Native reads retain their text pagination; binary assets remain available through the content backend and [SDK resource APIs](/docs/consume#read-resources-as-needed).
+
+No files are installed into an agent workspace. Digest verification establishes byte integrity, not whether the publisher's instructions are trustworthy. Loading scripts does not execute them, and `allowed-tools` does not grant permissions. Your application remains responsible for [content trust and tool authorization](/docs/trust-and-security).

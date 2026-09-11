@@ -1,31 +1,19 @@
 [
   {
     "title": "Getting started",
-    "pages": [
-      "index",
-      "quickstart"
-    ]
+    "pages": ["index", "quickstart"]
   },
   {
     "title": "Publish",
-    "pages": [
-      "publisher",
-      "hosting/archive-to-origin",
-      "hosting/git-pages"
-    ]
+    "pages": ["publisher", "hosting/archive-to-origin", "hosting/git-pages"]
   },
   {
     "title": "Consume",
-    "pages": [
-      "consume"
-    ]
+    "pages": ["consume"]
   },
   {
     "title": "Integrations",
-    "pages": [
-      "integrations",
-      "vercel-ai-sdk"
-    ]
+    "pages": ["integrations", "vercel-ai-sdk", "integrations/langchain"]
   },
   {
     "title": "Concepts",
@@ -40,11 +28,6 @@
   },
   {
     "title": "Reference",
-    "pages": [
-      "cli",
-      "configuration",
-      "api-reference",
-      "release"
-    ]
+    "pages": ["cli", "configuration", "api-reference", "release"]
   }
 ]

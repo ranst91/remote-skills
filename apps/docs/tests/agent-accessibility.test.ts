@@ -16,6 +16,7 @@ const requiredSlugs = [
   "consume",
   "integrations",
   "vercel-ai-sdk",
+  "integrations/langchain",
   "authentication-and-scopes",
   "versions",
   "cache-and-offline",
