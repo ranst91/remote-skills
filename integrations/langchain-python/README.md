@@ -12,7 +12,10 @@ context only when it requests them.
 ## Use an existing async session
 
 Install the locally built `remote-skills` and `remote-skills-langchain` wheels
-with your application's locked dependencies. The application supplies its model
+with your application's locked dependencies. This integration's local alpha
+distribution is `0.0.1a0` and requires `remote-skills==0.0.1a0`. These package
+checks do not publish it or enroll it in the core release workflow.
+The application supplies its model
 integration; for example, the runnable [six-path demo](../../examples/langchain)
 uses `langchain-openai`.
 
@@ -195,7 +198,10 @@ The tests run deterministic tool-calling models through all three actual native
 paths and verify request counts, full artifact integrity, exact resources,
 pagination, cache reuse, versions, scope, stale use, cancellation, and closure.
 They do not call a live model or require provider credentials. `package:check`
-builds both Python distributions, installs their wheels offline into a fresh
-environment outside the workspace, and runs an installed native consumer.
+builds both Python packages, checks wheel and source-distribution metadata and
+contents, and installs each format offline into a separate fresh environment
+outside the workspace. It verifies dependency compatibility and runs an isolated
+native agent consumer against the installed packages, including one lazy
+artifact activation through upstream `read_file`.
 
 Licensed under Apache-2.0.

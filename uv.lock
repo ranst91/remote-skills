@@ -1298,7 +1298,7 @@ requires-dist = [{ name = "uts46", specifier = "==0.2.0" }]
 
 [[package]]
 name = "remote-skills-langchain"
-version = "0.0.1"
+version = "0.0.1a0"
 source = { editable = "integrations/langchain-python" }
 dependencies = [
     { name = "deepagents" },

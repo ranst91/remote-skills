@@ -18,7 +18,9 @@ Bare LangGraph nodes do not automatically run LangChain middleware. The graph ex
 
 ## Create the adapter
 
-Use the locally built `@remote-skills/langchain` and `@remote-skills/client` tarballs, with the pinned upstream dependencies above. Package publication is a separate maintainer action.
+Use the locally built `@remote-skills/langchain` tarball at version `0.0.1-alpha.0` with `@remote-skills/client` at version `0.0.1-alpha.0` and the pinned upstream dependencies above. The client peer range is `^0.0.1-alpha.0`, which accepts the current released alpha. The new integration remains a local artifact; package publication is a separate maintainer action.
+
+`pnpm --filter @remote-skills/langchain pack:local -- --pack-destination ./artifacts` stages emitted code and a runtime-only manifest, following the released packages’ convention. It strips development scripts and workspace/catalog dependencies from the archive.
 
 ```ts
 import { createRemoteSkills } from "@remote-skills/client";
