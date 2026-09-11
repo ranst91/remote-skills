@@ -3,6 +3,12 @@
   "baseSha": "16af9989895d90dea5345cbd8b9438256459e04f",
   "scopes": {
     "core": {
+      "version": "0.0.1",
+      "previousVersion": "0.0.1-alpha.0",
+      "bump": "patch",
+      "channel": "stable"
+    },
+    "integration-ai-sdk": {
       "previousVersion": "0.0.1-alpha.0",
       "version": "0.0.1",
       "bump": "patch",
