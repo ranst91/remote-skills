@@ -34,6 +34,7 @@ function makeRepositoryFixture(testContext: TestContext): string {
   mkdirSync(join(repository, "scripts", "release"), { recursive: true });
   for (const name of [
     "release-lib.ts",
+    "release-scopes.ts",
     "installed-integration.ts",
     "python-artifacts.ts",
     "integration-dependencies.ts",

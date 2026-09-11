@@ -168,7 +168,7 @@ test("package input inventory is deterministic local metadata with verified mate
       version:
         entry.ecosystem === "pypi"
           ? readReleaseState().pythonVersion
-          : readReleaseState().npmVersion,
+          : readReleaseState().manifests.find((manifest) => manifest.name === entry.name)?.version,
     })),
   );
   assert.equal(inventory.materials.length > 0, true);

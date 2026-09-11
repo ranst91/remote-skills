@@ -495,11 +495,12 @@ for (const entry of treeEntries) {
   inventoryHash.update(`${entry.path}\0${entry.object}\0`);
   const kind = category(entry.path);
   if (kind === undefined) continue;
-  // The release workflows are an explicit maintainer-only exception. Their
+  // The release workflows and their artifact publisher are explicit maintainer-only exceptions. Their
   // permission, trigger and dry-run guards are checked by release-workflows.test.ts.
   if (
     entry.path === ".github/workflows/prepare-release.yml" ||
     entry.path === ".github/workflows/publish-release.yml" ||
+    entry.path === "scripts/release/publish-artifacts.ts" ||
     entry.path === ".github/workflows/README.md"
   )
     continue;

@@ -3,6 +3,11 @@ name: release / create-pr
 on:
   workflow_dispatch:
     inputs:
+      scope:
+        description: Package group to add or revise in the open release PR
+        required: true
+        type: choice
+        options: [core, integration-ai-sdk]
       bump:
         description: Initial 0.0.1 release, or next version component
         required: true
@@ -11,7 +16,7 @@ on:
       channel:
         description: Release channel
         required: true
-        default: alpha
+        default: stable
         type: choice
         options: [alpha, stable]
       dry_run:
@@ -50,9 +55,46 @@ jobs:
           version: "0.11.33"
           python-version: "3.11"
           enable-cache: false
-      - name: Preview or prepare coordinated versions
+      - name: Select the open release PR or start a new cycle
+        id: branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git config user.name github-actions
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          gh auth setup-git
+          git fetch origin main
+          main_sha=$(git rev-parse origin/main)
+          pr=$(gh pr list --state open --base main --head release/next --json number --jq '.[0].number // empty')
+          old_sha=$(git ls-remote --heads origin release/next | cut -f1)
+          if [ -n "$pr" ]; then
+            git fetch origin release/next
+            git switch -c release/next FETCH_HEAD
+            # A conflict stops the run and preserves both sides for review.
+            git merge --no-edit origin/main
+            baseline=$(node -e 'const fs=require("node:fs");const s=JSON.parse(fs.readFileSync("release-state.json","utf8"));if(s.schemaVersion!==2)throw Error("Open PR has legacy release intent; migrate it explicitly");console.log(s.baseSha)')
+          else
+            if [ -n "$old_sha" ]; then
+              merged_head=$(gh pr list --state merged --base main --head release/next --limit 1 --json headRefOid --jq '.[0].headRefOid // empty')
+              if [ "$merged_head" != "$old_sha" ]; then
+                echo 'Unmerged or edited release/next has no open PR; restore its PR or remove it explicitly.' >&2
+                exit 1
+              fi
+            fi
+            git switch -c release/next origin/main
+            baseline=$main_sha
+          fi
+          {
+            echo "base_sha=$baseline"
+            echo "old_sha=$old_sha"
+            echo "pr=$pr"
+          } >> "$GITHUB_OUTPUT"
+      - name: Preview or prepare selected versions
         id: release
         env:
+          SCOPE: ${{ inputs.scope }}
+          BASE_SHA: ${{ steps.branch.outputs.base_sha }}
           BUMP: ${{ inputs.bump }}
           CHANNEL: ${{ inputs.channel }}
           DRY_RUN: ${{ inputs.dry_run }}
@@ -60,32 +102,43 @@ jobs:
           set -euo pipefail
           mode=--dry-run
           if [ "$DRY_RUN" != true ]; then mode=--write; fi
-          node scripts/release/release.ts prepare "$BUMP" "$CHANNEL" "$mode" | tee /tmp/release-preview.json
+          node scripts/release/release.ts prepare "$SCOPE" "$BUMP" "$CHANNEL" "$mode" "$BASE_SHA" | tee /tmp/release-preview.json
           cat /tmp/release-preview.json >> "$GITHUB_STEP_SUMMARY"
       - name: Refresh lockfiles
         if: inputs.dry_run != true
         run: |
           pnpm install --lockfile-only --ignore-scripts
           uv lock
-      - name: Create release PR and explicitly start its CI
+      - name: Accumulate versions and explicitly start PR CI
         if: inputs.dry_run != true
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_VERSION: ${{ steps.release.outputs.npm_version }}
+          EXISTING_PR: ${{ steps.branch.outputs.pr }}
+          OLD_SHA: ${{ steps.branch.outputs.old_sha }}
         run: |
           set -euo pipefail
-          if git ls-remote --exit-code --heads origin release/next >/dev/null 2>&1; then
-            echo 'release/next already exists; finish or remove the old release branch first.' >&2
-            exit 1
+          # Stage only files reported by the preparer and refreshed lockfiles.
+          node -e 'const fs=require("node:fs"),cp=require("node:child_process");const result=JSON.parse(fs.readFileSync("/tmp/release-preview.json","utf8"));cp.execFileSync("git",["add","--",...result.changedFiles,"pnpm-lock.yaml","uv.lock"],{stdio:"inherit"})'
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: release packages"
           fi
-          git config user.name github-actions
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git switch -c release/next
-          git add packages/cli/package.json packages/sdk-typescript/package.json integrations/ai-sdk/package.json packages/sdk-python/pyproject.toml pnpm-lock.yaml uv.lock CHANGELOG.md release-state.json
-          git commit -m "chore: release v${RELEASE_VERSION}"
-          node scripts/release/release.ts validate "$(git rev-parse HEAD)"
+          # Plain pushes preserve concurrent human edits. A stale merged branch
+          # is replaced only with the exact SHA checked above as a lease.
           gh auth setup-git
-          git push --set-upstream origin release/next
-          gh pr create --base main --head release/next --title "chore: release v${RELEASE_VERSION}" --body "Coordinated release of the CLI, TypeScript and Python clients, and Vercel AI SDK integration. Review the version and changelog changes, then merge after CI passes."
+          if [ -n "$EXISTING_PR" ]; then
+            if [ "$(gh pr view "$EXISTING_PR" --json state --jq .state)" != OPEN ]; then
+              echo 'The release PR closed during preparation; rerun to start the next cycle.' >&2
+              exit 1
+            fi
+            git push --set-upstream origin release/next
+          else
+            git push --set-upstream --force-with-lease="refs/heads/release/next:$OLD_SHA" origin release/next
+            cat > /tmp/release-pr-body.md <<'BODY'
+          Selected package versions and approved release notes are recorded in release-state.json and CHANGELOG.md. Merge after candidate artifact checks pass to publish only that selection.
+
+          Run release / create-pr again to add another scope. Repeating a scope replaces its requested bump from the original main baseline; it does not compound. Maintainer edits to this PR body and committed notes are preserved.
+          BODY
+            gh pr create --base main --head release/next --title "chore: release packages" --body-file /tmp/release-pr-body.md
+          fi
           # GITHUB_TOKEN-created PR events do not start other workflows.
           gh workflow run ci.yml --ref release/next

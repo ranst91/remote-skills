@@ -144,6 +144,10 @@ jobs:
       - run: uv sync --locked --all-packages
       - name: Use the synced Python environment
         run: echo "REMOTE_SKILLS_PYTHON=$GITHUB_WORKSPACE/release-source/.venv/bin/python" >> "$GITHUB_ENV"
+      - name: Install the current verification tooling dependencies
+        run: pnpm --dir ../release-tooling install --frozen-lockfile
+      - name: Install the browser for candidate package scenarios
+        run: pnpm --dir ../release-tooling exec playwright install --with-deps chromium
       - name: Build and verify the exact artifacts from cold dependency caches
         run: pnpm --dir ../release-tooling publication:readiness "$RUNNER_TEMP/release-dist" "$PWD"
       - name: Read verified artifact metadata
