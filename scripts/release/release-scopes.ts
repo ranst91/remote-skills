@@ -13,11 +13,34 @@ export const releasePackages = [
     manifest: "integrations/ai-sdk/package.json",
     scope: "integration-ai-sdk",
   },
+  {
+    id: "langchain",
+    name: "@remote-skills/langchain",
+    manifest: "integrations/langchain/package.json",
+    scope: "integration-langchain",
+  },
+] as const;
+export const pythonPackages = [
+  {
+    id: "python",
+    name: "remote-skills",
+    manifest: "packages/sdk-python/pyproject.toml",
+    scope: "core",
+    importName: "remote_skills",
+  },
+  {
+    id: "langchain_python",
+    name: "remote-skills-langchain",
+    manifest: "integrations/langchain-python/pyproject.toml",
+    scope: "integration-langchain",
+    importName: "remote_skills_langchain",
+  },
 ] as const;
 export const pythonManifest = "packages/sdk-python/pyproject.toml";
 export const releaseScopes = {
-  core: { python: true },
-  "integration-ai-sdk": { python: false },
+  core: {},
+  "integration-ai-sdk": {},
+  "integration-langchain": {},
 } as const;
 export type Scope = keyof typeof releaseScopes;
 export function isScope(value: string): value is Scope {

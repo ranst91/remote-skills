@@ -1,10 +1,24 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { createServer, ServerResponse } from "node:http";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { isAbsolute, resolve } from "node:path";
+import { resolveCompatibleUvCommand } from "../../../scripts/lib/uv-command.ts";
+import {
+  assertLockedIntegrationResolution,
+  writeLockedIntegrationProject,
+} from "../../../scripts/release/integration-dependencies.ts";
 import { DUMMY_KEY, MODEL, object, type SkillFixture } from "./langchain-model.ts";
+import {
+  installCommand,
+  installNpm,
+  installPython,
+  type PackageSource,
+  packageSource,
+  pythonSelections,
+} from "./package-source.ts";
 import { runRemoteSkills } from "./public-cli.ts";
 import { createStaticOriginHandler, staticResourceKind } from "./static-host.ts";
 import { reservePort, until } from "./vercel-ai-sdk-process.ts";
@@ -43,10 +57,62 @@ class CountedOriginResponse extends ServerResponse {
   }
 }
 
+export function langchainCandidates(source: PackageSource): PackageSource {
+  const npmNames = ["@remote-skills/cli", "@remote-skills/client", "@remote-skills/langchain"];
+  const pythonNames = ["remote-skills", "remote-skills-langchain"];
+  const npm = source.npm.filter((entry) => npmNames.includes(entry.name));
+  const python = pythonSelections(source).filter((entry) => pythonNames.includes(entry.name));
+  assert.deepEqual(
+    npm.map((entry) => entry.name).sort(),
+    [...npmNames].sort(),
+    "The LangChain consumer requires explicit CLI, SDK, and TypeScript adapter candidates.",
+  );
+  assert.deepEqual(
+    python.map((entry) => entry.name).sort(),
+    [...pythonNames].sort(),
+    "The LangChain consumer requires distinct Python SDK and adapter candidates.",
+  );
+  assert.ok(
+    [...npm, ...python].every((entry) => isAbsolute(entry.spec)),
+    "The LangChain candidate consumer accepts exact local archives only.",
+  );
+  return { npm, python };
+}
+
+async function installCandidates(root: string, app: string, source: PackageSource) {
+  const manifest = await readFile(resolve(app, "package.json"), "utf8");
+  writeLockedIntegrationProject(repository, app, "examples/langchain");
+  await installNpm(app, source, manifest);
+  assertLockedIntegrationResolution(
+    repository,
+    app,
+    source.npm.map((entry) => entry.spec),
+  );
+  const requirements = await installCommand(
+    resolveCompatibleUvCommand(),
+    [
+      "export",
+      "--locked",
+      "--package",
+      "remote-skills-langchain-example",
+      "--no-emit-workspace",
+      "--no-header",
+      "--no-annotate",
+      "--no-hashes",
+    ],
+    repository,
+  );
+  const requirementsFile = resolve(root, "locked-python-runtime.txt");
+  await writeFile(requirementsFile, requirements);
+  await installPython(root, source, { requirementsFile });
+}
+
 export async function prepareExample() {
-  const scratch = resolve(repository, "dist");
+  const selected = await packageSource();
+  const candidates = selected ? langchainCandidates(selected) : undefined;
+  // Local mode shares pnpm's workspace ancestor; candidate mode owns external installs.
+  const scratch = candidates ? tmpdir() : resolve(repository, "dist");
   await mkdir(scratch, { recursive: true });
-  // Native Next compilation and pnpm dependencies must share a repository ancestor.
   const root = await mkdtemp(resolve(scratch, "langchain-browser-"));
   const app = resolve(root, "examples/langchain");
   const clean = () => rm(root, { recursive: true, force: true });
@@ -66,13 +132,17 @@ export async function prepareExample() {
       });
     }
     await cp(resolve(repository, "tsconfig.base.json"), resolve(root, "tsconfig.base.json"));
-    for (const [source, target] of [
-      [resolve(example, "node_modules"), resolve(app, "node_modules")],
-      [resolve(repository, "node_modules"), resolve(root, "node_modules")],
-      [resolve(repository, ".venv"), resolve(root, ".venv")],
-    ]) {
-      assert.ok(source && target);
-      await symlink(source, target, process.platform === "win32" ? "junction" : "dir");
+    if (candidates) {
+      await installCandidates(root, app, candidates);
+    } else {
+      for (const [source, target] of [
+        [resolve(example, "node_modules"), resolve(app, "node_modules")],
+        [resolve(repository, "node_modules"), resolve(root, "node_modules")],
+        [resolve(repository, ".venv"), resolve(root, ".venv")],
+      ]) {
+        assert.ok(source && target);
+        await symlink(source, target, process.platform === "win32" ? "junction" : "dir");
+      }
     }
     const markdown = await readFile(resolve(app, "skills/source/greeting/SKILL.md"), "utf8");
     const resource = await readFile(
@@ -86,7 +156,15 @@ export async function prepareExample() {
       "The authored instruction and resource fixture retain their independent contract.",
     );
     const skill: SkillFixture = { markdown, resource, description };
-    await runRemoteSkills(["build"], { cwd: resolve(app, "skills") });
+    if (candidates) {
+      await installCommand(
+        process.execPath,
+        [resolve(app, "node_modules/@remote-skills/cli/dist/cli.js"), "build"],
+        resolve(app, "skills"),
+      );
+    } else {
+      await runRemoteSkills(["build"], { cwd: resolve(app, "skills") });
+    }
     const dist = resolve(app, "skills/dist");
     const value: unknown = JSON.parse(
       await readFile(resolve(dist, ".well-known/agent-skills/index.json"), "utf8"),
@@ -172,7 +250,9 @@ export async function startNext(app: string, origin: string, model: string) {
     if (
       /^(?:OPENAI_|ANTHROPIC_|LANGCHAIN_|LANGSMITH_|REMOTE_SKILLS_|NEXT_PUBLIC_)/u.test(key) ||
       /^(?:https?|all)_proxy$/iu.test(key) ||
-      key === "NODE_OPTIONS"
+      ["NODE_OPTIONS", "NODE_PATH", "PYTHONPATH", "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT"].includes(
+        key,
+      )
     )
       delete env[key];
   }
@@ -188,6 +268,7 @@ export async function startNext(app: string, origin: string, model: string) {
     NEXT_TELEMETRY_DISABLED: "1",
     NO_PROXY: "127.0.0.1,localhost,::1",
     no_proxy: "127.0.0.1,localhost,::1",
+    PYTHONNOUSERSITE: "1",
   });
   const child = spawn(
     process.execPath,

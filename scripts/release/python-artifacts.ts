@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { resolveCompatibleUvCommand } from "../lib/uv-command.ts";
+import { pythonPackages } from "./release-scopes.ts";
 
 function run(command: string, args: string[], environment: NodeJS.ProcessEnv, cwd: string) {
   const result = spawnSync(command, args, {
@@ -9,6 +10,8 @@ function run(command: string, args: string[], environment: NodeJS.ProcessEnv, cw
     env: environment,
     encoding: "utf8",
     timeout: 120_000,
+    maxBuffer: 8 * 1024 * 1024,
+    shell: false,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(`Python artifact command failed: ${result.stderr}`);
@@ -19,30 +22,110 @@ export function preparePythonArtifactCache(
   root: string,
   directory: string,
   environment: NodeJS.ProcessEnv,
+  packages: readonly { name: string; manifest: string }[] = pythonPackages,
 ) {
   const uv = resolveCompatibleUvCommand({ environment });
   const python = environment.REMOTE_SKILLS_PYTHON;
   if (!python) throw new Error("REMOTE_SKILLS_PYTHON must select the synced Python interpreter");
+  if (!packages.length || new Set(packages.map((entry) => entry.name)).size !== packages.length)
+    throw new Error("Python artifact descriptors must be nonempty and unique");
+  const projects: unknown = JSON.parse(
+    run(
+      python,
+      [
+        "-I",
+        "-c",
+        `import json,sys,tomllib
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
+entries = json.loads(sys.argv[1])
+projects = [tomllib.load(open(entry["manifest"], "rb")) for entry in entries]
+versions = {canonicalize_name(p["project"]["name"]): p["project"]["version"] for p in projects}
+build = set()
+for entry, project in zip(entries, projects):
+    metadata = project["project"]
+    if metadata["name"] != entry["name"]:
+        raise RuntimeError("Python artifact descriptor identity differs from project")
+    internal = []
+    for value in metadata.get("dependencies", []):
+        requirement = Requirement(value)
+        if requirement.url:
+            raise RuntimeError("Python artifact dependencies must be registry requirements")
+        name = canonicalize_name(requirement.name)
+        if name in versions:
+            if requirement.marker or requirement.extras or not requirement.specifier.contains(versions[name], prereleases=True):
+                raise RuntimeError("Python artifact dependency is incompatible with candidate " + name)
+            internal.append(name)
+    if metadata["name"] == "remote-skills-langchain" and internal.count("remote-skills") != 1:
+        raise RuntimeError("Python integration must declare exactly one candidate SDK dependency")
+    for value in project["build-system"]["requires"]:
+        requirement = Requirement(value)
+        if requirement.url:
+            raise RuntimeError("Python build dependencies must be registry requirements")
+        build.add(value)
+print(json.dumps({"versions": versions, "build": sorted(build)}))`,
+        JSON.stringify(
+          packages.map((entry) => ({ ...entry, manifest: resolve(root, entry.manifest) })),
+        ),
+      ],
+      environment,
+      root,
+    ),
+  );
+  if (typeof projects !== "object" || projects === null) throw new Error("Invalid Python projects");
+  const versions: unknown = Reflect.get(projects, "versions");
+  const buildRequirements: unknown = Reflect.get(projects, "build");
+  if (
+    typeof versions !== "object" ||
+    versions === null ||
+    Array.isArray(versions) ||
+    !Object.values(versions).every((value) => typeof value === "string") ||
+    !Array.isArray(buildRequirements) ||
+    !buildRequirements.every((item): item is string => typeof item === "string")
+  )
+    throw new Error("Invalid Python project dependencies");
+  const exportArguments = [
+    "export",
+    "--locked",
+    ...packages.flatMap((entry) => ["--package", entry.name]),
+    "--no-emit-workspace",
+    "--no-header",
+    "--no-annotate",
+    "--no-default-groups",
+  ];
   const requirements = join(directory, "locked-runtime.txt");
-  const exported = run(
-    uv,
+  const exported = run(uv, exportArguments, environment, root);
+  writeFileSync(requirements, `${exported}\n`);
+  const constraints = join(directory, "runtime-constraints.txt");
+  const lockedRuntime = run(uv, [...exportArguments, "--no-hashes"], environment, root);
+  // Exported constraints must remain named, exact registry pins. Local archives
+  // enter the consumer only through installPythonArtifact's explicit arguments.
+  run(
+    python,
     [
-      "export",
-      "--locked",
-      "--package",
-      "remote-skills",
-      "--no-emit-workspace",
-      "--no-header",
-      "--no-annotate",
+      "-I",
+      "-c",
+      `import sys
+from packaging.requirements import Requirement
+for line in sys.argv[1].splitlines():
+    if not line.strip():
+        continue
+    requirement = Requirement(line)
+    if requirement.url or requirement.extras or len(requirement.specifier) != 1:
+        raise RuntimeError("Invalid locked Python runtime requirement")
+    pin = next(iter(requirement.specifier))
+    if pin.operator != "==" or "*" in pin.version:
+        raise RuntimeError("Python runtime dependencies must be exactly locked")`,
+      lockedRuntime,
     ],
     environment,
     root,
   );
-  writeFileSync(requirements, `${exported}\n`);
-  const constraints = join(directory, "runtime-constraints.txt");
   writeFileSync(
     constraints,
-    `${run(uv, ["export", "--locked", "--package", "remote-skills", "--no-emit-workspace", "--no-header", "--no-annotate", "--no-hashes"], environment, root)}\n`,
+    `${lockedRuntime}\n${Object.entries(versions)
+      .map(([name, version]) => `${name}==${version}`)
+      .join("\n")}\n`,
   );
   const venv = join(directory, "prepare-python");
   run(
@@ -72,41 +155,63 @@ export function preparePythonArtifactCache(
     environment,
     root,
   );
-  const buildRequirements: unknown = JSON.parse(
-    run(
-      python,
-      [
-        "-I",
-        "-c",
-        'import json,tomllib; print(json.dumps(tomllib.load(open("packages/sdk-python/pyproject.toml", "rb"))["build-system"]["requires"]))',
-      ],
-      environment,
-      root,
-    ),
-  );
-  if (
-    !Array.isArray(buildRequirements) ||
-    !buildRequirements.every((item): item is string => typeof item === "string")
-  )
-    throw new Error("Invalid Python build requirements");
   run(
     uv,
-    ["pip", "install", "--python", preparedPython, "--no-config", ...buildRequirements],
+    [
+      "pip",
+      "install",
+      "--python",
+      preparedPython,
+      "--no-config",
+      "--constraint",
+      constraints,
+      ...buildRequirements,
+    ],
     environment,
     root,
+  );
+  // Record the actual isolated build dependency versions too. A later sdist
+  // installation cannot resolve a different cached backend or build dependency.
+  const preparedPins = run(
+    uv,
+    ["pip", "freeze", "--python", preparedPython, "--no-config"],
+    environment,
+    root,
+  );
+  const canonicalName = (name: string) => name.toLowerCase().replaceAll(/[-_.]+/gu, "-");
+  const runtimeNames = new Set(
+    lockedRuntime.split("\n").map((line) => canonicalName(line.split("==")[0] ?? "")),
+  );
+  const buildPins = preparedPins
+    .split("\n")
+    .filter((line) => !runtimeNames.has(canonicalName(line.split("==")[0] ?? "")));
+  writeFileSync(
+    constraints,
+    `${lockedRuntime}\n${Object.entries(versions)
+      .map(([name, version]) => `${name}==${version}`)
+      .join("\n")}\n${buildPins.join("\n")}\n`,
   );
   return constraints;
 }
 
 export function installPythonArtifact(
-  distribution: string,
+  distribution: string | readonly string[],
   python: string,
   constraints: string,
   environment: NodeJS.ProcessEnv,
   cwd: string,
 ) {
+  const distributions = typeof distribution === "string" ? [distribution] : distribution;
+  if (!distributions.length) throw new Error("At least one local Python artifact is required");
+  for (const artifact of distributions) {
+    if (!artifact.endsWith(".whl") && !artifact.endsWith(".tar.gz"))
+      throw new Error("Python artifact installs require explicit wheel or sdist files");
+  }
+  const isolated = { ...environment };
+  for (const name of ["PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT"])
+    delete isolated[name];
   run(
-    resolveCompatibleUvCommand({ environment }),
+    resolveCompatibleUvCommand({ environment: isolated }),
     [
       "pip",
       "install",
@@ -117,9 +222,17 @@ export function installPythonArtifact(
       "--no-config",
       "--constraint",
       constraints,
-      distribution,
+      "--build-constraint",
+      constraints,
+      ...distributions.map((artifact) => resolve(cwd, artifact)),
     ],
-    environment,
+    isolated,
+    cwd,
+  );
+  run(
+    resolveCompatibleUvCommand({ environment: isolated }),
+    ["pip", "check", "--python", python, "--offline", "--no-config"],
+    isolated,
     cwd,
   );
 }

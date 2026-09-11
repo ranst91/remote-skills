@@ -2,12 +2,16 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { manifestObject } from "./release-lib.ts";
 
-export function writeLockedIntegrationProject(root: string, directory: string) {
+export function writeLockedIntegrationProject(
+  root: string,
+  directory: string,
+  integrationPath = "integrations/ai-sdk",
+) {
   const manifest = manifestObject(
-    readFileSync(join(root, "integrations/ai-sdk/package.json"), "utf8"),
+    readFileSync(join(root, integrationPath, "package.json"), "utf8"),
   );
-  const runtime = manifestObject(JSON.stringify(Reflect.get(manifest, "dependencies")));
-  const development = manifestObject(JSON.stringify(Reflect.get(manifest, "devDependencies")));
+  const runtime = manifestObject(JSON.stringify(Reflect.get(manifest, "dependencies") ?? {}));
+  const development = manifestObject(JSON.stringify(Reflect.get(manifest, "devDependencies") ?? {}));
   const consumerDependencies = Object.fromEntries(
     Object.entries(development).filter(
       ([, value]) =>
@@ -20,8 +24,8 @@ export function writeLockedIntegrationProject(root: string, directory: string) {
   const lock = readFileSync(join(root, "pnpm-lock.yaml"), "utf8");
   if (!lock.startsWith("lockfileVersion: '9.0'\n"))
     throw new Error("Unsupported pnpm lockfile format");
-  const importerStart = lock.indexOf("\n  integrations/ai-sdk:\n");
-  const contentStart = importerStart + "\n  integrations/ai-sdk:\n".length;
+  const importerStart = lock.indexOf(`\n  ${integrationPath}:\n`);
+  const contentStart = importerStart + `\n  ${integrationPath}:\n`.length;
   const nextImporter = lock.slice(contentStart).search(/\n {2}\S/u);
   const importerEnd = nextImporter < 0 ? -1 : contentStart + nextImporter;
   const packageStart = lock.indexOf("\npackages:\n");
