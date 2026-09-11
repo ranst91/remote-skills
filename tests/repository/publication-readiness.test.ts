@@ -32,7 +32,12 @@ function makeRepositoryFixture(testContext: TestContext): string {
   testContext.after(() => rmSync(repository, { recursive: true, force: true }));
   mkdirSync(join(repository, "scripts", "lib"), { recursive: true });
   mkdirSync(join(repository, "scripts", "release"), { recursive: true });
-  for (const name of ["release-lib.ts", "installed-integration.ts"])
+  for (const name of [
+    "release-lib.ts",
+    "installed-integration.ts",
+    "python-artifacts.ts",
+    "integration-dependencies.ts",
+  ])
     copyFileSync(`scripts/release/${name}`, join(repository, "scripts/release", name));
   copyFileSync(
     "scripts/check-publication-readiness.ts",
@@ -74,13 +79,12 @@ function runReadiness(repository: string, output: string) {
 test("publication readiness remains a registry-free local artifact gate in full CI", () => {
   assert.equal(
     Reflect.get(rootScripts, "publication:readiness"),
-    "node scripts/check-publication-readiness.ts",
+    "node scripts/release/verify-artifacts.ts",
   );
-  assert.match(workflow, /run: pnpm publication:readiness/u);
-  assert.match(workflow, /PUBLICATION_READINESS_OUTPUT:/u);
+  assert.match(workflow, /pnpm --dir \.\.\/release-tooling publication:readiness/u);
   assert.match(workflow, /\$\{\{ runner\.temp \}\}/u);
-  assert.doesNotMatch(workflow, /(?:npm|pypi|twine).*publish|upload-artifact|id-token:\s*write/iu);
-  assert.match(readinessScript, /materialize-locked-python-dependency\.py/u);
+  assert.doesNotMatch(workflow, /(?:npm|pypi|twine).*publish|id-token:\s*write/iu);
+  assert.match(readinessScript, /installPythonArtifact/u);
   assert.doesNotMatch(readinessScript, /--default-index/u);
   assert.match(
     readinessScript,

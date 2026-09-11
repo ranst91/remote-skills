@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
+  copyFileSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -21,10 +22,11 @@ import { createPnpmCommand } from "./lib/pnpm-command.ts";
 import { resolveCompatibleUvCommand } from "./lib/uv-command.ts";
 import { checkInstalledIntegration } from "./release/installed-integration.ts";
 import { readReleaseState } from "./release/release-lib.ts";
+import { installPythonArtifact } from "./release/python-artifacts.ts";
 
-const repositoryRoot = realpathSync(fileURLToPath(new URL("..", import.meta.url)));
-const pythonCommand =
-  process.env.REMOTE_SKILLS_PYTHON ?? (process.platform === "win32" ? "python" : "python3");
+const repositoryRoot = realpathSync(
+  process.env.REMOTE_SKILLS_SOURCE_ROOT ?? fileURLToPath(new URL("..", import.meta.url)),
+);
 const contract = {
   schemaVersion: 1,
   kind: "remote-skills-local-publication-readiness",
@@ -125,7 +127,6 @@ const offlineEnvironment: NodeJS.ProcessEnv = {
   COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
   npm_config_offline: "true",
   npm_config_registry: "http://127.0.0.1:9",
-  UV_DEFAULT_INDEX: "http://127.0.0.1:9/simple",
   UV_OFFLINE: "true",
   UV_PYTHON_DOWNLOADS: "never",
 };
@@ -366,12 +367,7 @@ function cleanInstallNpm(packed: PackedNpm, workRoot: string): void {
   }
 }
 
-function cleanInstallPython(
-  distribution: string,
-  dependency: string,
-  label: string,
-  workRoot: string,
-): string {
+function cleanInstallPython(distribution: string, label: string, workRoot: string): string {
   const environmentRoot = join(workRoot, `python-install-${label}`);
   run(uvCommand, [
     "venv",
@@ -385,28 +381,34 @@ function cleanInstallPython(
     process.platform === "win32"
       ? join(environmentRoot, "Scripts", "python.exe")
       : join(environmentRoot, "bin", "python");
-  run(uvCommand, [
-    "pip",
-    "install",
-    "--python",
-    python,
-    "--offline",
-    "--no-index",
-    "--no-deps",
-    "--no-config",
-    dependency,
-  ]);
-  run(uvCommand, [
-    "pip",
-    "install",
-    "--python",
-    python,
-    "--offline",
-    "--no-index",
-    "--no-deps",
-    "--no-config",
-    distribution,
-  ]);
+  const constraints = process.env.REMOTE_SKILLS_PYTHON_CONSTRAINTS;
+  if (!constraints) throw new Error("Python artifact dependencies must be prepared explicitly");
+  if (label === "wheel") {
+    const emptyCache = join(workRoot, "missing-python-dependencies");
+    mkdirSync(emptyCache);
+    let missingDependency = false;
+    try {
+      installPythonArtifact(
+        distribution,
+        python,
+        constraints,
+        { ...offlineEnvironment, UV_CACHE_DIR: emptyCache },
+        repositoryRoot,
+      );
+    } catch (error) {
+      if (
+        !(error instanceof Error) ||
+        !/not found in the cache/u.test(error.message) ||
+        !/requirements are unsatisfiable/u.test(error.message)
+      )
+        throw error;
+      missingDependency = true;
+    }
+    if (!missingDependency)
+      throw new Error("The artifact unexpectedly installed without its required dependency cache");
+    console.log("Verified: an empty cache rejects the wheel's missing runtime dependencies.");
+  }
+  installPythonArtifact(distribution, python, constraints, offlineEnvironment, repositoryRoot);
   run(python, [
     "-I",
     "-c",
@@ -474,18 +476,11 @@ try {
   if (!Array.isArray(pythonInspectionValue) || pythonInspectionValue.length !== 2) {
     throw new Error("Python artifact inspection must describe exactly two distributions");
   }
-  const dependencyDirectory = join(workRoot, "python-dependencies");
-  mkdirSync(dependencyDirectory);
-  const dependency = run(pythonCommand, [
-    "scripts/materialize-locked-python-dependency.py",
-    dependencyDirectory,
-  ]);
-
   cleanInstallNpm(cli, workRoot);
   cleanInstallNpm(client, workRoot);
   checkInstalledIntegration([client.filename, integration.filename], repositoryRoot);
-  const wheelPython = cleanInstallPython(wheel, dependency, "wheel", workRoot);
-  const sourcePython = cleanInstallPython(source, dependency, "sdist", workRoot);
+  const wheelPython = cleanInstallPython(wheel, "wheel", workRoot);
+  const sourcePython = cleanInstallPython(source, "sdist", workRoot);
   if (wheelPython !== sourcePython || !/^Python 3\.11\./u.test(wheelPython)) {
     throw new Error("Python clean-install versions differ or are unsupported");
   }
@@ -537,6 +532,16 @@ try {
     uv: version(uvCommand, ["--version"]),
   };
   requireRepositoryState(sourceCommit);
+  const retained = process.env.PUBLICATION_ARTIFACT_OUTPUT;
+  if (retained) {
+    for (const [kind, files] of [
+      ["npm", [cli.filename, client.filename, integration.filename]],
+      ["python", [wheel, source]],
+    ] as const) {
+      mkdirSync(join(retained, kind), { recursive: true });
+      for (const file of files) copyFileSync(file, join(retained, kind, basename(file)));
+    }
+  }
   const evidence = {
     ...contract,
     status: "local-artifacts-verified",

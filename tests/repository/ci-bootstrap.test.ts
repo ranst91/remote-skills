@@ -101,9 +101,8 @@ test("CI exposes independent static, test, package, and Windows contracts", () =
 
   for (const expected of [
     "runs-on: ubuntu-latest",
-    "run: pnpm package:check",
-    "run: pnpm publication:readiness",
-    "run: node scripts/check-no-publication.ts",
+    "pnpm --dir ../release-tooling publication:readiness",
+    "actions/upload-artifact@",
   ])
     assert.ok(packageJob.includes(expected), `missing package CI contract: ${expected}`);
 

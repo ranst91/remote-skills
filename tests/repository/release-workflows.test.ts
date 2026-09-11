@@ -27,9 +27,14 @@ test("release preparation is explicit, version-coordinated and dispatches CI for
   assert.doesNotMatch(prepare, /id-token:|npm publish|uv publish/u);
   assert.match(ci, /workflow_dispatch:/u);
   assert.match(ci, /workflow_call:/u);
-  assert.ok(ci.indexOf("pnpm package:cache") < ci.indexOf("run: pnpm package:check"));
-  assert.ok(publish.indexOf("pnpm package:cache") < publish.indexOf("pnpm release:smoke"));
-  assert.match(publish, /uv build packages\/sdk-python --no-create-gitignore --out-dir/u);
+});
+
+test("PR packaging verifies the same retained artifacts that publication downloads", () => {
+  assert.match(ci, /pnpm --dir \.\.\/release-tooling publication:readiness/u);
+  assert.match(ci, /actions\/upload-artifact@/u);
+  assert.doesNotMatch(publish, /\n {2}build:|pack:local|uv build|release:smoke/u);
+  assert.match(publish, /needs\.validate\.outputs\.artifact_name/u);
+  assert.match(ci, /path: release-tooling/u);
 });
 
 test("only intentional main release changes can reach protected publication", () => {
@@ -46,7 +51,7 @@ test("only intentional main release changes can reach protected publication", ()
   assert.match(publication, /id-token: write/u);
   assert.match(publication, /inputs\.dry_run != true/u);
   assert.match(publication, /for name in client cli ai-sdk/u);
-  assert.match(publication, /release-dist-\$\{\{ needs\.context\.outputs\.sha \}\}/u);
+  assert.match(publication, /needs\.validate\.outputs\.artifact_name/u);
   assert.ok(publication.indexOf("Verify registries") < publication.indexOf("gh release create"));
 });
 
