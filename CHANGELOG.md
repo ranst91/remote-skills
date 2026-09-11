@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [integration-ai-sdk/v0.0.1] - 2026-09-11
+
+- Release @remote-skills/ai-sdk at the version named in this section.
+
+## [core/v0.0.1] - 2026-09-11
+
+- Release @remote-skills/cli, @remote-skills/client, remote-skills at the version named in this section.
+
 ## [0.0.1-alpha.0] - 2026-09-10
 
 - Publish skill directories as static origins with the Remote Skills CLI.

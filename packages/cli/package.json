@@ -1,6 +1,6 @@
 {
   "name": "@remote-skills/cli",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1",
   "description": "Publisher CLI for standards-compatible Remote Skills origins.",
   "type": "module",
   "license": "Apache-2.0",
