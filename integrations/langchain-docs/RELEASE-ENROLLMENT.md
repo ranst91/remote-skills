@@ -89,3 +89,45 @@ run is claimed. No specification or task-state files changed, and no installed
 
 No registry upload, tag, external workflow, branch push or PR creation was performed
 by this implementation task. The manager opened draft PR #13 separately.
+
+
+## CI follow-up after the stable core release
+
+GitHub run `34610161867` tested the PR together with the newer stable core release
+and exposed two version assumptions plus a Linux response-completion race.
+Main `8e1137c` was merged without rewriting branch history. The adapter retains
+`0.0.1-alpha.0` / `0.0.1a0`; its reviewed Python SDK requirement is now exactly
+`remote-skills==0.0.1`. Inventory verification reads each Python package's own
+manifest. A regression covers advancing the adapter prerelease independently of
+the stable SDK.
+
+The deterministic transport regression received every advertised byte but
+reproduced an incomplete server receipt when filesystem EOF was delayed. Bounding
+the file stream to its declared length makes the response finish before a
+content-length client closes. Both complete and empty bodies pass the same strict
+completion/status/byte assertions. Native journeys retain catalog-digest,
+archive-provenance, and exact resource checks. Python constraint generation also
+explicitly disables uv color so CI's `FORCE_COLOR=0` cannot put ANSI escapes into
+a machine-readable requirements file; the regression runs actual uv under both
+forced-color values with `NO_COLOR` absent.
+
+On fix commit `966a2ec0dce29dd0b1fd3bed1220760518206f6a`, the cold gate passed all
+8 artifacts and 18 installed-candidate tests. All required local gates passed:
+`pnpm check --concurrency=1` (13 tasks), `pnpm typecheck` (19 tasks),
+`pnpm test:repository` (165 tests), `pnpm test:protocol` (184 tests), and
+`pnpm ci:verify-projects` (13 projects). These commands used `CI=true`,
+`FORCE_COLOR=0`, unset `NO_COLOR`, and the workspace Python interpreter. The cold
+artifact checks again used Python 3.11.11. This is macOS evidence, not a Linux CI
+success claim; the manager's new GitHub run remains the authoritative CI result.
+
+The next LangChain release preview also passed using the full fix-commit SHA as
+its explicit new-cycle baseline. After an intent has merged, supply that new
+40-character baseline SHA as the final preparation argument; the release workflow
+already supplies it. Omitting it would accumulate onto the existing issued record.
+No issued record was changed by this follow-up.
+
+Retained evidence is under
+`/Users/ran/.codex/visualizations/2026/09/10/01a08b16-ecd1-7261-9ebb-b112aa5812ac/langchain-ci-followup/`,
+including the red/green EOF regression logs, all local gate logs, exact artifacts,
+verification record, and next-cycle preview. The receipt records the subsequent
+GitHub run separately from these local results.
