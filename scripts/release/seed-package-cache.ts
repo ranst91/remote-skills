@@ -8,7 +8,9 @@ import { readReleaseState } from "./release-lib.ts";
 // Normal dependency setup may use the registry; the subsequent artifact gate may not.
 const directory = mkdtempSync(join(tmpdir(), "integration-dependency-cache-"));
 try {
-  for (const integration of readReleaseState().manifests.filter((entry) => entry.scope !== "core")) {
+  for (const integration of readReleaseState().manifests.filter(
+    (entry) => entry.scope !== "core",
+  )) {
     const consumer = join(directory, integration.id);
     mkdirSync(consumer);
     writeLockedIntegrationProject(process.cwd(), consumer, dirname(integration.manifestPath));

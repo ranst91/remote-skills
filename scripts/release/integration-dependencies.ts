@@ -11,7 +11,9 @@ export function writeLockedIntegrationProject(
     readFileSync(join(root, integrationPath, "package.json"), "utf8"),
   );
   const runtime = manifestObject(JSON.stringify(Reflect.get(manifest, "dependencies") ?? {}));
-  const development = manifestObject(JSON.stringify(Reflect.get(manifest, "devDependencies") ?? {}));
+  const development = manifestObject(
+    JSON.stringify(Reflect.get(manifest, "devDependencies") ?? {}),
+  );
   const consumerDependencies = Object.fromEntries(
     Object.entries(development).filter(
       ([, value]) =>
