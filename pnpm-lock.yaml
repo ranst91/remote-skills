@@ -145,9 +145,15 @@ importers:
       '@types/react-dom':
         specifier: 19.2.5
         version: 19.2.5(@types/react@19.2.18)
+      openai:
+        specifier: 7.13.0
+        version: 7.13.0(undici@7.29.1)(zod@4.3.6)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+      undici:
+        specifier: 7.29.1
+        version: 7.29.1
 
   examples/publisher:
     dependencies:
@@ -252,6 +258,12 @@ importers:
       openai:
         specifier: 7.13.0
         version: 7.13.0(undici@7.29.1)(zod@4.3.6)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

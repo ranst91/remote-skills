@@ -87,7 +87,11 @@ export function writeLockedIntegrationProject(
 function entries(lock: string, section: string) {
   const start = lock.indexOf(`\n${section}:\n`);
   if (start < 0) throw new Error(`Missing lockfile ${section}`);
-  const body = lock.slice(start + section.length + 3);
+  // pnpm emits YAML explicit keys once a peer snapshot key exceeds 1024 characters.
+  // Normalize only that equivalent mapping syntax; key and value comparison stays exact.
+  const body = lock
+    .slice(start + section.length + 3)
+    .replace(/^ {2}\? ('[^'\n]+'|[^'\s][^\n]*)\n {2}:(?= |\n|$)/gmu, "  $1:");
   const end = body.search(/\n\S/u);
   const result = new Map<string, string>();
   for (const block of (end < 0 ? body : body.slice(0, end)).split(/\n(?= {2}\S)/u)) {
