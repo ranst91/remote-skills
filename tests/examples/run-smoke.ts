@@ -7,13 +7,14 @@ import { resolve } from "node:path";
 import test from "node:test";
 
 import "./static-host.test.ts";
+import { createPnpmCommand } from "../../scripts/lib/pnpm-command.ts";
 
 import { startAuthenticatedOrigin } from "./helpers/authenticated-origin.ts";
-import { verifyPagesRoot } from "./helpers/verify-origin.ts";
+import { buildVersionedOrigin } from "./helpers/build-history.ts";
+
 import { runRemoteSkills } from "./helpers/public-cli.ts";
 import { startStaticOrigin } from "./helpers/static-host.ts";
-import { buildVersionedOrigin } from "./helpers/build-history.ts";
-import { createPnpmCommand } from "../../scripts/lib/pnpm-command.ts";
+import { verifyPagesRoot } from "./helpers/verify-origin.ts";
 
 const repositoryRoot = resolve(import.meta.dirname, "../..");
 const exampleRoot = resolve(repositoryRoot, "examples");
@@ -148,6 +149,19 @@ async function generatedFiles(root: string) {
 test("the complete local publishing and consumption example", async (context) => {
   const work = await mkdtemp(resolve(tmpdir(), "remote-skills-examples-"));
   try {
+    const source = process.env.REMOTE_SKILLS_E2E_PACKAGES;
+    const consumer =
+      process.env.REMOTE_SKILLS_E2E_CONSUMER ??
+      resolve(exampleRoot, "consumers/typescript/src/index.ts");
+    const installedPython = process.env.REMOTE_SKILLS_E2E_PYTHON;
+    if (source) {
+      assert.ok(
+        process.env.REMOTE_SKILLS_E2E_CLI &&
+          process.env.REMOTE_SKILLS_E2E_CONSUMER &&
+          installedPython,
+        "Run installed-package smoke through end-to-end.test.ts to prepare isolated packages.",
+      );
+    }
     const dist = await buildVersionedOrigin(work);
     const index = parseCatalog(
       await readFile(resolve(dist, ".well-known/agent-skills/index.json"), "utf8"),
@@ -195,7 +209,7 @@ test("the complete local publishing and consumption example", async (context) =>
       const consumerOrigin = `${privateOrigin.origin}/repository/`;
       const cacheRoot = resolve(work, "cache");
       const pnpm = createPnpmCommand(["--filter", "@remote-skills/client", "build"]);
-      await run(pnpm.command, pnpm.args);
+      if (!source) await run(pnpm.command, pnpm.args);
 
       await context.test(
         "authentication enforces 401/403 catalog and artifact access without credential disclosure",
@@ -239,27 +253,19 @@ test("the complete local publishing and consumption example", async (context) =>
           );
 
           const invalidToken = randomUUID();
-          const authenticationFailure = await run(
-            process.execPath,
-            [resolve(exampleRoot, "consumers/typescript/src/index.ts")],
-            {
-              env: environment(consumerOrigin, invalidToken, cacheRoot),
-              allowFailure: true,
-            },
-          );
+          const authenticationFailure = await run(process.execPath, [consumer], {
+            env: environment(consumerOrigin, invalidToken, cacheRoot),
+            allowFailure: true,
+          });
           assert.equal(authenticationFailure.code, 1);
           assert.equal(parseDiagnosticCode(authenticationFailure.stderr), "authentication_failed");
-          const authorizationFailure = await run(
-            process.execPath,
-            [resolve(exampleRoot, "consumers/typescript/src/index.ts")],
-            {
-              env: {
-                ...environment(consumerOrigin, token, cacheRoot),
-                REMOTE_SKILLS_SCOPE: "sales",
-              },
-              allowFailure: true,
+          const authorizationFailure = await run(process.execPath, [consumer], {
+            env: {
+              ...environment(consumerOrigin, token, cacheRoot),
+              REMOTE_SKILLS_SCOPE: "sales",
             },
-          );
+            allowFailure: true,
+          });
           assert.equal(authorizationFailure.code, 1);
           assert.equal(parseDiagnosticCode(authorizationFailure.stderr), "authorization_denied");
           const failureOutput = `${authenticationFailure.stdout}${authenticationFailure.stderr}${authorizationFailure.stdout}${authorizationFailure.stderr}`;
@@ -272,17 +278,15 @@ test("the complete local publishing and consumption example", async (context) =>
         "TypeScript and Python select the highest-compatible release with matching verified data",
         async () => {
           const sharedEnvironment = environment(consumerOrigin, token, cacheRoot);
-          const typescript = await run(
-            process.execPath,
-            [resolve(exampleRoot, "consumers/typescript/src/index.ts")],
-            { env: sharedEnvironment },
-          );
+          const typescript = await run(process.execPath, [consumer], { env: sharedEnvironment });
           const python = await run(
-            process.execPath,
-            [
-              resolve(import.meta.dirname, "helpers/run-python.ts"),
-              resolve(exampleRoot, "consumers/python/main.py"),
-            ],
+            installedPython ?? process.execPath,
+            installedPython
+              ? ["-I", resolve(exampleRoot, "consumers/python/main.py")]
+              : [
+                  resolve(import.meta.dirname, "helpers/run-python.ts"),
+                  resolve(exampleRoot, "consumers/python/main.py"),
+                ],
             { env: sharedEnvironment },
           );
           const typescriptResult = parseConsumerResult(typescript.stdout.trim());

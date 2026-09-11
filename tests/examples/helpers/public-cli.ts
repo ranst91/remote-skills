@@ -18,15 +18,14 @@ interface RemoteSkillsCommandOptions {
 }
 
 const exampleRoot = resolve(import.meta.dirname, "../../../examples");
-export const remoteSkillsEntrypoint = resolve(
-  exampleRoot,
-  "publisher/node_modules/@remote-skills/cli/dist/cli.js",
-);
+export const remoteSkillsEntrypoint =
+  process.env.REMOTE_SKILLS_E2E_CLI ??
+  resolve(exampleRoot, "publisher/node_modules/@remote-skills/cli/dist/cli.js");
 
 export function createRemoteSkillsCommand(
   arguments_: readonly string[],
   {
-    cliEntrypoint = remoteSkillsEntrypoint,
+    cliEntrypoint = process.env.REMOTE_SKILLS_E2E_CLI ?? remoteSkillsEntrypoint,
     nodeExecutable = process.execPath,
   }: RemoteSkillsCommandOptions = {},
 ) {

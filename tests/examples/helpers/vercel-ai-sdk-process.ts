@@ -8,6 +8,8 @@ import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 
+import { installNpm, packageSource } from "./package-source.ts";
+
 export const DUMMY_KEY = "not-a-real-key-vercel-ai-sdk-private-sentinel";
 const repository = resolve(import.meta.dirname, "../../..");
 
@@ -36,6 +38,7 @@ export function cleanEnvironment(): NodeJS.ProcessEnv {
     "AGENT_PORT",
     "SKILLS_PORT",
     "NODE_OPTIONS",
+    "NODE_PATH",
   ])
     delete env[key];
   return env;
@@ -167,6 +170,15 @@ export async function disposableExample() {
   const exampleRoot = resolve(root, "examples/vercel-ai-sdk");
   const clean = () => rm(root, { recursive: true, force: true });
   try {
+    const source = await packageSource();
+    if (source) {
+      await installNpm(
+        exampleRoot,
+        source,
+        await readFile(resolve(exampleRoot, "package.json"), "utf8"),
+      );
+      return { root, exampleRoot, clean };
+    }
     const env = cleanEnvironment();
     // The TypeScript install must not need uv merely because pnpm sees the Python workspace.
     env.REMOTE_SKILLS_UV = resolve(root, "unavailable-uv");

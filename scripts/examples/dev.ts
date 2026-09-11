@@ -305,7 +305,7 @@ async function main(): Promise<void> {
   process.once("SIGINT", stop);
   process.once("SIGTERM", stop);
   try {
-    await runBuild(root, controller.signal);
+    if (!process.env.REMOTE_SKILLS_E2E_PACKAGES) await runBuild(root, controller.signal);
     const services = exampleServices(root, ports, process.env);
     await runServices(services, {
       signal: controller.signal,
