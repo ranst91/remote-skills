@@ -94,7 +94,9 @@ strict; only the LangChain context skips upstream declaration checking because
 pinned DeepAgents declarations refer to missing Zod types. Consumer snippet bodies
 remain strict. Python examples are compiled/import-checked without executing their
 networked bodies. The docs build and production Markdown routes are exercised by
-`pnpm ci:test:examples` (final group result pending).
+`pnpm ci:test:examples`, which passed: docs production routes, existing Vercel
+browser suite (8 tests) and LangChain browser suite (7 tests), alongside the
+registered example/package tests. The final CI-group LangChain run took 24.6 seconds.
 
 The final demo is running at `http://127.0.0.1:5182`, with its local origin on
 port 8792 and server-configured model `gpt-4.1`. Fresh browser validation is
