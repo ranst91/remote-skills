@@ -1,33 +1,14 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnPnpmSync } from "../lib/pnpm-command.ts";
-import { manifestObject, stringField } from "./release-lib.ts";
+import { writeLockedIntegrationProject } from "./integration-dependencies.ts";
 
 // Normal dependency setup may use the registry; the subsequent artifact gate may not.
-const manifest = manifestObject(readFileSync("integrations/ai-sdk/package.json", "utf8"));
-const runtime: unknown = Reflect.get(manifest, "dependencies");
-const development: unknown = Reflect.get(manifest, "devDependencies");
-if (
-  typeof runtime !== "object" ||
-  runtime === null ||
-  typeof development !== "object" ||
-  development === null
-)
-  throw new Error("Integration dependency metadata is missing");
-const dependencies = { ...runtime, ai: stringField(development, "ai") };
 const directory = mkdtempSync(join(tmpdir(), "integration-dependency-cache-"));
 try {
-  writeFileSync(
-    join(directory, "package.json"),
-    JSON.stringify({
-      name: "integration-dependency-cache",
-      private: true,
-      packageManager: "pnpm@10.33.4",
-      dependencies,
-    }),
-  );
-  const result = spawnPnpmSync(["install", "--ignore-scripts", "--lockfile=false"], {
+  writeLockedIntegrationProject(process.cwd(), directory);
+  const result = spawnPnpmSync(["install", "--ignore-scripts", "--frozen-lockfile"], {
     cwd: directory,
     encoding: "utf8",
   });
@@ -35,6 +16,20 @@ try {
   if (result.status !== 0)
     throw new Error(
       `Integration dependency cache setup failed:\n${result.stdout}\n${result.stderr}`,
+    );
+  // Historical package tests resolve named dependencies. Fetch their metadata
+  // separately; this disposable resolution is never used by the final consumer.
+  const metadataDirectory = join(directory, "metadata");
+  mkdirSync(metadataDirectory);
+  copyFileSync(join(directory, "package.json"), join(metadataDirectory, "package.json"));
+  const metadata = spawnPnpmSync(
+    ["install", "--resolution-only", "--no-frozen-lockfile", "--ignore-scripts"],
+    { cwd: metadataDirectory, encoding: "utf8" },
+  );
+  if (metadata.error) throw metadata.error;
+  if (metadata.status !== 0)
+    throw new Error(
+      `Integration metadata preparation failed:\n${metadata.stdout}\n${metadata.stderr}`,
     );
   console.log("Integration runtime dependency cache is ready for offline artifact checks.");
 } finally {

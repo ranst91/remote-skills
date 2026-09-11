@@ -1,16 +1,13 @@
 import { spawnSync } from "node:child_process";
-import {
-  copyFileSync,
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnPnpmSync } from "../lib/pnpm-command.ts";
 import { manifestObject, stringField } from "./release-lib.ts";
+import {
+  assertLockedIntegrationResolution,
+  writeLockedIntegrationProject,
+} from "./integration-dependencies.ts";
 
 export function checkInstalledIntegration(archives: readonly string[], root = process.cwd()) {
   const consumer = mkdtempSync(join(tmpdir(), "installed-ai-sdk-"));
@@ -18,19 +15,7 @@ export function checkInstalledIntegration(archives: readonly string[], root = pr
     const manifest = manifestObject(
       readFileSync(join(root, "integrations/ai-sdk/package.json"), "utf8"),
     );
-    const dependencies: unknown = Reflect.get(manifest, "devDependencies");
-    if (typeof dependencies !== "object" || dependencies === null)
-      throw new Error("Missing integration development dependencies");
-    const aiVersion = stringField(dependencies, "ai");
-    writeFileSync(
-      join(consumer, "package.json"),
-      JSON.stringify({
-        name: "installed-integration-check",
-        private: true,
-        type: "module",
-        packageManager: "pnpm@10.33.4",
-      }),
-    );
+    writeLockedIntegrationProject(root, consumer);
     // Dependency setup seeds both package contents and metadata before this offline test.
     // Registry overrides change pnpm's metadata cache key, even with networking disabled.
     const offlineEnvironment = { ...process.env };
@@ -43,7 +28,6 @@ export function checkInstalledIntegration(archives: readonly string[], root = pr
         "--ignore-scripts",
         "--strict-peer-dependencies",
         ...archives.map((file) => resolve(file)),
-        `ai@${aiVersion}`,
       ],
       {
         cwd: consumer,
@@ -56,6 +40,11 @@ export function checkInstalledIntegration(archives: readonly string[], root = pr
       throw new Error(
         `Installed integration dependency resolution failed:\n${install.stdout}\n${install.stderr}`,
       );
+    assertLockedIntegrationResolution(
+      root,
+      consumer,
+      archives.map((file) => resolve(file)),
+    );
     const source = join(root, "integrations/ai-sdk/tests/installed-consumer.ts");
     copyFileSync(source, join(consumer, "check.ts"));
     const result = spawnSync(process.execPath, ["check.ts"], {

@@ -102,7 +102,7 @@ test("root commands use native Node.js TypeScript paths", () => {
   assert.equal(script(scripts, "package:inputs"), "node scripts/package-artifact-inputs.ts");
   assert.equal(
     script(scripts, "publication:readiness"),
-    "node scripts/check-publication-readiness.ts",
+    "node scripts/release/verify-artifacts.ts",
   );
   assert.equal(script(scripts, "schema:generate"), "node scripts/generate-config-schema.ts");
   assert.equal(script(scripts, "schema:check"), "node scripts/check-config-schema.ts");

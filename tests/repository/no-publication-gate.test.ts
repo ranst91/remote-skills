@@ -363,7 +363,9 @@ test("no-publication gate rejects commit drift and an unclean repository", (test
 test("CI wires the final boundary gate to the local readiness output", () => {
   const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 
-  assert.match(workflow, /run: node scripts\/check-no-publication\.ts/u);
-  assert.match(workflow, /NO_PUBLICATION_READINESS_INPUT:/u);
-  assert.match(workflow, /NO_PUBLICATION_EVIDENCE_OUTPUT:/u);
+  const gate = readFileSync("scripts/release/verify-artifacts.ts", "utf8");
+  assert.match(workflow, /pnpm --dir \.\.\/release-tooling publication:readiness/u);
+  assert.match(gate, /check-no-publication\.ts/u);
+  assert.match(gate, /"--readiness-evidence",\s*evidence/u);
+  assert.match(gate, /PUBLICATION_READINESS_OUTPUT: evidence/u);
 });

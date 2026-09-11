@@ -7,6 +7,19 @@ on:
       release_ref:
         type: string
         required: false
+    outputs:
+      npm_version:
+        value: ${{ jobs.package.outputs.npm_version }}
+      python_version:
+        value: ${{ jobs.package.outputs.python_version }}
+      npm_tag:
+        value: ${{ jobs.package.outputs.npm_tag }}
+      git_tag:
+        value: ${{ jobs.package.outputs.git_tag }}
+      prerelease:
+        value: ${{ jobs.package.outputs.prerelease }}
+      artifact_name:
+        value: ${{ jobs.package.outputs.artifact_name }}
   pull_request:
   push:
     branches: [main]
@@ -94,37 +107,56 @@ jobs:
   package:
     name: test (packaging)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: release-source
+    outputs:
+      npm_version: ${{ steps.metadata.outputs.npm_version }}
+      python_version: ${{ steps.metadata.outputs.python_version }}
+      npm_tag: ${{ steps.metadata.outputs.npm_tag }}
+      git_tag: ${{ steps.metadata.outputs.git_tag }}
+      prerelease: ${{ steps.metadata.outputs.prerelease }}
+      artifact_name: ${{ steps.metadata.outputs.artifact_name }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
+          path: release-tooling
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
           ref: ${{ inputs.release_ref || github.sha }}
+          path: release-source
+          persist-credentials: false
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
+          package_json_file: release-source/package.json
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-          cache: pnpm
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           version: "0.11.33"
-          enable-cache: true
-          cache-dependency-glob: uv.lock
+          enable-cache: false
           python-version: "3.11"
       - run: pnpm install --frozen-lockfile
       - run: uv sync --locked --all-packages
       - name: Use the synced Python environment
-        run: echo "REMOTE_SKILLS_PYTHON=$GITHUB_WORKSPACE/.venv/bin/python" >> "$GITHUB_ENV"
-      - name: Cache integration runtime dependencies before offline package checks
-        run: pnpm package:cache
-      - run: pnpm package:check
-      - run: pnpm publication:readiness
-        env:
-          PUBLICATION_READINESS_OUTPUT: ${{ runner.temp }}/remote-skills-publication-readiness.json
-      - run: node scripts/check-no-publication.ts
-        env:
-          NO_PUBLICATION_READINESS_INPUT: ${{ runner.temp }}/remote-skills-publication-readiness.json
-          NO_PUBLICATION_EVIDENCE_OUTPUT: ${{ runner.temp }}/remote-skills-no-publication.json
+        run: echo "REMOTE_SKILLS_PYTHON=$GITHUB_WORKSPACE/release-source/.venv/bin/python" >> "$GITHUB_ENV"
+      - name: Build and verify the exact artifacts from cold dependency caches
+        run: pnpm --dir ../release-tooling publication:readiness "$RUNNER_TEMP/release-dist" "$PWD"
+      - name: Read verified artifact metadata
+        id: metadata
+        run: |
+          node ../release-tooling/scripts/release/release.ts metadata
+          echo "artifact_name=release-dist-$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.metadata.outputs.artifact_name }}
+          path: ${{ runner.temp }}/release-dist/
+          if-no-files-found: error
+          retention-days: 7
 
   windows:
     name: test (packages windows)
