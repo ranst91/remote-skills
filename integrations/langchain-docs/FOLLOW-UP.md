@@ -99,11 +99,43 @@ browser suite (8 tests) and LangChain browser suite (7 tests), alongside the
 registered example/package tests. The final CI-group LangChain run took 24.6 seconds.
 
 The final demo is running at `http://127.0.0.1:5182`, with its local origin on
-port 8792 and server-configured model `gpt-4.1`. Fresh browser validation is
-pending the manager's independent run after readiness. The prepared harness
-records actual DOM native read details and chronological final replies,
-screenshots and video; it does not reread the intentionally canceled NDJSON body.
-Raw stream ordering remains covered by the route tests. Every live attempt,
-including any failure, must remain in the evidence.
+port 8792 and server-configured model `gpt-4.1`.
+
+### Fresh manager-owned live browser result
+
+On September 11, the manager independently ran
+`node /tmp/langchain-main-live-v2.mjs` against verified source commit
+`b8feef962f72d165e626bcdffab2429aa7205a93`; it exited zero. All six picker options
+passed with real Chromium, the real Next API, native runtimes and live `gpt-4.1`.
+Each submitted “Welcome a new teammate using our prescribed greeting style.”
+once in that run. Every option showed catalog discovery, native `read_file`
+instruction load, native reference load, those reads in order, and the prescribed
+“Ahoy, curious human!” opening after the tools. Every scoped application-error
+count was zero. This report-only update does not change the verified sources.
+
+The original run is also preserved. Its native read/order/greeting checks passed,
+but the harness falsely counted Next.js's empty accessibility route announcer as
+an application error. A separate fresh-page inspection with no submission
+confirmed an empty alert with id `__next-route-announcer__` inside
+`NEXT-ROUTE-ANNOUNCER`, while `.alert[role="alert"]` counted zero. The corrected
+harness scopes the check to that application error selector. This was a harness
+correction, not six model failures or an unrecorded retry-until-success loop.
+Each option was submitted once per recorded run.
+
+The harness checks actual rendered native inputs/outputs and chronological final
+replies. Completion is inferred from the enabled composer and absent app error;
+it does not reread the intentionally canceled NDJSON body. Raw stream ordering
+remains covered by the route tests. Summary screenshots collapse activity and
+scroll the chat to its final answer; separate reference screenshots and videos
+preserve the visible native read evidence. One successful live run does not
+promise deterministic model selection for every prompt; the historical bare
+“Hello!” behavior remains discretionary.
+
+Permanent manager-owned local evidence:
+
+- [Evidence index and all six screenshots/videos](/Users/ran/.codex/visualizations/2026/09/09/01a0865c-95e9-79b0-9d6e-1b1af289c939/remote-skills-proof/2026-09-11/README.md).
+- [Corrected results, source/fixture hashes and artifact paths](/Users/ran/.codex/visualizations/2026/09/09/01a0865c-95e9-79b0-9d6e-1b1af289c939/remote-skills-proof/2026-09-11/langchain-verified/results.json).
+- [Preserved original-run results](/Users/ran/.codex/visualizations/2026/09/09/01a0865c-95e9-79b0-9d6e-1b1af289c939/remote-skills-proof/2026-09-11/langchain-original/results.json).
+
 The earlier matrices in `live-validation.json` describe the pre-rebase delivery
 and are historical evidence, not verification of this follow-up.
