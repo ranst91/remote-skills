@@ -22,7 +22,7 @@ test("release preparation is explicit, scoped and dispatches CI for its generate
   assert.match(prepare, /options: \[alpha, stable\]/u);
   assert.match(prepare, /default: true/u);
   assert.doesNotMatch(prepare, /\n {2}(?:push|pull_request):/u);
-  assert.match(prepare, /core, integration-ai-sdk/u);
+  assert.match(prepare, /core, integration-ai-sdk, integration-langchain/u);
   assert.match(prepare, /gh workflow run ci\.yml --ref release\/next/u);
   assert.doesNotMatch(prepare, /id-token:|npm publish|uv publish/u);
   assert.match(ci, /workflow_dispatch:/u);

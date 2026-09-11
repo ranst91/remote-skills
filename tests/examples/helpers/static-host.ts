@@ -152,11 +152,14 @@ export function createStaticOriginHandler({ root, authorize }: StaticOriginOptio
         ...authorization?.headers,
       };
       response.writeHead(200, headers);
-      if (request.method === "HEAD") {
+      if (request.method === "HEAD" || file.metadata.size === 0) {
         response.end();
         return;
       }
-      await pipeline(file.handle.createReadStream(), response);
+      // End at the verified Content-Length without waiting for a second filesystem
+      // read to discover EOF. Content-length clients may close as soon as they
+      // receive that final byte, before a delayed EOF read could finish the response.
+      await pipeline(file.handle.createReadStream({ end: file.metadata.size - 1 }), response);
     } finally {
       await file.handle.close();
     }

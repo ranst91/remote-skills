@@ -7,7 +7,7 @@ on:
         description: Package group to add or revise in the open release PR
         required: true
         type: choice
-        options: [core, integration-ai-sdk]
+        options: [core, integration-ai-sdk, integration-langchain]
       bump:
         description: Initial 0.0.1 release, or next version component
         required: true

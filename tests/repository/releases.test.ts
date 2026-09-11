@@ -6,9 +6,10 @@ import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import {
   clientPeerCompatible,
-  nextReleaseVersion,
   manifestObject,
+  nextReleaseVersion,
   prepareRelease,
+  pythonPackages,
   readReleaseState,
   releasePackages,
   toPythonVersion,
@@ -31,11 +32,13 @@ function fixture(t: TestContext, version = "0.0.1-alpha.0", peer = `^${version}`
       }),
     );
   }
-  mkdirSync(join(root, "packages/sdk-python"), { recursive: true });
-  writeFileSync(
-    join(root, "packages/sdk-python/pyproject.toml"),
-    `[project]\nname = "remote-skills"\nversion = "${toPythonVersion(version)}"\n`,
-  );
+  for (const entry of pythonPackages) {
+    mkdirSync(dirname(join(root, entry.manifest)), { recursive: true });
+    writeFileSync(
+      join(root, entry.manifest),
+      `[project]\nname = "${entry.name}"\nversion = "${toPythonVersion(version)}"\n`,
+    );
+  }
   writeFileSync(
     join(root, "CHANGELOG.md"),
     "# Changelog\n\n## [Unreleased]\n\n- Improve skills.\n",
@@ -174,7 +177,7 @@ test("caret client compatibility respects zero versions and prerelease opt-in", 
 
 test("the original coordinated alpha remains retryable and rejects replay or package drift", (t) => {
   const { root, git } = fixture(t, "0.0.1");
-  for (const entry of releasePackages) {
+  for (const entry of releasePackages.filter((entry) => entry.scope !== "integration-langchain")) {
     const path = join(root, entry.manifest);
     writeFileSync(path, readFileSync(path, "utf8").replaceAll("0.0.1", "0.0.1-alpha.0"));
   }
@@ -234,4 +237,150 @@ test("empty Unreleased after the alpha produces factual scoped notes and preserv
   prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base);
   assert.match(readFileSync(path, "utf8"), /Release @remote-skills\/ai-sdk/u);
   assert.ok(readFileSync(path, "utf8").endsWith(history));
+});
+
+test("LangChain selection advances only its TypeScript and Python manifests and remains idempotent", (t) => {
+  const { root, base, git } = fixture(t);
+  const untouched = [
+    ...releasePackages.filter((p) => p.scope !== "integration-langchain").map((p) => p.manifest),
+    "packages/sdk-python/pyproject.toml",
+  ];
+  const originals = untouched.map((path) => readFileSync(join(root, path), "utf8"));
+  const preview = prepareRelease(root, "patch", "alpha", true, "integration-langchain", base);
+  assert.deepEqual(preview.changedFiles, [
+    "integrations/langchain/package.json",
+    "integrations/langchain-python/pyproject.toml",
+    "CHANGELOG.md",
+    "release-state.json",
+  ]);
+  assert.equal(
+    readReleaseState(root).manifests.find((p) => p.id === "langchain")?.version,
+    "0.0.1-alpha.0",
+  );
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", base);
+  const first = readFileSync(join(root, "release-state.json"), "utf8");
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", base);
+  assert.equal(readFileSync(join(root, "release-state.json"), "utf8"), first);
+  assert.deepEqual(
+    untouched.map((path) => readFileSync(join(root, path), "utf8")),
+    originals,
+  );
+  const state = readReleaseState(root);
+  assert.deepEqual(
+    state.selectedPackages.map((p) => [p.name, p.registry, p.version]),
+    [
+      ["@remote-skills/langchain", "npm", "0.0.1-alpha.1"],
+      ["remote-skills-langchain", "pypi", "0.0.1a1"],
+    ],
+  );
+  assert.equal(state.releases[0]?.gitTag, "integration-langchain/v0.0.1-alpha.1");
+  git("add", ".");
+  git("commit", "--quiet", "-m", "chore: release packages");
+  assert.deepEqual(
+    validateReleaseCommit(root, git("rev-parse", "HEAD")).selectedPackages,
+    state.selectedPackages,
+  );
+});
+
+test("LangChain accumulation preserves an independent core selection and rejects Python drift", (t) => {
+  const { root, base } = fixture(t, "1.2.3", "^1.0.0");
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  prepareRelease(root, "minor", "stable", false, "integration-langchain", base);
+  assert.equal(readReleaseState(root).pythonVersion, "1.2.4");
+  assert.equal(
+    readReleaseState(root).pythonManifests.find((p) => p.scope === "integration-langchain")
+      ?.version,
+    "1.3.0",
+  );
+  const path = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(path, readFileSync(path, "utf8").replace('version = "1.3.0"', 'version = "1.4.0"'));
+  assert.throws(() => readReleaseState(root), /version drift/u);
+});
+
+test("core promotion fails closed for an unselected exact Python SDK dependency, without edits", (t) => {
+  const { root, git } = fixture(t);
+  const path = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(path, readFileSync(path, "utf8") + 'dependencies = ["remote-skills==0.0.1a0"]\n');
+  git("add", ".");
+  git("commit", "--quiet", "-m", "fix: declare SDK dependency");
+  const base = git("rev-parse", "HEAD");
+  const before = readFileSync(join(root, "packages/cli/package.json"), "utf8");
+  assert.throws(
+    () => prepareRelease(root, "patch", "stable", false, "core", base),
+    /Python SDK dependency is incompatible/u,
+  );
+  assert.equal(readFileSync(join(root, "packages/cli/package.json"), "utf8"), before);
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", base);
+  assert.equal(readReleaseState(root).pythonVersion, "0.0.1a0");
+});
+
+test("core-only release preserves both LangChain manifest bytes", (t) => {
+  const { root, base } = fixture(t);
+  const paths = [
+    "integrations/langchain/package.json",
+    "integrations/langchain-python/pyproject.toml",
+  ];
+  const before = paths.map((path) => readFileSync(join(root, path), "utf8"));
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  assert.deepEqual(
+    paths.map((path) => readFileSync(join(root, path), "utf8")),
+    before,
+  );
+});
+
+test("legacy release reading tolerates newly enrolled packages being absent", (t) => {
+  const { root, git } = fixture(t);
+  for (const entry of [...releasePackages, ...pythonPackages].filter(
+    (p) => p.scope === "integration-langchain",
+  ))
+    rmSync(join(root, entry.manifest));
+  git("add", ".");
+  git("commit", "--quiet", "-m", "test: historical tree without integrations");
+  writeFileSync(
+    join(root, "release-state.json"),
+    JSON.stringify({ version: "0.0.1-alpha.0", previousVersion: "0.0.1", initial: true }),
+  );
+  assert.deepEqual(
+    readReleaseState(root).selectedPackages.map((p) => p.id),
+    ["cli", "client", "ai_sdk", "python"],
+  );
+});
+
+test("legacy intent never masks a missing newly enrolled tracked manifest", (t) => {
+  const { root } = fixture(t);
+  writeFileSync(
+    join(root, "release-state.json"),
+    JSON.stringify({ version: "0.0.1-alpha.0", previousVersion: "0.0.1", initial: true }),
+  );
+  rmSync(join(root, "integrations/langchain/package.json"));
+  assert.throws(() => readReleaseState(root), /ENOENT/u);
+});
+
+test("LangChain prereleases retain a reviewed stable Python SDK dependency", (t) => {
+  const { root, git } = fixture(t, "0.0.1", "^0.0.1");
+  const npm = join(root, "integrations/langchain/package.json");
+  writeFileSync(
+    npm,
+    readFileSync(npm, "utf8").replace('"version":"0.0.1"', '"version":"0.0.1-alpha.0"'),
+  );
+  const python = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(
+    python,
+    readFileSync(python, "utf8").replace('version = "0.0.1"', 'version = "0.0.1a0"') +
+      'dependencies = ["remote-skills==0.0.1"]\n',
+  );
+  git("add", ".");
+  git("commit", "--quiet", "-m", "test: reviewed stable SDK compatibility");
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", git("rev-parse", "HEAD"));
+  const state = readReleaseState(root);
+  assert.equal(state.pythonVersion, "0.0.1");
+  assert.equal(
+    state.pythonManifests.find((entry) => entry.name === "remote-skills-langchain")?.version,
+    "0.0.1a1",
+  );
+  assert.match(readFileSync(python, "utf8"), /remote-skills==0\.0\.1"/u);
+  assert.deepEqual(
+    state.selectedPackages.map((entry) => entry.name),
+    ["@remote-skills/langchain", "remote-skills-langchain"],
+  );
 });

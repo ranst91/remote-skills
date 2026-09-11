@@ -3,6 +3,7 @@
 These are quickstart references for the two sides of Remote Skills:
 
 - [Publisher](publisher/): validate, build, and serve a skill locally.
+- [LangChain family](langchain/): Next.js chat with native TypeScript/Python DeepAgents, LangChain and LangGraph agent subgraphs.
 - Consumers: [TypeScript](consumers/typescript/) and [Python](consumers/python/) load and
   read that skill through the public clients.
 

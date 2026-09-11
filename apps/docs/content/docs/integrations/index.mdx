@@ -1,0 +1,17 @@
+---
+title: Integrations
+description: Connect remote skills to your agent framework's native skill loader.
+---
+
+Framework integrations connect Remote Skills discovery, verified activation, and
+resource reads to an agent framework's existing skill machinery. The framework
+keeps responsibility for selecting a relevant skill and running the conversation.
+
+- [Vercel AI SDK](/docs/vercel-ai-sdk): use the AI SDK's native skill loader with
+  remotely published skill content.
+- [LangChain and DeepAgents](/docs/integrations/langchain): use native skills in
+  TypeScript and Python agents, including native agent subgraphs in LangGraph.
+
+For a framework-independent host, use the [TypeScript or Python client](/docs/consume)
+directly. Integrations preserve the same [trust boundary](/docs/trust-and-security):
+verified bytes do not grant permissions or authorize script execution.

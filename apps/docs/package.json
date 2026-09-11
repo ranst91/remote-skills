@@ -12,12 +12,13 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test tests/agent-accessibility.test.ts tests/docs-contract.test.ts tests/links.test.ts",
+    "test": "node --test tests/agent-accessibility.test.ts tests/docs-contract.test.ts tests/links.test.ts tests/langchain.test.ts",
     "test:agent-accessibility": "node --test tests/agent-accessibility.test.ts",
     "test:content": "node --test tests/docs-contract.test.ts",
     "test:links": "node --test tests/links.test.ts",
     "test:production-routes": "node --test tests/production-routes.test.ts",
-    "check": "pnpm test && pnpm typecheck && pnpm build && pnpm test:production-routes"
+    "check": "pnpm test && pnpm typecheck && pnpm build && pnpm test:production-routes",
+    "test:langchain": "node --test tests/langchain.test.ts"
   },
   "dependencies": {
     "fumadocs-core": "16.15.4",

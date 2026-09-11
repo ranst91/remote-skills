@@ -1,0 +1,42 @@
+{
+  "name": "@remote-skills/example-langchain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@remote-skills/cli": "workspace:*",
+    "@remote-skills/client": "workspace:*",
+    "@remote-skills/langchain": "workspace:*",
+    "@langchain/core": "1.2.10",
+    "@langchain/langgraph": "1.4.14",
+    "@langchain/openai": "1.5.12",
+    "deepagents": "1.13.4",
+    "langchain": "1.5.11",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.3.6",
+    "langsmith": "0.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "openai": "7.13.0",
+    "typescript": "catalog:",
+    "undici": "7.29.1"
+  },
+  "scripts": {
+    "dev": "pnpm -w ci:build:repository && node ../../scripts/examples/langchain.ts",
+    "check": "pnpm typecheck && node --test tests/*.test.ts && cd skills && node ../node_modules/@remote-skills/cli/dist/cli.js validate",
+    "test": "node --test tests/*.test.ts",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit"
+  }
+}

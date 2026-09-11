@@ -8,7 +8,7 @@ import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 
-import { installNpm, packageSource } from "./package-source.ts";
+import { installNpm, packageSource, pythonSelections } from "./package-source.ts";
 
 export const DUMMY_KEY = "not-a-real-key-vercel-ai-sdk-private-sentinel";
 const repository = resolve(import.meta.dirname, "../../..");
@@ -172,10 +172,17 @@ export async function disposableExample() {
   try {
     const source = await packageSource();
     if (source) {
+      const required = ["@remote-skills/cli", "@remote-skills/client", "@remote-skills/ai-sdk"];
+      const selected = {
+        npm: source.npm.filter((entry) => required.includes(entry.name)),
+        python: pythonSelections(source).filter((entry) => entry.name === "remote-skills"),
+      };
+      assert.deepEqual(selected.npm.map((entry) => entry.name).sort(), required.toSorted());
       await installNpm(
         exampleRoot,
-        source,
+        selected,
         await readFile(resolve(exampleRoot, "package.json"), "utf8"),
+        "examples/vercel-ai-sdk",
       );
       return { root, exampleRoot, clean };
     }

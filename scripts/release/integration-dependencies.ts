@@ -2,26 +2,37 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { manifestObject } from "./release-lib.ts";
 
-export function writeLockedIntegrationProject(root: string, directory: string) {
+export function writeLockedIntegrationProject(
+  root: string,
+  directory: string,
+  integrationPath = "integrations/ai-sdk",
+  includeCatalog = false,
+) {
   const manifest = manifestObject(
-    readFileSync(join(root, "integrations/ai-sdk/package.json"), "utf8"),
+    readFileSync(join(root, integrationPath, "package.json"), "utf8"),
   );
-  const runtime = manifestObject(JSON.stringify(Reflect.get(manifest, "dependencies")));
-  const development = manifestObject(JSON.stringify(Reflect.get(manifest, "devDependencies")));
+  const runtime = Object.fromEntries(
+    Object.entries(
+      manifestObject(JSON.stringify(Reflect.get(manifest, "dependencies") ?? {})),
+    ).filter(([, value]) => typeof value === "string" && !value.startsWith("workspace:")),
+  );
+  const development = manifestObject(
+    JSON.stringify(Reflect.get(manifest, "devDependencies") ?? {}),
+  );
   const consumerDependencies = Object.fromEntries(
     Object.entries(development).filter(
       ([, value]) =>
         typeof value === "string" &&
         !value.startsWith("workspace:") &&
-        !value.startsWith("catalog:"),
+        (includeCatalog || !value.startsWith("catalog:")),
     ),
   );
   const dependencies = { ...runtime, ...consumerDependencies };
   const lock = readFileSync(join(root, "pnpm-lock.yaml"), "utf8");
   if (!lock.startsWith("lockfileVersion: '9.0'\n"))
     throw new Error("Unsupported pnpm lockfile format");
-  const importerStart = lock.indexOf("\n  integrations/ai-sdk:\n");
-  const contentStart = importerStart + "\n  integrations/ai-sdk:\n".length;
+  const importerStart = lock.indexOf(`\n  ${integrationPath}:\n`);
+  const contentStart = importerStart + `\n  ${integrationPath}:\n`.length;
   const nextImporter = lock.slice(contentStart).search(/\n {2}\S/u);
   const importerEnd = nextImporter < 0 ? -1 : contentStart + nextImporter;
   const packageStart = lock.indexOf("\npackages:\n");
@@ -47,6 +58,18 @@ export function writeLockedIntegrationProject(root: string, directory: string) {
     const entry = entries.get(name);
     if (!entry?.some((line) => /^ {8}version: /u.test(line)))
       throw new Error(`Missing locked integration dependency: ${name}`);
+    if (String(dependencies[name]).startsWith("catalog:")) {
+      const pinned = entry
+        .find((line) => /^ {8}version: /u.test(line))
+        ?.trim()
+        .slice("version: ".length);
+      if (!pinned || !/^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.-]+)?$/u.test(pinned))
+        throw new Error(`Unsupported catalog dependency: ${name}`);
+      dependencies[name] = pinned;
+      return entry
+        .map((line) => (/^ {8}specifier: /u.test(line) ? `        specifier: ${pinned}` : line))
+        .join("\n");
+    }
     return entry.join("\n");
   });
   writeFileSync(
@@ -64,7 +87,11 @@ export function writeLockedIntegrationProject(root: string, directory: string) {
 function entries(lock: string, section: string) {
   const start = lock.indexOf(`\n${section}:\n`);
   if (start < 0) throw new Error(`Missing lockfile ${section}`);
-  const body = lock.slice(start + section.length + 3);
+  // pnpm emits YAML explicit keys once a peer snapshot key exceeds 1024 characters.
+  // Normalize only that equivalent mapping syntax; key and value comparison stays exact.
+  const body = lock
+    .slice(start + section.length + 3)
+    .replace(/^ {2}\? ('[^'\n]+'|[^'\s][^\n]*)\n {2}:(?= |\n|$)/gmu, "  $1:");
   const end = body.search(/\n\S/u);
   const result = new Map<string, string>();
   for (const block of (end < 0 ? body : body.slice(0, end)).split(/\n(?= {2}\S)/u)) {
