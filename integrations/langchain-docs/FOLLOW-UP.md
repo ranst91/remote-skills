@@ -36,7 +36,11 @@ with the SDK in separate external environments, verify dependencies and isolated
 import provenance, and invoke the native agent against the installed adapter.
 Both packages are registered in the local package-input and package-check gates.
 
-## Publication enrollment remains out of scope
+## Historical publication enrollment boundary
+
+The subsequent [scoped release enrollment](RELEASE-ENROLLMENT.md) supersedes the
+outstanding implementation work below. This section preserves the original
+September 11 delivery boundary.
 
 These new integration packages are **not publication-ready**. Local artifact
 verification is not enrollment in the coordinated release pipeline. No issued
