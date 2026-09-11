@@ -57,6 +57,7 @@ interface DiscoveryHarness {
   delays: number[];
   dependencies: CatalogDiscoveryDependencies;
   requests: TransportRequest[];
+  requestStarted: EventEmitter;
 }
 
 type Respond = (
@@ -180,12 +181,25 @@ function deferred<T>() {
   return { promise, resolve: resolvePromise };
 }
 
-async function waitForRequestCount(harness: DiscoveryHarness, count: number): Promise<void> {
-  const deadline = Date.now() + 2_000;
-  while (harness.requests.length < count && Date.now() < deadline) {
-    await delay(2);
+async function waitForRequestCount(
+  harness: DiscoveryHarness,
+  count: number,
+  discoveryRequest: Promise<unknown>,
+): Promise<void> {
+  // Persistent reads can take arbitrarily long before transport starts. Coordinate on
+  // arrival, while propagating a discovery failure instead of leaving a pending waiter.
+  const arrived = deferred<void>();
+  const checkCount = () => {
+    if (harness.requests.length >= count) arrived.resolve(undefined);
+  };
+  harness.requestStarted.on("request", checkCount);
+  try {
+    checkCount();
+    await Promise.race([arrived.promise, discoveryRequest]);
+    assert.equal(harness.requests.length, count);
+  } finally {
+    harness.requestStarted.off("request", checkCount);
   }
-  assert.equal(harness.requests.length, count);
 }
 
 async function forEachPersistentCache(
@@ -220,10 +234,12 @@ async function assertCatalogWinner(
 
 function createHarness(respond: Respond, options: HarnessOptions = {}): DiscoveryHarness {
   const requests: TransportRequest[] = [];
+  const requestStarted = new EventEmitter();
   const delays: number[] = [];
   let now = options.now ?? Date.parse("2026-08-25T10:00:00.000Z");
   return {
     requests,
+    requestStarted,
     delays,
     dependencies: {
       now: () => now,
@@ -234,6 +250,7 @@ function createHarness(respond: Respond, options: HarnessOptions = {}): Discover
       resolve: options.resolve ?? (async () => [{ address: "93.184.216.34", family: 4 as const }]),
       transport: async (request) => {
         requests.push(request);
+        requestStarted.emit("request");
         const response = await respond(request, requests.length);
         now += options.responseDelayMs ?? 0;
         return response;
@@ -688,7 +705,7 @@ test("a slower catalog response cannot overwrite a newer same-origin generation"
 
   const first = discovery.origin("acme");
   const second = discovery.origin("acme");
-  await waitForRequestCount(harness, 2);
+  await waitForRequestCount(harness, 2, second);
   newer.resolve(
     makeResponse(200, {
       body: catalogBytes([validEntry({ name: "newer" })]),
@@ -720,9 +737,9 @@ test("catalog generation ordering keeps memory and persistent caches on the same
       const discovery = createDiscovery({ acme: { url: "https://skills.example.test" } }, harness);
 
       const first = discovery.origin("acme");
-      await waitForRequestCount(harness, 1);
+      await waitForRequestCount(harness, 1, first);
       const second = discovery.origin("acme");
-      await waitForRequestCount(harness, 2);
+      await waitForRequestCount(harness, 2, second);
       const olderResponse = makeResponse(200, {
         body: catalogBytes([validEntry({ name: "older" })]),
         headers: { "cache-control": "max-age=300" },
@@ -772,9 +789,9 @@ test("aliases sharing one canonical catalog identity cannot commit older persist
     );
 
     const olderRequest = discovery.origin("older-alias");
-    await waitForRequestCount(harness, 1);
+    await waitForRequestCount(harness, 1, olderRequest);
     const newerRequest = discovery.origin("newer-alias");
-    await waitForRequestCount(harness, 2);
+    await waitForRequestCount(harness, 2, newerRequest);
     newer.resolve(
       makeResponse(200, {
         body: catalogBytes([validEntry({ name: "newer" })]),
@@ -926,9 +943,9 @@ test("discoveries sharing a persistence backend coordinate the same catalog iden
       );
 
       const olderRequest = olderDiscovery.origin("acme");
-      await waitForRequestCount(olderHarness, 1);
+      await waitForRequestCount(olderHarness, 1, olderRequest);
       const newerRequest = newerDiscovery.origin("acme");
-      await waitForRequestCount(newerHarness, 1);
+      await waitForRequestCount(newerHarness, 1, newerRequest);
       const olderResponse = makeResponse(200, {
         body: catalogBytes([validEntry({ name: "older" })]),
         headers: {
@@ -1045,7 +1062,7 @@ test("a persistent commit cannot be crossed by a later scoped request generation
     assert.equal(harness.requests.length, 1, `${cacheKind}: commit boundary`);
     releaseFirstPut.resolve(undefined);
     await first;
-    await waitForRequestCount(harness, 2);
+    await waitForRequestCount(harness, 2, second);
     await second;
 
     await assertCatalogWinner(
@@ -1078,9 +1095,9 @@ test("stale no-store and 304 completions cannot erase or overwrite the persisten
       if (uses304) await discovery.origin("acme");
 
       const staleRequest = discovery.origin("acme", { forceRevalidate: true });
-      await waitForRequestCount(harness, uses304 ? 2 : 1);
+      await waitForRequestCount(harness, uses304 ? 2 : 1, staleRequest);
       const winningRequest = discovery.origin("acme", { forceRevalidate: true });
-      await waitForRequestCount(harness, uses304 ? 3 : 2);
+      await waitForRequestCount(harness, uses304 ? 3 : 2, winningRequest);
       winner.resolve(
         makeResponse(200, {
           body: catalogBytes([validEntry({ name: "newer" })]),
@@ -1201,9 +1218,9 @@ test("invalid catalog replacement deletion is generation-ordered in memory and p
     await discovery.origin("acme");
 
     const staleRequest = discovery.origin("acme", { forceRevalidate: true });
-    await waitForRequestCount(harness, 2);
+    await waitForRequestCount(harness, 2, staleRequest);
     const winningRequest = discovery.origin("acme", { forceRevalidate: true });
-    await waitForRequestCount(harness, 3);
+    await waitForRequestCount(harness, 3, winningRequest);
     winner.resolve(
       makeResponse(200, {
         body: catalogBytes([validEntry({ name: "newer" })]),
