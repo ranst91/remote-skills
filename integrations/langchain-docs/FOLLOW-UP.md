@@ -1,0 +1,107 @@
+# LangChain integration follow-up — September 11, 2026
+
+Branch: `codex/feat-langchain-integrations`.
+Freshly fetched base: `5ac641417fe23287be275527169923d0a528b49a` (`origin/main`).
+The original integration commits were rebased as `e912521` and `7864c10`.
+The shared Integrations navigation scaffold was cherry-picked from Mastra's
+`f5759d72c208736dbdc54b71aa9e50b9123125fa` as `dd37185`.
+
+## Scope
+
+- Preserve native DeepAgents, plain LangChain and native-agent LangGraph subgraphs
+  in TypeScript and Python. Arbitrary raw graph nodes remain unsupported.
+- Reconcile the released SDK alpha versions and locally built integration artifacts.
+- Connect the actual browser, Next route, both native runtimes and a CLI-built
+  origin in one deterministic six-path test. Preserve existing focused tests.
+- Publishable-site documentation, six checked consumer examples, submenu and
+  agent-readable routes. Preserve `/docs/vercel-ai-sdk`.
+- Fresh live browser validation is manager-owned because approval review rejects
+  parent-task provider authorization in this implementation task. No indirect
+  provider execution is performed here.
+
+## Local alpha packaging
+
+The TypeScript adapter is `0.0.1-alpha.0` with client peer `^0.0.1-alpha.0`.
+The Python adapter is `0.0.1a0` with SDK requirement `remote-skills==0.0.1a0`.
+The native framework pins remain unchanged.
+
+TypeScript `pack:local` stages emitted code, license and README with a runtime-only
+manifest. Its check compares repeated pack bytes, inspects archive contents,
+installs SDK/adapter archives offline with strict peers into a fresh consumer,
+compares dependency resolutions against the source lock and rejects workspace
+import fallback. Offline resolution retains the normal registry metadata cache
+key, following main's existing behavior; `--offline` prevents registry requests.
+Python checks inspect both wheel and sdist metadata/content, install each pair
+with the SDK in separate external environments, verify dependencies and isolated
+import provenance, and invoke the native agent against the installed adapter.
+Both packages are registered in the local package-input and package-check gates.
+
+## Publication enrollment remains out of scope
+
+These new integration packages are **not publication-ready**. Local artifact
+verification is not enrollment in the coordinated release pipeline. No issued
+release intent, artifact manifest, tag or registry state was changed.
+
+A future shared release-owner change must cover:
+
+1. `scripts/release/release-lib.ts`: enroll the TypeScript integration descriptor
+   and generalize Python metadata/version handling beyond the single SDK;
+   explicitly decide how first publication of new integration packages joins the
+   coordinated version policy.
+2. `scripts/check-publication-readiness.ts`: include both new package artifacts,
+   dependency installation checks and resulting hash/provenance entries in a
+   newly generated future release manifest.
+3. `scripts/release/integration-dependencies.ts` and installed-consumer helpers:
+   extend the currently AI-SDK-specific release checks to the new native packages
+   without changing the source lock graph or relying on workspace resolution.
+4. `.github/workflows/prepare-release.yml` and `publish-release.yml`: include the
+   new package manifests in future release updates and select the verified new
+   archives for future uploads. The existing npm loop names only client, CLI and
+   AI SDK; Python publication handles only the SDK. Update release-workflow tests
+   together and preserve all already-issued records.
+
+That shared policy/enrollment work and any actual publication need separate
+maintainer handling. This delivery covers integration, example, docs and local
+verification readiness.
+
+## Verification and fresh browser evidence
+
+Verified locally on Darwin 24.1.0 arm64 with Node 24.21.0, pnpm 10.33.4,
+uv 0.11.33 and workspace Python 3.14.4. No Linux or Windows execution is claimed.
+Python checks used `UV_CACHE_DIR=/tmp/remote-skills-langchain-uv-cache`;
+combined gates also used `REMOTE_SKILLS_PYTHON` pointing at this checkout's
+`.venv/bin/python`.
+
+Passed commands:
+
+- `pnpm test:repository`: 118 tests.
+- `pnpm test:protocol`: 184 tests.
+- `pnpm typecheck`: 19 workspace tasks plus repository/policy checks.
+- `pnpm check`: all 13 workspace checks plus formatting, lint, schema,
+  repository TypeScript/policy, repository tests and protocol tests.
+- `pnpm ci:verify-projects`: 13 projects registered.
+- `pnpm package:check`: all six locally registered package gates, including
+  external installed TypeScript and Python consumers.
+- `pnpm --filter @remote-skills/langchain package:check`: repeated after independent
+  review added manifest fidelity assertions and the inherited tsconfig input.
+- `pnpm test:langchain`: real Chromium/Next/native-runtime E2E, six paths plus
+  parent test (7 passed). Only the external model is replaced with a deterministic
+  loopback model; origin archives come from the actual CLI.
+- `pnpm --filter @remote-skills/example-langchain build`: production build passed.
+
+The website's six snippets are checked in separate compiler contexts. Core stays
+strict; only the LangChain context skips upstream declaration checking because
+pinned DeepAgents declarations refer to missing Zod types. Consumer snippet bodies
+remain strict. Python examples are compiled/import-checked without executing their
+networked bodies. The docs build and production Markdown routes are exercised by
+`pnpm ci:test:examples` (final group result pending).
+
+The final demo is running at `http://127.0.0.1:5182`, with its local origin on
+port 8792 and server-configured model `gpt-4.1`. Fresh browser validation is
+pending the manager's independent run after readiness. The prepared harness
+records actual DOM native read details and chronological final replies,
+screenshots and video; it does not reread the intentionally canceled NDJSON body.
+Raw stream ordering remains covered by the route tests. Every live attempt,
+including any failure, must remain in the evidence.
+The earlier matrices in `live-validation.json` describe the pre-rebase delivery
+and are historical evidence, not verification of this follow-up.

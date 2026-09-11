@@ -1,5 +1,7 @@
 # LangChain family delivery
 
+This is the original September10 delivery record. See [the September11 follow-up](FOLLOW-UP.md) for the main rebase, alpha packaging, browser E2E and website documentation work.
+
 Branch: `codex/integration-langchain`.
 Starting shared commit: `44e088199d1488972a815a7a8df0db4c14021b36`.
 The fetched shared branch had not advanced beyond the assigned baseline.
