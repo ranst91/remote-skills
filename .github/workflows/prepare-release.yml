@@ -85,9 +85,11 @@ jobs:
             git switch -c release/next origin/main
             baseline=$main_sha
           fi
-          echo "base_sha=$baseline" >> "$GITHUB_OUTPUT"
-          echo "old_sha=$old_sha" >> "$GITHUB_OUTPUT"
-          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+          {
+            echo "base_sha=$baseline"
+            echo "old_sha=$old_sha"
+            echo "pr=$pr"
+          } >> "$GITHUB_OUTPUT"
       - name: Preview or prepare selected versions
         id: release
         env:
