@@ -533,6 +533,20 @@ function skillInput(contents: string, timestamp = "2026-08-25T10:00:00.000Z"): T
   };
 }
 
+async function assertLeaseLogicallyExpired(cache: DiskCache, digest: string, now: Date) {
+  const directory = join(cache.layoutDirectory, "leases", digest.replace("sha256:", ""));
+  const entries = (await readdir(directory)).filter((entry) => !entry.startsWith("."));
+  assert.equal(entries.length, 1);
+  const entry = entries[0];
+  assert.ok(entry);
+  const lease = parseJsonRecord(await readFile(join(directory, entry), "utf8"));
+  assert.ok(
+    now.getTime() - Date.parse(requiredString(lease, "renewed_at")) >
+      cache.leaseExpirySeconds * 1_000,
+    "the lease must be logically expired so retention depends on its live registration",
+  );
+}
+
 function immutableMap<Key, Value>(entries: ReadonlyMap<Key, Value>): ReadonlyMap<Key, Value> {
   const contents = new Map(entries);
   const view: ReadonlyMap<Key, Value> = {
@@ -2391,17 +2405,16 @@ test("same-process DiskCache instances honor a registered nonce instead of recla
   }
 });
 
-test("a demonstrably live lease owner survives a frozen registration timestamp", async () => {
+test("a fresh live registration protects a logically expired lease", async () => {
   const directory = await mkdtemp(join(tmpdir(), "remote-skills-cache-live-frozen-lease-"));
   const input = skillInput("# frozen live lease\n");
   const ownerNow = new Date("2026-08-25T10:00:00.000Z");
-  const cleanerNow = new Date("2026-08-25T10:00:02.000Z");
+  const cleanerNow = new Date("2026-08-25T10:04:00.000Z");
   let lease: CacheLease | undefined;
   try {
     const owner = new ReviewDiskCache({
       directory,
       now: () => ownerNow,
-      leaseExpirySeconds: 1,
       renewIntervalSeconds: 0,
       processNonce: "frozen-live-lease-owner",
       maxBytes: 0,
@@ -2411,12 +2424,12 @@ test("a demonstrably live lease owner survives a frozen registration timestamp",
     const cleaner = new ReviewDiskCache({
       directory,
       now: () => cleanerNow,
-      leaseExpirySeconds: 1,
       renewIntervalSeconds: 0,
       processNonce: "frozen-live-lease-cleaner",
       maxBytes: 0,
     });
 
+    await assertLeaseLogicallyExpired(cleaner, input.digest, cleanerNow);
     assert.equal((await cleaner.cleanup()).reclaimedLeases, 0);
     const protectedResult = await cleaner.evict();
     assert.deepEqual(protectedResult.evicted, []);
@@ -2885,7 +2898,7 @@ test("lease renewal scheduling is derived safely below expiry and uses the injec
   }
 });
 
-test("TypeScript eviction preserves an expired Python lease while its real process is live", async () => {
+test("TypeScript eviction protects an expired Python lease with a fresh live registration", async () => {
   const directory = await mkdtemp(join(tmpdir(), "remote-skills-cache-python-live-"));
   const ready = join(directory, "python-ready");
   const release = join(directory, "python-release");
@@ -2911,14 +2924,16 @@ test("TypeScript eviction preserves an expired Python lease while its real proce
     });
     await waitForPath(ready, 10_000, completion);
 
+    const cleanerNow = new Date("2040-01-01T00:00:00.000Z");
+    // Match the holder's default policy; logical expiry must not shorten its heartbeat window.
     const cleaner = new DiskCache({
       directory,
       maxBytes: 0,
       maxAgeSeconds: 0,
-      leaseExpirySeconds: 1,
       renewIntervalSeconds: 0,
-      now: () => new Date("2040-01-01T00:00:00.000Z"),
+      now: () => cleanerNow,
     });
+    await assertLeaseLogicallyExpired(cleaner, input.digest, cleanerNow);
     const result = await cleaner.evict();
     assert.deepEqual(result.retainedPinned, [input.digest]);
     assert.notEqual(await cleaner.getObject(input.digest), null);

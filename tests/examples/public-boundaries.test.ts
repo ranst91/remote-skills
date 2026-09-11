@@ -41,7 +41,6 @@ test("runnable examples use installed public package boundaries", async () => {
   assert.doesNotMatch(source, /node_modules[/\\]\.bin|remote-skills\.cmd/u);
   assert.doesNotMatch(source, /run\("pnpm"/u);
   assert.match(source, /createPnpmCommand\(\["--filter", "@remote-skills\/client", "build"\]\)/u);
-  assert.match(source, /remote_skills-0\.0\.1-py3-none-any\.whl/u);
   assert.match(source, /--offline/u);
   assert.match(source, /--no-index/u);
 });

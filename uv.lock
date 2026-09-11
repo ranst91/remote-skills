@@ -10,7 +10,7 @@ members = [
 
 [[package]]
 name = "remote-skills"
-version = "0.0.1"
+version = "0.0.1a0"
 source = { editable = "packages/sdk-python" }
 dependencies = [
     { name = "uts46" },
