@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFile, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 import { resolveCompatibleUvCommand } from "../../../scripts/lib/uv-command.ts";
 import { releasePackages } from "../../../scripts/release/release-scopes.ts";
@@ -231,6 +231,18 @@ export async function installPython(
   options: { requirementsFile?: string } = {},
 ) {
   const selections = pythonSelections(source);
+  const requirements = await Promise.all(
+    selections.map(async (entry) => {
+      if (!isAbsolute(entry.spec)) return entry.spec;
+      const archive = await realpath(entry.spec);
+      const url = pathToFileURL(archive);
+      url.hash = `sha256=${createHash("sha256")
+        .update(await readFile(archive))
+        .digest("hex")}`;
+      // uv validates the fragment hash and retains it in direct_url.json for local wheels.
+      return `${entry.name} @ ${url.href}`;
+    }),
+  );
   const uv = resolveCompatibleUvCommand();
   const venv = resolve(root, ".venv");
   await installCommand(uv, ["venv", "--no-project", "--no-config", venv], root);
@@ -244,7 +256,7 @@ export async function installPython(
       "--python",
       python,
       ...(options.requirementsFile ? ["--requirement", options.requirementsFile] : []),
-      ...selections.map((entry) => entry.spec),
+      ...requirements,
     ],
     root,
   );
@@ -275,8 +287,10 @@ export async function assertInstalledPython(root: string, python: string, source
           'assert path.is_relative_to(pathlib.Path(sys.prefix).resolve()), "Python import escaped isolated environment"',
           "if archive:",
           '    direct = json.loads(distribution.read_text("direct_url.json") or "{}")',
-          '    assert direct.get("url") == pathlib.Path(archive).resolve().as_uri(), "Python archive provenance differs"',
-          '    assert direct.get("archive_info", {}).get("hashes", {}).get("sha256") == digest, "Python archive bytes differ"',
+          "    expected_url = pathlib.Path(archive).resolve().as_uri()",
+          '    hashed_url = expected_url + "#sha256=" + digest',
+          '    assert direct.get("url") in (expected_url, hashed_url), "Python archive provenance differs"',
+          '    assert direct.get("url") == hashed_url or direct.get("archive_info", {}).get("hashes", {}).get("sha256") == digest, "Python archive bytes differ"',
           "print(path)",
         ].join("\n"),
         entry.name,

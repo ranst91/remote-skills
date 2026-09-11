@@ -77,8 +77,9 @@ for (const mode of ["deepagents", "langchain", "langgraph"] as const) {
       this.calls += 1;
       const loaded = messages.find(ToolMessage.isInstance);
       if (loaded) {
-        assert.ok(String(loaded.content).includes(instructions));
         assert.equal(downloads, 1);
+        // Native tool output may be a string or structured text content blocks.
+        assert.ok(JSON.stringify(loaded.content).includes(instructions));
       } else {
         assert.equal(downloads, 0, "Native discovery must remain metadata-only.");
         assert.ok(JSON.stringify(messages).includes("/skills/greeting/SKILL.md"));
