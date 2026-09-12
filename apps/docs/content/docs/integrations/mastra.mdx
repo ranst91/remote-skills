@@ -1,0 +1,116 @@
+---
+title: Mastra
+description: Let your Mastra agent discover and load remote skills.
+---
+
+`@remote-skills/mastra` connects your published skills to Mastra's Workspace skills. Your agent sees their names and descriptions, then uses its native tools to load the instructions and supporting files that fit the task.
+
+With a Mastra application and [published skills](/docs/hosting/archive-to-origin), you can give your agent this discovery and loading behavior without maintaining a local skill collection.
+
+<Steps>
+<Step>
+
+## Install the integration
+
+In your agent's application:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm install @remote-skills/mastra @remote-skills/client @mastra/core
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm add @remote-skills/mastra @remote-skills/client @mastra/core
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun add @remote-skills/mastra @remote-skills/client @mastra/core
+```
+
+</Tab>
+</Tabs>
+
+The integration runs in a Node.js server environment. In a web application, put the client and agent setup in your server route.
+
+</Step>
+<Step>
+
+## Connect your agent
+
+Configure the URL serving your skills, then spread the integration's `agentOptions` into your Mastra agent:
+
+```ts title="agent.ts"
+import { Agent } from "@mastra/core/agent";
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/mastra";
+
+const client = createRemoteSkills({
+  origins: { team: { url: "https://skills.example.com" } },
+});
+
+const skills = await remoteSkills({
+  client,
+  origin: "team",
+  instructions: "Help the user using our team's skills.",
+});
+try {
+  const agent = new Agent({
+    id: "assistant",
+    name: "Assistant",
+    model: "openai/gpt-4.1",
+    ...skills.agentOptions,
+  });
+
+  const response = await agent.stream(
+    "Welcome a new teammate using our prescribed greeting style.",
+    { maxSteps: 6 },
+  );
+  for await (const text of response.textStream) process.stdout.write(text);
+} finally {
+  await skills.close();
+}
+```
+
+This example uses `OPENAI_API_KEY` from your server environment. You can use your existing Mastra model instead; model credentials are separate from credentials for a private skill host.
+
+`maxSteps: 6` lets the agent continue after loading instructions or reading a file. Keep the integration open until the response stream has finished, as shown above, so those tools remain available throughout the response.
+
+</Step>
+<Step>
+
+## See the agent use a skill
+
+Send a request that matches one of your published skills. For a greeting skill, the welcome request above gives the agent a reason to select it. The streamed answer should follow the greeting style in that skill's instructions. If you published the Quickstart's `howdy` skill, look for **“Howdy partner!”** at the start of the answer.
+
+Only the catalog is loaded at setup. Selecting a skill downloads and verifies its complete contents; later reads reuse that same copy. The model decides which skills to use, so a request unrelated to your catalog can receive a direct answer.
+
+Your agent can now discover your published skills and follow their instructions through Mastra's native tools. To inspect the `skill` and `skill_read` calls alongside the answer, run the [Next.js example](https://github.com/ranst91/remote-skills/tree/main/examples/mastra), which includes a local skill publisher and expandable tool events.
+
+</Step>
+</Steps>
+
+## Keep your existing agent settings
+
+Pass your agent's instructions and tool hooks into `remoteSkills()` through its `instructions` and `hooks` options. The integration adds skill guidance and composes your hooks with the loading hooks it needs. Your existing tools and model settings can remain on the `Agent` configuration.
+
+Keep the returned `workspace`, `hooks`, and `instructions` together when spreading `agentOptions`. Replacing the workspace or overriding the hooks when constructing or running the agent can prevent a selected skill's instructions from loading. If your agent already has a Workspace, this integration supplies a separate skills-only Workspace; it does not merge into the existing one. The [Mastra API reference](/docs/api-reference#mastra-integration) covers composition and tool names.
+
+## Conversations and private skills
+
+For a conversation that needs the same skill versions across turns, keep one integration open until the conversation ends. A new integration can discover published updates; an existing one keeps its selected skills pinned. See [Caching and updates](/docs/cache-and-offline) for that lifetime.
+
+The integration uses your client's [authentication and scope settings](/docs/authentication-and-scopes), cache, and request limits. Each integration connects to one publisher and one credential context, so create separate integrations for different users' access. You can also pass a caller-owned SDK session or restrict skill versions; the [source options](/docs/api-reference#mastra-source-options) describe both forms.
+
+## Search and supporting files
+
+Mastra's `skill_search` searches the contents of explicitly named skills. It requires a nonempty `skillNames` list, so the agent can search relevant skills without downloading the whole catalog. `skill_read` returns text files; use the [client SDK](/docs/consume#read-resources-as-needed) when your application needs binary resources.
+
+The Workspace provides skill reading, without command execution or file-writing tools. A skill that requires running a script needs capabilities supplied separately by your application. Loading its instructions does not grant those permissions; see [Trust and security](/docs/trust-and-security).

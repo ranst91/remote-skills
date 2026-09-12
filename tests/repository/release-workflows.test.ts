@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
+import { releaseScopes } from "../../scripts/release/release-scopes.ts";
 
 const prepare = readFileSync(".github/workflows/prepare-release.yml", "utf8");
 const publish = readFileSync(".github/workflows/publish-release.yml", "utf8");
 const ci = readFileSync(".github/workflows/ci.yml", "utf8");
+
+test("every registered release scope is selectable exactly once", () => {
+  const choices = prepare.match(/options: \[(core[^\]]*)\]/u)?.[1]?.split(", ");
+  assert.ok(choices);
+  assert.deepEqual([...choices].sort(), Object.keys(releaseScopes).sort());
+});
 
 for (const [name, workflow] of [
   ["release previews", prepare],

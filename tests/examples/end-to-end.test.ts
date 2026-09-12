@@ -10,6 +10,7 @@ import {
   installNpm,
   installPython,
   packageSource,
+  pythonSelections,
 } from "./helpers/package-source.ts";
 
 test("runs the complete local publishing and consumption example once", async (t) => {
@@ -27,8 +28,18 @@ test("runs the complete local publishing and consumption example once", async (t
       delete env[name];
     const work = await mkdtemp(resolve(tmpdir(), "remote-skills-installed-smoke-"));
     t.after(() => rm(work, { recursive: true, force: true }));
-    await installNpm(work, source);
-    env.REMOTE_SKILLS_E2E_PYTHON = await installPython(work, source);
+    const coreNames = ["@remote-skills/cli", "@remote-skills/client"];
+    const selected = {
+      npm: source.npm.filter((entry) => coreNames.includes(entry.name)),
+      python: pythonSelections(source).filter((entry) => entry.name === "remote-skills"),
+    };
+    assert.deepEqual(selected.npm.map((entry) => entry.name).sort(), coreNames.toSorted());
+    assert.deepEqual(
+      selected.python.map((entry) => entry.name),
+      ["remote-skills"],
+    );
+    await installNpm(work, selected);
+    env.REMOTE_SKILLS_E2E_PYTHON = await installPython(work, selected);
     env.REMOTE_SKILLS_E2E_CONSUMER = await copyConsumer(
       work,
       resolve(import.meta.dirname, "../.."),

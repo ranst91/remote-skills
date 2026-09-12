@@ -5,8 +5,8 @@ import { setTimeout } from "node:timers/promises";
 import {
   missingFiles,
   object,
-  textField,
   parsePublicationPlan,
+  textField,
   verifyPublicationFiles,
 } from "./publication-lib.ts";
 

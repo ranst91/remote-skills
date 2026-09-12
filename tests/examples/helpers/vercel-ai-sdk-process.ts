@@ -8,7 +8,7 @@ import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 
-import { installNpm, packageSource } from "./package-source.ts";
+import { installNpm, packageSource, pythonSelections } from "./package-source.ts";
 
 export const DUMMY_KEY = "not-a-real-key-vercel-ai-sdk-private-sentinel";
 const repository = resolve(import.meta.dirname, "../../..");
@@ -157,7 +157,7 @@ function command(args: string[], cwd: string, env: NodeJS.ProcessEnv) {
   return { child, exited, terminate, output: () => output };
 }
 
-export async function disposableExample() {
+export async function disposableExample(example: "vercel-ai-sdk" | "mastra" = "vercel-ai-sdk") {
   const root = await mkdtemp(resolve(tmpdir(), "remote-skills-vercel-ai-sdk-"));
   const files = spawnSync("git", ["ls-files", "-z"], { cwd: repository, encoding: "utf8" });
   assert.equal(files.status, 0);
@@ -167,15 +167,30 @@ export async function disposableExample() {
     await mkdir(dirname(target), { recursive: true });
     await copyFile(resolve(repository, file), target);
   }
-  const exampleRoot = resolve(root, "examples/vercel-ai-sdk");
+  const exampleRoot = resolve(root, "examples", example);
   const clean = () => rm(root, { recursive: true, force: true });
   try {
     const source = await packageSource();
     if (source) {
+      const required = [
+        "@remote-skills/cli",
+        "@remote-skills/client",
+        example === "mastra" ? "@remote-skills/mastra" : "@remote-skills/ai-sdk",
+      ];
+      const selected = {
+        npm: source.npm.filter((entry) => required.includes(entry.name)),
+        python: pythonSelections(source).filter((entry) => entry.name === "remote-skills"),
+      };
+      assert.deepEqual(
+        selected.npm.map((entry) => entry.name).sort(),
+        required.toSorted(),
+        "The example installs only the publisher, client, and its exact candidate integration.",
+      );
       await installNpm(
         exampleRoot,
-        source,
+        selected,
         await readFile(resolve(exampleRoot, "package.json"), "utf8"),
+        `examples/${example}`,
       );
       return { root, exampleRoot, clean };
     }

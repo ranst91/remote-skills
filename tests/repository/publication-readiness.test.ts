@@ -13,7 +13,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type TestContext, test } from "node:test";
-
+import { pythonPackages, releasePackages } from "../../scripts/release/release-scopes.ts";
 import { runCommand } from "../helpers/run-command.ts";
 
 const rootManifest: unknown = JSON.parse(readFileSync("package.json", "utf8"));
@@ -36,6 +36,7 @@ function makeRepositoryFixture(testContext: TestContext): string {
     "release-lib.ts",
     "release-scopes.ts",
     "installed-integration.ts",
+    "installed-python-integration.ts",
     "python-artifacts.ts",
     "integration-dependencies.ts",
   ])
@@ -112,11 +113,11 @@ test("readiness command exposes a local-only evidence contract", () => {
   assert.equal(Reflect.get(contract, "schemaVersion"), 1);
   assert.equal(Reflect.get(contract, "kind"), "remote-skills-local-publication-readiness");
   assert.deepEqual(Reflect.get(contract, "artifacts"), [
-    "@remote-skills/cli npm tarball",
-    "@remote-skills/client npm tarball",
-    "@remote-skills/ai-sdk npm tarball",
-    "remote-skills Python wheel",
-    "remote-skills Python source distribution",
+    ...releasePackages.map(({ name }) => `${name} npm tarball`),
+    ...pythonPackages.flatMap(({ name }) => [
+      `${name} Python wheel`,
+      `${name} Python source distribution`,
+    ]),
   ]);
   assert.equal(Reflect.get(contract, "registryAccess"), false);
   assert.equal(Reflect.get(contract, "publication"), false);

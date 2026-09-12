@@ -7,3 +7,4 @@ __pycache__/
 *.py[cod]
 .DS_Store
 examples/vercel-ai-sdk/.env
+examples/mastra/.env

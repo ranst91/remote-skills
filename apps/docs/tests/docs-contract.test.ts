@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -34,7 +34,7 @@ const rootNavigation = [
   "hosting",
   "---Consume---",
   "consume",
-  "vercel-ai-sdk",
+  "integrations",
   "---Concepts---",
   "concepts",
   "hosting/local-or-remote",
@@ -50,10 +50,15 @@ const rootNavigation = [
 ];
 
 const hostingNavigation = ["archive-to-origin", "git-pages"];
+const integrationNavigation = ["index", "[Vercel AI SDK](/docs/vercel-ai-sdk)", "mastra"];
 const navigation = rootNavigation
   .filter((slug) => !slug.startsWith("---"))
   .flatMap((slug) =>
-    slug === "hosting" ? hostingNavigation.map((page) => `hosting/${page}`) : [slug],
+    slug === "hosting"
+      ? hostingNavigation.map((page) => `hosting/${page}`)
+      : slug === "integrations"
+        ? ["integrations/index", "vercel-ai-sdk", "integrations/mastra"]
+        : [slug],
   );
 
 test("docs authored runtime and test modules use the final TypeScript paths", () => {
@@ -96,6 +101,15 @@ test("canonical navigation lists every task 8.1 page and every page exists", () 
   assert.ok(hostingMeta !== null && typeof hostingMeta === "object" && "pages" in hostingMeta);
   assert.deepEqual(meta.pages, rootNavigation);
   assert.deepEqual(hostingMeta.pages, hostingNavigation);
+  const integrationsMeta: unknown = JSON.parse(
+    readFileSync(new URL("../content/docs/integrations/meta.json", import.meta.url), "utf8"),
+  );
+  assert.ok(
+    integrationsMeta !== null &&
+      typeof integrationsMeta === "object" &&
+      "pages" in integrationsMeta,
+  );
+  assert.deepEqual(integrationsMeta.pages, integrationNavigation);
   for (const slug of navigation) assert.equal(existsSync(new URL(`${slug}.mdx`, docsRoot)), true);
 });
 
@@ -300,10 +314,8 @@ test("Vercel AI SDK guidance preserves model choice, streaming lifetime, and run
     "Binary resources remain available",
   ])
     assert.ok(doc.includes(phrase), `missing integration boundary: ${phrase}`);
-  for (const slug of ["quickstart", "consume", "api-reference"]) {
-    assert.match(readDoc(slug), /\/docs\/vercel-ai-sdk/u);
-  }
   const api = readDoc("api-reference");
+  assert.match(api, /\/docs\/vercel-ai-sdk/u);
   for (const contract of [
     "## Vercel AI SDK integration",
     "RemoteSkillsOptions",
@@ -443,6 +455,41 @@ skills.tools.bash;
       },
     ]),
     /Property 'bash' does not exist/u,
+  );
+});
+
+test("consumer entry points lead to both framework integration guides", () => {
+  for (const slug of ["quickstart", "consume"]) {
+    assert.match(readDoc(slug), /\]\(\/docs\/integrations\)/u);
+  }
+  const integrations = readDoc("integrations/index");
+  for (const path of ["/docs/vercel-ai-sdk", "/docs/integrations/mastra"]) {
+    assert.ok(integrations.includes(`](${path})`), `missing integration guide: ${path}`);
+  }
+});
+
+test("Mastra snippets require complete setup and real native Agent APIs", async () => {
+  await assert.rejects(
+    verifyTypeScriptSnippets([
+      {
+        language: "ts",
+        info: "ts",
+        path: fileURLToPath(new URL("integrations/mastra.mdx", docsRoot)),
+        code: `import { Agent } from "@mastra/core/agent";
+import { remoteSkills } from "@remote-skills/mastra";
+const skills = await remoteSkills({ client, origin: "team" });
+client.session("team");
+const agent = new Agent({ id: "assistant", name: "Assistant", model: "openai/gpt-4.1", ...skills.agentOptions });
+agent.activateSkill("greeting");
+`,
+      },
+    ]),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /Cannot find name 'client'/u);
+      assert.match(error.message, /Property 'activateSkill' does not exist/u);
+      return true;
+    },
   );
 });
 

@@ -53,11 +53,13 @@ function parsePort(env: Readonly<NodeJS.ProcessEnv>, name: string, fallback: num
   return port;
 }
 
-export function validateEnvironment(env: Readonly<NodeJS.ProcessEnv>): ExampleEnvironment {
+export function validateEnvironment(
+  env: Readonly<NodeJS.ProcessEnv>,
+  defaults: ExampleEnvironment = { appPort: 5_173, skillsPort: 8_787 },
+): ExampleEnvironment {
   if (env.REMOTE_SKILLS_EXAMPLE_TEST !== "1" && !env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY is required.");
   }
-  const defaults = { appPort: 5_173, skillsPort: 8_787 };
   const ports = {
     appPort: parsePort(env, "APP_PORT", defaults.appPort),
     skillsPort: parsePort(env, "SKILLS_PORT", defaults.skillsPort),
@@ -202,8 +204,9 @@ function exampleServices(
   root: string,
   ports: ExampleEnvironment,
   env: Readonly<NodeJS.ProcessEnv>,
+  example: "vercel-ai-sdk" | "mastra" = "vercel-ai-sdk",
 ): ServiceDefinition[] {
-  const exampleRoot = resolve(root, "examples/vercel-ai-sdk");
+  const exampleRoot = resolve(root, `examples/${example}`);
   const skillsOrigin = `http://127.0.0.1:${ports.skillsPort}`;
   const publisherEnv = withoutKeys(
     env,
@@ -293,11 +296,16 @@ async function runBuild(root: string, signal: AbortSignal): Promise<void> {
 
 async function main(): Promise<void> {
   const root = resolve(import.meta.dirname, "../..");
-  const exampleRoot = resolve(root, "examples/vercel-ai-sdk");
+  const example = process.argv[2] ?? "vercel-ai-sdk";
+  if (example !== "vercel-ai-sdk" && example !== "mastra") throw new Error("Unknown example.");
+  const exampleRoot = resolve(root, `examples/${example}`);
   const envFile = resolve(exampleRoot, ".env");
   if (existsSync(envFile)) process.loadEnvFile(envFile);
   verifyToolchain(root);
-  const ports = validateEnvironment(process.env);
+  const ports = validateEnvironment(
+    process.env,
+    example === "mastra" ? { appPort: 5_181, skillsPort: 8_791 } : undefined,
+  );
   await assertPortsAvailable([ports.appPort, ports.skillsPort]);
 
   const controller = new AbortController();
@@ -306,7 +314,7 @@ async function main(): Promise<void> {
   process.once("SIGTERM", stop);
   try {
     if (!process.env.REMOTE_SKILLS_E2E_PACKAGES) await runBuild(root, controller.signal);
-    const services = exampleServices(root, ports, process.env);
+    const services = exampleServices(root, ports, process.env, example);
     await runServices(services, {
       signal: controller.signal,
       onReady: (name) => {
