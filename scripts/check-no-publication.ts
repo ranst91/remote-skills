@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { readReleaseState } from "./release/release-lib.ts";
 
 const ownRepository = realpathSync(fileURLToPath(new URL("..", import.meta.url)));
 const argumentsByName = new Map<string, string>();
@@ -447,16 +448,21 @@ function inspectReadiness(): NormalizedReadiness {
     addFinding("readiness-publication-claim", "readiness-output");
     return invalidReadiness();
   }
+  // Use the checked source's registrations, including its historical release state,
+  // rather than assuming every package known to newer verification tooling exists.
+  const state = readReleaseState(repository);
   const expectedArtifacts = new Set([
-    "npm:@remote-skills/cli:",
-    "npm:@remote-skills/client:",
-    "npm:@remote-skills/ai-sdk:",
-    "pypi:remote-skills:wheel",
-    "pypi:remote-skills:sdist",
+    ...state.manifests.map(({ name }) => `npm:${name}:`),
+    ...state.pythonManifests.flatMap(({ name }) => [`pypi:${name}:wheel`, `pypi:${name}:sdist`]),
   ]);
+  const expectedCount = expectedArtifacts.size;
   const artifacts = Array.isArray(readiness.artifacts) ? readiness.artifacts : [];
+  let unexpectedArtifact = false;
   for (const artifact of artifacts) {
-    expectedArtifacts.delete(`${artifact.ecosystem}:${artifact.name}:${artifact.format ?? ""}`);
+    if (
+      !expectedArtifacts.delete(`${artifact.ecosystem}:${artifact.name}:${artifact.format ?? ""}`)
+    )
+      unexpectedArtifact = true;
   }
   if (
     readiness.kind !== "remote-skills-local-publication-readiness" ||
@@ -465,7 +471,8 @@ function inspectReadiness(): NormalizedReadiness {
     readiness.registryAccess !== false ||
     readiness.source?.commit !== sourceCommit ||
     readiness.source?.trackedTreeClean !== true ||
-    artifacts.length !== 5 ||
+    artifacts.length !== expectedCount ||
+    unexpectedArtifact ||
     artifacts.some((artifact) => artifact.localArtifact !== true) ||
     expectedArtifacts.size !== 0 ||
     readiness.statement !== "No package was published; these are local artifact checks only."

@@ -27,7 +27,7 @@
     "schema:generate": "node scripts/generate-config-schema.ts",
     "schema:check": "node scripts/check-config-schema.ts",
     "windows": "pnpm --filter=@remote-skills/cli exec node --test --test-name-pattern=\"the local tarball installs offline and runs through direct and no-install binaries\" tests/package.test.ts && pnpm --filter=@remote-skills/client exec node --test --test-name-pattern=\"the local tarball installs from an empty offline store and executes a real session\" tests/package-gate.test.ts && pnpm --filter=@remote-skills/python-workspace exec node ../../scripts/run-uv.ts run --no-project --python 3.11 --no-python-downloads python -m unittest tests.test_package.PackageMetadataTests.test_distributions_install_offline_and_run_the_async_quickstart",
-    "ci:build:repository": "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk",
+    "ci:build:repository": "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk --filter=@remote-skills/mastra",
     "ci:check": "pnpm ci:build:repository && pnpm format:check && pnpm lint && pnpm schema:check && tsc -p tsconfig.repository.json && node scripts/check-typescript-policy.ts && pnpm test:repository:prepared && pnpm ci:verify-projects",
     "ci:test:core": "node scripts/run-ci-test-group.ts core",
     "ci:test:typescript": "node scripts/run-ci-test-group.ts typescript",
@@ -35,7 +35,8 @@
     "ci:test:protocol": "node scripts/run-ci-test-group.ts protocol",
     "ci:test:examples": "node scripts/run-ci-test-group.ts examples",
     "ci:verify-projects": "node scripts/verify-project-gates.ts",
-    "check": "pnpm ci:build:repository && pnpm format:check && pnpm lint && pnpm schema:check && tsc -p tsconfig.repository.json && node scripts/check-typescript-policy.ts && pnpm test:repository:prepared && pnpm test:protocol && node scripts/run-turbo.ts check"
+    "check": "pnpm ci:build:repository && pnpm format:check && pnpm lint && pnpm schema:check && tsc -p tsconfig.repository.json && node scripts/check-typescript-policy.ts && pnpm test:repository:prepared && pnpm test:protocol && node scripts/run-turbo.ts check",
+    "test:mastra": "node --test --test-concurrency=1 tests/examples/mastra.test.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",

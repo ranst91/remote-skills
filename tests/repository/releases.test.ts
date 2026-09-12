@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import {
+  buildPublicationPlan,
+  pythonArtifactPaths,
+} from "../../scripts/release/publication-plan.ts";
+import {
   clientPeerCompatible,
-  nextReleaseVersion,
   manifestObject,
+  nextReleaseVersion,
   prepareRelease,
   readReleaseState,
   releasePackages,
@@ -25,9 +30,7 @@ function fixture(t: TestContext, version = "0.0.1-alpha.0", peer = `^${version}`
       JSON.stringify({
         name: entry.name,
         version,
-        ...(entry.id === "ai_sdk"
-          ? { peerDependencies: { "@remote-skills/client": peer, ai: "^7.0.0" } }
-          : {}),
+        ...(entry.scope !== "core" ? { peerDependencies: { "@remote-skills/client": peer } } : {}),
       }),
     );
   }
@@ -234,4 +237,268 @@ test("empty Unreleased after the alpha produces factual scoped notes and preserv
   prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base);
   assert.match(readFileSync(path, "utf8"), /Release @remote-skills\/ai-sdk/u);
   assert.ok(readFileSync(path, "utf8").endsWith(history));
+});
+
+test("Mastra preview and preparation select only its package and preserve unrelated bytes", (t) => {
+  const { root, base, git } = fixture(t);
+  const untouched = [
+    ...releasePackages.filter((entry) => entry.id !== "mastra").map((entry) => entry.manifest),
+    "packages/sdk-python/pyproject.toml",
+  ];
+  const before = untouched.map((path) => readFileSync(join(root, path), "utf8"));
+  const preview = prepareRelease(root, "patch", "alpha", true, "integration-mastra", base);
+  assert.equal(git("status", "--porcelain"), "");
+  assert.deepEqual(preview.changedFiles, [
+    "integrations/mastra/package.json",
+    "CHANGELOG.md",
+    "release-state.json",
+  ]);
+  assert.equal(preview.version, "0.0.1-alpha.1");
+  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
+  const first = git("diff");
+  const firstIntent = readFileSync(join(root, "release-state.json"), "utf8");
+  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
+  assert.equal(git("diff"), first);
+  assert.equal(readFileSync(join(root, "release-state.json"), "utf8"), firstIntent);
+  assert.deepEqual(
+    untouched.map((path) => readFileSync(join(root, path), "utf8")),
+    before,
+  );
+  const state = readReleaseState(root);
+  assert.deepEqual(state.selectedScopes, ["integration-mastra"]);
+  assert.deepEqual(state.selectedPackages, [
+    {
+      id: "mastra",
+      name: "@remote-skills/mastra",
+      version: "0.0.1-alpha.1",
+      registry: "npm",
+      scope: "integration-mastra",
+    },
+  ]);
+  assert.equal(state.releases[0]?.gitTag, "integration-mastra/v0.0.1-alpha.1");
+  git("add", ".");
+  git("commit", "--quiet", "-m", "chore: release packages");
+  assert.deepEqual(
+    validateReleaseCommit(root, git("rev-parse", "HEAD")).selectedPackages,
+    state.selectedPackages,
+  );
+});
+
+test("Mastra accumulates with core and AI SDK against one unchanged release baseline", (t) => {
+  const { root, base } = fixture(t, "1.2.3", "^1.0.0");
+  prepareRelease(root, "minor", "stable", false, "integration-mastra", base);
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base);
+  prepareRelease(root, "patch", "stable", false, "integration-mastra", base);
+  const state = readReleaseState(root);
+  assert.equal(state.intent?.baseSha, base);
+  assert.deepEqual(
+    new Set(state.selectedScopes),
+    new Set(["core", "integration-ai-sdk", "integration-mastra"]),
+  );
+  assert.ok(
+    Object.values(state.intent?.scopes ?? {}).every(
+      (entry) => entry.previousVersion === "1.2.3" && entry.version === "1.2.4",
+    ),
+  );
+  assert.deepEqual(
+    new Set(state.selectedPackages.map((entry) => entry.id)),
+    new Set(["cli", "client", "ai_sdk", "mastra", "python"]),
+  );
+  assert.doesNotMatch(
+    readFileSync(join(root, "CHANGELOG.md"), "utf8"),
+    /integration-mastra\/v1\.3\.0/u,
+  );
+});
+
+test("issued legacy alpha remains exact when later integrations were absent from its commit", (t) => {
+  const { root, git } = fixture(t, "0.0.1");
+  for (const entry of releasePackages.filter(
+    (entry) => !["cli", "client", "ai_sdk"].includes(entry.id),
+  )) {
+    git("rm", entry.manifest);
+  }
+  git("commit", "--quiet", "--allow-empty", "-m", "chore: historical foundation");
+  for (const entry of releasePackages.filter((entry) =>
+    ["cli", "client", "ai_sdk"].includes(entry.id),
+  )) {
+    const path = join(root, entry.manifest);
+    writeFileSync(path, readFileSync(path, "utf8").replaceAll("0.0.1", "0.0.1-alpha.0"));
+  }
+  const python = join(root, "packages/sdk-python/pyproject.toml");
+  writeFileSync(python, readFileSync(python, "utf8").replace("0.0.1", "0.0.1a0"));
+  writeFileSync(
+    join(root, "release-state.json"),
+    JSON.stringify({ version: "0.0.1-alpha.0", previousVersion: "0.0.1", initial: true }),
+  );
+  writeFileSync(
+    join(root, "CHANGELOG.md"),
+    "# Changelog\n\n## [0.0.1-alpha.0]\n\n- Issued alpha.\n",
+  );
+  git("add", ".");
+  git("commit", "--quiet", "-m", "chore: release v0.0.1-alpha.0");
+  const state = validateReleaseCommit(root, git("rev-parse", "HEAD"));
+  assert.deepEqual(
+    state.selectedPackages.map((entry) => entry.id),
+    ["cli", "client", "ai_sdk", "python"],
+  );
+});
+
+function artifactBytes(root: string, path: string, content: string) {
+  mkdirSync(dirname(join(root, path)), { recursive: true });
+  writeFileSync(join(root, path), content);
+  return {
+    path,
+    sha256: createHash("sha256").update(content).digest("hex"),
+    integrity: `sha512-${createHash("sha512").update(content).digest("base64")}`,
+  };
+}
+
+test("Mastra publication hashes only selected artifacts while installed dependencies stay available", (t) => {
+  const { root, base } = fixture(t);
+  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
+  const output = join(root, "artifacts");
+  const selected = artifactBytes(
+    output,
+    "npm/remote-skills-mastra-0.0.1-alpha.1.tgz",
+    "selected Mastra archive",
+  );
+  artifactBytes(
+    output,
+    "npm/remote-skills-client-0.0.1-alpha.0.tgz",
+    "SDK used by installed tests",
+  );
+  artifactBytes(
+    output,
+    "npm/remote-skills-ai-sdk-0.0.1-alpha.0.tgz",
+    "AI SDK regression dependency",
+  );
+  const state = readReleaseState(root);
+  const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
+  const plan = buildPublicationPlan(state, output, changelog);
+  assert.deepEqual(plan.packages, [
+    {
+      name: "@remote-skills/mastra",
+      version: "0.0.1-alpha.1",
+      registry: "npm",
+      npmTag: "alpha",
+      files: [selected],
+    },
+  ]);
+  assert.deepEqual(plan.releases, [
+    {
+      scope: "integration-mastra",
+      version: "0.0.1-alpha.1",
+      gitTag: "integration-mastra/v0.0.1-alpha.1",
+      prerelease: true,
+      notes: "release-notes-integration-mastra.md",
+    },
+  ]);
+  assert.match(
+    readFileSync(join(output, "release-notes-integration-mastra.md"), "utf8"),
+    /## \[integration-mastra\/v0\.0\.1-alpha\.1\]/u,
+  );
+  rmSync(join(output, selected.path));
+  assert.throws(() => buildPublicationPlan(state, output, changelog), { code: "ENOENT" });
+});
+
+test("multi-scope publication keeps exactly selected packages with the client first", (t) => {
+  const { root, base } = fixture(t);
+  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
+  prepareRelease(root, "patch", "alpha", false, "core", base);
+  prepareRelease(root, "patch", "alpha", false, "integration-ai-sdk", base);
+  const output = join(root, "artifacts");
+  for (const name of ["mastra", "cli", "client", "ai-sdk"]) {
+    artifactBytes(
+      output,
+      `npm/remote-skills-${name}-0.0.1-alpha.1.tgz`,
+      `${name} selected archive`,
+    );
+  }
+  artifactBytes(output, "python/remote_skills-0.0.1a1-py3-none-any.whl", "selected Python wheel");
+  artifactBytes(output, "python/remote_skills-0.0.1a1.tar.gz", "selected Python source");
+  artifactBytes(output, "npm/unselected-package-9.0.0.tgz", "unselected archive");
+  const plan = buildPublicationPlan(
+    readReleaseState(root),
+    output,
+    readFileSync(join(root, "CHANGELOG.md"), "utf8"),
+  );
+  assert.deepEqual(
+    plan.packages.map((entry) => entry.name),
+    [
+      "@remote-skills/client",
+      "@remote-skills/mastra",
+      "@remote-skills/cli",
+      "remote-skills",
+      "@remote-skills/ai-sdk",
+    ],
+  );
+  assert.deepEqual(
+    plan.releases.map((entry) => entry.gitTag),
+    [
+      "integration-mastra/v0.0.1-alpha.1",
+      "core/v0.0.1-alpha.1",
+      "integration-ai-sdk/v0.0.1-alpha.1",
+    ],
+  );
+});
+
+test("Python alpha.1 publication requires exact filenames and cannot substitute alpha.10", (t) => {
+  const { root, base } = fixture(t);
+  prepareRelease(root, "patch", "alpha", false, "core", base);
+  const output = join(root, "artifacts");
+  for (const name of ["cli", "client"]) {
+    artifactBytes(
+      output,
+      `npm/remote-skills-${name}-0.0.1-alpha.1.tgz`,
+      `${name} selected archive`,
+    );
+  }
+  artifactBytes(output, "python/remote_skills-0.0.1a10-py3-none-any.whl", "wrong alpha wheel");
+  artifactBytes(output, "python/remote_skills-0.0.1a10.tar.gz", "wrong alpha source");
+  assert.deepEqual(pythonArtifactPaths({ name: "remote-skills", version: "0.0.1a1" }), [
+    "python/remote_skills-0.0.1a1-py3-none-any.whl",
+    "python/remote_skills-0.0.1a1.tar.gz",
+  ]);
+  const state = readReleaseState(root);
+  const changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
+  assert.throws(() => buildPublicationPlan(state, output, changelog), { code: "ENOENT" });
+  const wheel = artifactBytes(
+    output,
+    "python/remote_skills-0.0.1a1-py3-none-any.whl",
+    "correct alpha wheel",
+  );
+  const source = artifactBytes(
+    output,
+    "python/remote_skills-0.0.1a1.tar.gz",
+    "correct alpha source",
+  );
+  const plan = buildPublicationPlan(state, output, changelog);
+  assert.deepEqual(plan.packages.find((entry) => entry.registry === "pypi")?.files, [
+    wheel,
+    source,
+  ]);
+});
+
+for (const id of ["cli", "client", "ai_sdk"]) {
+  test(`legacy release state rejects missing required ${id} manifest`, (t) => {
+    const { root } = fixture(t);
+    writeFileSync(
+      join(root, "release-state.json"),
+      JSON.stringify({ version: "0.0.1-alpha.0", previousVersion: "0.0.1", initial: true }),
+    );
+    const entry = releasePackages.find((candidate) => candidate.id === id);
+    assert.ok(entry);
+    const path = join(root, entry.manifest);
+    rmSync(path);
+    assert.throws(() => readReleaseState(root), { code: "ENOENT", path });
+  });
+}
+
+test("scoped release state rejects a missing selected Mastra manifest", (t) => {
+  const { root, base } = fixture(t);
+  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
+  const path = join(root, "integrations/mastra/package.json");
+  rmSync(path);
+  assert.throws(() => readReleaseState(root), { code: "ENOENT", path });
 });
