@@ -1,6 +1,6 @@
 {
   "name": "@remote-skills/mastra",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1",
   "description": "Verified remote sources for Mastra's native workspace skills.",
   "type": "module",
   "license": "Apache-2.0",
