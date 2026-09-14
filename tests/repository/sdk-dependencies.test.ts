@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { readPublishedSdks } from "../../scripts/release/published-sdks.ts";
+import { readPublishedSdks, resolvePublishedSdks } from "../../scripts/release/published-sdks.ts";
 import { selectSdkVersion } from "../../scripts/release/release-lib.ts";
 import { downloadSdkArchive } from "../../scripts/release/sdk-dependencies.ts";
 
@@ -95,6 +95,58 @@ test("an absent registry package supplies no published versions for a first rele
     () => selectSdkVersion("npm", "^0.0.1-alpha.0", undefined, result.versions.npm),
     /No compatible available/u,
   );
+});
+
+test("npm-only compatibility never contacts an unrelated unavailable PyPI registry", async () => {
+  const fixture = metadata();
+  const requests: string[] = [];
+  const lookup: typeof fetch = async (url) => {
+    requests.push(String(url));
+    return String(url).includes("npmjs")
+      ? Response.json(fixture.npm)
+      : new Response("", { status: 503 });
+  };
+  await assert.rejects(readPublishedSdks(lookup), /Cannot verify published Python/u);
+  requests.length = 0;
+  const inventory = await resolvePublishedSdks((versions) => {
+    assert.equal(selectSdkVersion("npm", "^0.0.1-alpha.0", undefined, versions.npm), "0.0.1");
+  }, lookup);
+  assert.deepEqual(requests, ["https://registry.npmjs.org/@remote-skills%2Fclient"]);
+  assert.deepEqual(inventory.versions, { npm: ["0.0.1"], pypi: [] });
+});
+
+test("co-released SDKs require no registry and missing required versions are never silently ignored", async () => {
+  let requests = 0;
+  const unavailable: typeof fetch = async () => {
+    requests++;
+    return new Response("", { status: 503 });
+  };
+  await resolvePublishedSdks((versions) => {
+    selectSdkVersion("npm", "^0.0.2", "0.0.2", versions.npm);
+    selectSdkVersion("pypi", "0.0.2", "0.0.2", versions.pypi);
+  }, unavailable);
+  assert.equal(requests, 0);
+  await assert.rejects(
+    resolvePublishedSdks((versions) => {
+      selectSdkVersion("pypi", "0.0.1", undefined, versions.pypi);
+    }, unavailable),
+    /Cannot verify published Python/u,
+  );
+  assert.equal(requests, 1);
+  requests = 0;
+  await assert.rejects(
+    resolvePublishedSdks(
+      (versions) => {
+        selectSdkVersion("npm", "0.0.2", undefined, versions.npm);
+      },
+      async () => {
+        requests++;
+        return Response.json(metadata().npm);
+      },
+    ),
+    /No compatible available npm SDK/u,
+  );
+  assert.equal(requests, 1);
 });
 
 test("published SDK archives must have a trusted origin and matching metadata", async () => {

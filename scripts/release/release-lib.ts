@@ -268,6 +268,13 @@ export interface PublishedSdkVersions {
   pypi: readonly string[];
 }
 export const noPublishedSdkVersions: PublishedSdkVersions = { npm: [], pypi: [] };
+export class UnavailableSdkVersionError extends Error {
+  readonly registry: "npm" | "pypi";
+  constructor(registry: "npm" | "pypi", requirement: string) {
+    super(`No compatible available ${registry} SDK for ${requirement}`);
+    this.registry = registry;
+  }
+}
 export function npmSdkRequirement(manifest: object): string | undefined {
   const peers: unknown = Reflect.get(manifest, "peerDependencies");
   const range: unknown =
@@ -303,7 +310,7 @@ export function selectSdkVersion(
     registry === "npm" ? clientPeerCompatible(requirement, version) : requirement === version;
   if (candidate && accepts(candidate)) return candidate;
   const selected = available.find(accepts);
-  if (!selected) throw new Error(`No compatible available ${registry} SDK for ${requirement}`);
+  if (!selected) throw new UnavailableSdkVersionError(registry, requirement);
   return selected;
 }
 function checkPeers(

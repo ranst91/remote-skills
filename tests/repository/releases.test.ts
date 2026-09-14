@@ -9,6 +9,7 @@ import {
   buildPublicationPlan,
   pythonArtifactPaths,
 } from "../../scripts/release/publication-plan.ts";
+import { resolvePublishedSdks } from "../../scripts/release/published-sdks.ts";
 import {
   clientPeerCompatible,
   manifestObject,
@@ -84,6 +85,50 @@ test("release channels advance stable versions and promote alpha to its intended
   assert.equal(nextReleaseVersion("1.2.3", "major", "stable"), "2.0.0");
   assert.equal(nextReleaseVersion("0.0.1-alpha.0", "patch", "alpha"), "0.0.1-alpha.1");
   assert.equal(nextReleaseVersion("0.0.1-alpha.0", "patch", "stable"), "0.0.1");
+});
+
+test("npm-only release preparation and merge validation succeed while PyPI is unavailable", async (t) => {
+  const { root, base, git } = fixture(t, "0.0.1");
+  const requests: string[] = [];
+  const lookup: typeof fetch = async (url) => {
+    requests.push(String(url));
+    return String(url).includes("npmjs")
+      ? Response.json({
+          name: "@remote-skills/client",
+          versions: {
+            "0.0.1": {
+              name: "@remote-skills/client",
+              version: "0.0.1",
+              dist: {
+                tarball: "https://registry.npmjs.org/client-0.0.1.tgz",
+                integrity: `sha512-${createHash("sha512").update("SDK").digest("base64")}`,
+              },
+            },
+          },
+        })
+      : new Response("", { status: 503 });
+  };
+  const available = await resolvePublishedSdks((versions) => {
+    prepareReleaseSource(root, "patch", "stable", true, "integration-ai-sdk", base, versions);
+  }, lookup);
+  assert.equal(git("status", "--porcelain"), "");
+  prepareReleaseSource(
+    root,
+    "patch",
+    "stable",
+    false,
+    "integration-ai-sdk",
+    base,
+    available.versions,
+  );
+  git("add", ".");
+  git("commit", "--quiet", "-m", "chore: release packages");
+  const sha = git("rev-parse", "HEAD");
+  await resolvePublishedSdks((versions) => {
+    validateReleaseCommitSource(root, sha, versions);
+  }, lookup);
+  assert.equal(requests.length, 2);
+  assert.ok(requests.every((url) => url === "https://registry.npmjs.org/@remote-skills%2Fclient"));
 });
 
 test("selected integration rejects an unavailable SDK, while compatible co-selection needs no published candidate", (t) => {

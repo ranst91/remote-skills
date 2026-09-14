@@ -1,4 +1,8 @@
-import { type PublishedSdkVersions, parseVersion } from "./release-lib.ts";
+import {
+  type PublishedSdkVersions,
+  parseVersion,
+  UnavailableSdkVersionError,
+} from "./release-lib.ts";
 
 export interface SdkArchive {
   url: string;
@@ -56,7 +60,10 @@ function archive(value: unknown, registry: "npm" | "pypi"): SdkArchive {
     encoding: registry === "npm" ? "base64" : "hex",
   };
 }
-export async function readPublishedSdks(lookup: typeof fetch = fetch): Promise<PublishedSdks> {
+export async function readPublishedSdks(
+  lookup: typeof fetch = fetch,
+  registries: readonly ("npm" | "pypi")[] = ["npm", "pypi"],
+): Promise<PublishedSdks> {
   async function metadata(url: string, identity: string) {
     let value: unknown;
     try {
@@ -76,8 +83,12 @@ export async function readPublishedSdks(lookup: typeof fetch = fetch): Promise<P
     return record(value);
   }
   const [npmData, pythonData] = await Promise.all([
-    metadata("https://registry.npmjs.org/@remote-skills%2Fclient", "npm client"),
-    metadata("https://pypi.org/pypi/remote-skills/json", "Python SDK"),
+    registries.includes("npm")
+      ? metadata("https://registry.npmjs.org/@remote-skills%2Fclient", "npm client")
+      : { name: "@remote-skills/client", versions: {} },
+    registries.includes("pypi")
+      ? metadata("https://pypi.org/pypi/remote-skills/json", "Python SDK")
+      : { info: { name: "remote-skills" }, releases: {} },
   ]);
   if (
     Reflect.get(npmData, "name") !== "@remote-skills/client" ||
@@ -110,4 +121,32 @@ export async function readPublishedSdks(lookup: typeof fetch = fetch): Promise<P
     npm,
     pypi,
   };
+}
+
+// Probe without writes: a compatible co-released SDK needs no registry lookup.
+// Each required registry is fetched once; an unavailable dependency remains fatal.
+export async function resolvePublishedSdks(
+  validate: (versions: PublishedSdkVersions) => void,
+  lookup: typeof fetch = fetch,
+): Promise<PublishedSdks> {
+  const result: PublishedSdks = {
+    versions: { npm: [], pypi: [] },
+    npm: new Map(),
+    pypi: new Map(),
+  };
+  const checked = new Set<"npm" | "pypi">();
+  for (;;) {
+    try {
+      validate(result.versions);
+      return result;
+    } catch (error) {
+      if (!(error instanceof UnavailableSdkVersionError) || checked.has(error.registry))
+        throw error;
+      checked.add(error.registry);
+      const available = await readPublishedSdks(lookup, [error.registry]);
+      if (error.registry === "npm") result.npm = available.npm;
+      else result.pypi = available.pypi;
+      result.versions[error.registry] = available.versions[error.registry];
+    }
+  }
 }

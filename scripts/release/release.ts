@@ -1,5 +1,5 @@
 import { appendFileSync, readFileSync } from "node:fs";
-import { readPublishedSdks } from "./published-sdks.ts";
+import { resolvePublishedSdks } from "./published-sdks.ts";
 import {
   changelogSection,
   prepareRelease,
@@ -22,6 +22,9 @@ try {
       throw new Error(
         "usage: release.ts prepare <scope> <initial|patch|minor|major> <alpha|stable> <--dry-run|--write>",
       );
+    const published = await resolvePublishedSdks((versions) => {
+      prepareRelease(process.cwd(), bump, channel, true, scope, baseSha, versions);
+    });
     const result = prepareRelease(
       process.cwd(),
       bump,
@@ -29,17 +32,17 @@ try {
       mode === "--dry-run",
       scope,
       baseSha,
-      (await readPublishedSdks()).versions,
+      published.versions,
     );
     if (process.env.GITHUB_OUTPUT)
       appendFileSync(process.env.GITHUB_OUTPUT, `npm_version=${result.npmVersion}\n`);
     console.log(JSON.stringify(result, null, 2));
   } else if (command === "validate" && args.length === 1 && args[0]) {
-    console.log(
-      JSON.stringify(
-        validateReleaseCommit(process.cwd(), args[0], (await readPublishedSdks()).versions),
-      ),
-    );
+    const sha = args[0];
+    const published = await resolvePublishedSdks((versions) => {
+      validateReleaseCommit(process.cwd(), sha, versions);
+    });
+    console.log(JSON.stringify(validateReleaseCommit(process.cwd(), sha, published.versions)));
   } else if (command === "metadata" && args.length === 0) {
     const state = readReleaseState();
     if (process.env.GITHUB_OUTPUT)
