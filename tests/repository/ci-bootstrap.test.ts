@@ -410,7 +410,7 @@ test("GitHub Actions are commit-pinned and maintained by Dependabot", () => {
     ["actions/checkout", "v7"],
     ["actions/setup-node", "v7"],
     ["pnpm/action-setup", "v6"],
-    ["astral-sh/setup-uv", "v7"],
+    ["astral-sh/setup-uv", "v10"],
   ]) {
     assert.match(
       workflow,
