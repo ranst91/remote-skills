@@ -640,6 +640,10 @@ test("the documented npm build resolves the scoped packed CLI with and without i
   const { temporaryRoot, packed } = packageFixture();
   const requests: string[] = [];
   const bytes = readFileSync(packed.filename);
+  const packedManifestEntry = packedTarEntry(packed.filename, "package/package.json");
+  assert.ok(packedManifestEntry);
+  const packedManifest: unknown = JSON.parse(packedManifestEntry.bytes.toString("utf8"));
+  assert.ok(typeof packedManifest === "object" && packedManifest !== null);
   // A private registry makes package selection deterministic, with no public npm access.
   const registry = createServer((request, response) => {
     const url = decodeURIComponent(request.url ?? "");
@@ -655,9 +659,7 @@ test("the documented npm build resolves the scoped packed CLI with and without i
           "dist-tags": { latest: manifest.version },
           versions: {
             [manifest.version]: {
-              name: manifest.name,
-              version: manifest.version,
-              bin: manifest.bin,
+              ...packedManifest,
               dist: {
                 tarball: `${registryUrl}/cli.tgz`,
                 integrity: `sha512-${createHash("sha512").update(bytes).digest("base64")}`,

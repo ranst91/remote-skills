@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync, realpathSync } from "node:fs";
+import { realpath } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -158,8 +159,9 @@ export async function dispatchCli(
         options.stderr(renderDiagnostic(diagnostic.severity, diagnostic));
       if (result.exitCode !== CLI_EXIT_CODES.success) return CLI_EXIT_CODES.failure;
       if (result.outputDir === undefined) throw new Error("Build output directory is missing");
+      // Match the builder's resolver: Windows short paths differ under realpathSync.
       const output = path
-        .relative(realpathSync(options.projectDir), result.outputDir)
+        .relative(await realpath(options.projectDir), result.outputDir)
         .split(path.sep)
         .join("/");
       if (!isProjectRelativePath(output)) throw new Error("Build output directory is invalid");
