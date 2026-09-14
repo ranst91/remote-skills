@@ -86,6 +86,7 @@ export function preparePythonArtifactCache(
   directory: string,
   environment: NodeJS.ProcessEnv,
   packages: readonly { name: string; manifest: string; example?: string }[] = pythonPackages,
+  sdkVersions: Readonly<Record<string, { version: string }>> = {},
 ) {
   const uv = resolveCompatibleUvCommand({ environment });
   const python = environment.REMOTE_SKILLS_PYTHON;
@@ -103,6 +104,7 @@ export function preparePythonArtifactCache(
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 entries = json.loads(sys.argv[1])
+sdk_versions = json.loads(sys.argv[2])
 projects = [tomllib.load(open(entry["manifest"], "rb")) for entry in entries]
 versions = {canonicalize_name(p["project"]["name"]): p["project"]["version"] for p in projects}
 build = set()
@@ -117,7 +119,8 @@ for entry, project in zip(entries, projects):
             raise RuntimeError("Python artifact dependencies must be registry requirements")
         name = canonicalize_name(requirement.name)
         if name in versions:
-            if requirement.marker or requirement.extras or not requirement.specifier.contains(versions[name], prereleases=True):
+            dependency_version = sdk_versions.get(metadata["name"], {}).get("version", versions[name]) if name == "remote-skills" else versions[name]
+            if requirement.marker or requirement.extras or not requirement.specifier.contains(dependency_version, prereleases=True):
                 raise RuntimeError("Python artifact dependency is incompatible with candidate " + name)
             internal.append(name)
     if metadata["name"] == "remote-skills-langchain" and internal.count("remote-skills") != 1:
@@ -131,6 +134,7 @@ print(json.dumps({"versions": versions, "build": sorted(build)}))`,
         JSON.stringify(
           packages.map((entry) => ({ ...entry, manifest: resolve(root, entry.manifest) })),
         ),
+        JSON.stringify(sdkVersions),
       ],
       environment,
       root,
@@ -189,12 +193,7 @@ for line in sys.argv[1].splitlines():
     environment,
     root,
   );
-  writeFileSync(
-    constraints,
-    `${lockedRuntime}\n${Object.entries(versions)
-      .map(([name, version]) => `${name}==${version}`)
-      .join("\n")}\n`,
-  );
+  writeFileSync(constraints, `${lockedRuntime}\n`);
   const venv = join(directory, "prepare-python");
   run(
     uv,
@@ -280,12 +279,7 @@ for line in sys.argv[1].splitlines():
   const buildPins = preparedPins
     .split("\n")
     .filter((line) => !runtimeNames.has(canonicalName(line.split("==")[0] ?? "")));
-  writeFileSync(
-    constraints,
-    `${lockedRuntime}\n${Object.entries(versions)
-      .map(([name, version]) => `${name}==${version}`)
-      .join("\n")}\n${buildPins.join("\n")}\n`,
-  );
+  writeFileSync(constraints, `${lockedRuntime}\n${buildPins.join("\n")}\n`);
   return constraints;
 }
 

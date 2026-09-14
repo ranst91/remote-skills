@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnPnpmSync } from "../../../scripts/lib/pnpm-command.ts";
 import { assertLockedIntegrationResolution } from "../../../scripts/release/integration-dependencies.ts";
+import { installedNpmSdk } from "../../../scripts/release/sdk-dependencies.ts";
 
 const repository = fileURLToPath(new URL("../../../", import.meta.url));
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -103,7 +104,9 @@ try {
     join(repository, "packages/sdk-typescript/package.json"),
   );
   const tarball = join(artifacts, `remote-skills-langchain-${manifest.version}.tgz`);
-  const sdk = join(artifacts, `remote-skills-client-${sdkManifest.version}.tgz`);
+  const sdk =
+    (await installedNpmSdk(repository, "@remote-skills/langchain", join(directory, "dependencies")))
+      ?.path ?? join(artifacts, `remote-skills-client-${sdkManifest.version}.tgz`);
   const repeated = join(directory, "repeated");
   await mkdir(repeated);
   pnpm(["pack:local", "--", "--pack-destination", repeated], packageRoot);

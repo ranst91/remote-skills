@@ -10,6 +10,7 @@ import {
 } from "../../../scripts/release/integration-dependencies.ts";
 
 import { manifestObject, stringField } from "../../../scripts/release/release-lib.ts";
+import { installedNpmSdk } from "../../../scripts/release/sdk-dependencies.ts";
 
 const root = resolve(import.meta.dirname, "../../..");
 const work = mkdtempSync(join(tmpdir(), "remote-skills-mastra-package-"));
@@ -22,9 +23,12 @@ try {
   for (const name of ["client", "mastra"]) {
     pnpm(["--filter", `@remote-skills/${name}`, "pack:local", "--pack-destination", work], root);
   }
+  const sdk = await installedNpmSdk(root, "@remote-skills/mastra", join(work, "dependencies"));
   const archives = readdirSync(work)
     .filter((file) => file.endsWith(".tgz"))
-    .map((file) => join(work, file));
+    .map((file) =>
+      file.startsWith("remote-skills-client-") ? (sdk?.path ?? join(work, file)) : join(work, file),
+    );
   assert.equal(archives.length, 2);
   writeLockedIntegrationProject(root, work, "integrations/mastra");
   pnpm(["add", "--offline", "--ignore-scripts", "--strict-peer-dependencies", ...archives], work);
