@@ -6,14 +6,31 @@ from pathlib import Path
 import tomllib
 import unittest
 
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
+from packaging.version import Version
+
 
 class SurfaceTests(unittest.TestCase):
-    def test_local_release_dependencies_match_distribution_versions(self) -> None:
+    def test_integration_declares_one_exact_sdk_dependency_independent_of_workspace_version(self) -> None:
         root = Path(__file__).resolve().parents[3]
         integration = tomllib.loads((root / 'integrations/langchain-python/pyproject.toml').read_text())['project']
         sdk = tomllib.loads((root / 'packages/sdk-python/pyproject.toml').read_text())['project']
+        requirements = [Requirement(value) for value in integration['dependencies']]
+        dependencies = [value for value in requirements if canonicalize_name(value.name) == canonicalize_name(sdk['name'])]
+        self.assertEqual(len(dependencies), 1)
+        dependency = dependencies[0]
+        self.assertIsNone(dependency.url)
+        self.assertIsNone(dependency.marker)
+        self.assertEqual(dependency.extras, set())
+        pins = list(dependency.specifier)
+        self.assertEqual(len(pins), 1)
+        self.assertEqual(pins[0].operator, '==')
+        self.assertEqual(str(Version(pins[0].version)), pins[0].version)
+
+    def test_example_consumes_the_workspace_integration(self) -> None:
+        root = Path(__file__).resolve().parents[3]
         example = tomllib.loads((root / 'examples/langchain/pyproject.toml').read_text())
-        self.assertIn(f"remote-skills=={sdk['version']}", integration['dependencies'])
         self.assertIn("remote-skills-langchain", example['project']['dependencies'])
         self.assertEqual(example['tool']['uv']['sources']['remote-skills-langchain'], {"workspace": True})
 

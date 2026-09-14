@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
 import {
   buildPublicationPlan,
@@ -85,6 +85,55 @@ test("release channels advance stable versions and promote alpha to its intended
   assert.equal(nextReleaseVersion("1.2.3", "major", "stable"), "2.0.0");
   assert.equal(nextReleaseVersion("0.0.1-alpha.0", "patch", "alpha"), "0.0.1-alpha.1");
   assert.equal(nextReleaseVersion("0.0.1-alpha.0", "patch", "stable"), "0.0.1");
+});
+
+test("a core patch preserves the Python source contract with an independently pinned integration SDK", (t) => {
+  const { root, git } = fixture(t, "0.0.1");
+  const manifest = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(
+    manifest,
+    `${readFileSync(manifest, "utf8")}dependencies = ["remote-skills==0.0.1"]\n`,
+  );
+  git("add", ".");
+  git("commit", "--quiet", "-m", "test: declare the integration SDK pin");
+  prepareRelease(root, "patch", "stable", false, "core", git("rev-parse", "HEAD"));
+  assert.equal(readReleaseState(root).pythonVersion, "0.0.2");
+  const surface = join(root, "integrations/langchain-python/tests/test_surface.py");
+  mkdirSync(dirname(surface), { recursive: true });
+  copyFileSync(resolve("integrations/langchain-python/tests/test_surface.py"), surface);
+  const python =
+    process.env.REMOTE_SKILLS_PYTHON ??
+    resolve(".venv", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+  const runContract = () =>
+    execFileSync(
+      python,
+      [
+        "-I",
+        "-c",
+        'import runpy,sys,unittest; case=runpy.run_path(sys.argv[1])["SurfaceTests"]("test_integration_declares_one_exact_sdk_dependency_independent_of_workspace_version"); result=unittest.TextTestRunner().run(unittest.TestSuite([case])); sys.exit(not result.wasSuccessful())',
+        surface,
+      ],
+      { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    );
+  assert.doesNotThrow(runContract);
+  for (const dependencies of [
+    [],
+    ["remote-skills>=0.0.1"],
+    ["remote-skills==0.0.*"],
+    ["remote-skills==0.0.1", "remote-skills==0.0.1"],
+    ["remote-skills @ https://example.test/sdk.whl"],
+    ["remote-skills[extra]==0.0.1"],
+    ['remote-skills==0.0.1; python_version >= "3.11"'],
+  ]) {
+    writeFileSync(
+      manifest,
+      `[project]\nname = "remote-skills-langchain"\nversion = "0.0.1"\ndependencies = ${JSON.stringify(dependencies)}\n`,
+    );
+    assert.throws(
+      runContract,
+      `Invalid SDK declaration must fail: ${JSON.stringify(dependencies)}`,
+    );
+  }
 });
 
 test("npm-only release preparation and merge validation succeed while PyPI is unavailable", async (t) => {
