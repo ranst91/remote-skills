@@ -6,6 +6,8 @@ These are quickstart references for the two sides of Remote Skills:
 - [LangChain family](langchain/): Next.js chat with native TypeScript/Python DeepAgents, LangChain and LangGraph agent subgraphs.
 - Consumers: [TypeScript](consumers/typescript/) and [Python](consumers/python/) load and
   read that skill through the public clients.
+- Framework chat demos: [Vercel AI SDK](vercel-ai-sdk/) and [Mastra](mastra/) use
+  their native skill loaders in TypeScript-only Next.js applications.
 
 Start the publisher, then run either consumer in another terminal. The existing tests under
 `tests/examples/` exercise these references. Hosting helpers, authentication, version history,

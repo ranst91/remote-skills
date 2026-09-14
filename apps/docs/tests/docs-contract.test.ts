@@ -51,14 +51,19 @@ const rootNavigation = [
 ];
 
 const hostingNavigation = ["archive-to-origin", "git-pages"];
-const integrationNavigation = ["index", "[Vercel AI SDK](/docs/vercel-ai-sdk)", "langchain"];
+const integrationNavigation = [
+  "index",
+  "[Vercel AI SDK](/docs/vercel-ai-sdk)",
+  "langchain",
+  "mastra",
+];
 const navigation = rootNavigation
   .filter((slug) => !slug.startsWith("---"))
   .flatMap((slug) =>
     slug === "hosting"
       ? hostingNavigation.map((page) => `hosting/${page}`)
       : slug === "integrations"
-        ? ["integrations/index", "vercel-ai-sdk", "integrations/langchain"]
+        ? ["integrations/index", "vercel-ai-sdk", "integrations/langchain", "integrations/mastra"]
         : [slug],
   );
 
@@ -315,10 +320,8 @@ test("Vercel AI SDK guidance preserves model choice, streaming lifetime, and run
     "Binary resources remain available",
   ])
     assert.ok(doc.includes(phrase), `missing integration boundary: ${phrase}`);
-  for (const slug of ["quickstart", "consume", "api-reference"]) {
-    assert.match(readDoc(slug), /\/docs\/vercel-ai-sdk/u);
-  }
   const api = readDoc("api-reference");
+  assert.match(api, /\/docs\/vercel-ai-sdk/u);
   for (const contract of [
     "## Vercel AI SDK integration",
     "RemoteSkillsOptions",
@@ -458,6 +461,45 @@ skills.tools.bash;
       },
     ]),
     /Property 'bash' does not exist/u,
+  );
+});
+
+test("consumer entry points lead to every framework integration guide", () => {
+  for (const slug of ["quickstart", "consume"]) {
+    assert.match(readDoc(slug), /\]\(\/docs\/integrations\)/u);
+  }
+  const integrations = readDoc("integrations/index");
+  for (const path of [
+    "/docs/vercel-ai-sdk",
+    "/docs/integrations/langchain",
+    "/docs/integrations/mastra",
+  ]) {
+    assert.ok(integrations.includes(`](${path})`), `missing integration guide: ${path}`);
+  }
+});
+
+test("Mastra snippets require complete setup and real native Agent APIs", async () => {
+  await assert.rejects(
+    verifyTypeScriptSnippets([
+      {
+        language: "ts",
+        info: "ts",
+        path: fileURLToPath(new URL("integrations/mastra.mdx", docsRoot)),
+        code: `import { Agent } from "@mastra/core/agent";
+import { remoteSkills } from "@remote-skills/mastra";
+const skills = await remoteSkills({ client, origin: "team" });
+client.session("team");
+const agent = new Agent({ id: "assistant", name: "Assistant", model: "openai/gpt-4.1", ...skills.agentOptions });
+agent.activateSkill("greeting");
+`,
+      },
+    ]),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /Cannot find name 'client'/u);
+      assert.match(error.message, /Property 'activateSkill' does not exist/u);
+      return true;
+    },
   );
 });
 

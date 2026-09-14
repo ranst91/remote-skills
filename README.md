@@ -155,6 +155,8 @@ There is no managed Remote Skills service. You host the exact static build outpu
 
 See the [integration package](integrations/ai-sdk/README.md) and [TypeScript chat demo](examples/vercel-ai-sdk/README.md) for package details and a runnable example. For LangChain and DeepAgents, start with the [integration guide](apps/docs/content/docs/integrations/langchain.mdx), then use the [TypeScript adapter](integrations/langchain/README.md), [Python adapter](integrations/langchain-python/README.md), and [six-path Next.js demo](examples/langchain/README.md).
 
+For Mastra, use the [integration guide](apps/docs/content/docs/integrations/mastra.mdx), [adapter package](integrations/mastra/README.md), and [Next.js chat demo](examples/mastra/README.md).
+
 
 ## Documentation
 

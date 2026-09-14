@@ -20,7 +20,12 @@ const groups = {
     ],
   },
   typescript: {
-    owners: ["@remote-skills/client", "@remote-skills/ai-sdk", "@remote-skills/langchain"],
+    owners: [
+      "@remote-skills/client",
+      "@remote-skills/ai-sdk",
+      "@remote-skills/langchain",
+      "@remote-skills/mastra",
+    ],
     commands: [
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "build"] },
@@ -28,6 +33,12 @@ const groups = {
       { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "check"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "check"] },
+      // Frozen workspace installs cache tarballs, but not all registry metadata
+      // needed when adding candidate archives to an isolated offline consumer.
+      { kind: "pnpm", args: ["run", "package:cache"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "package:check"] },
     ],
   },
   python: {
@@ -56,12 +67,14 @@ const groups = {
       "@remote-skills/example-python-consumer",
       "@remote-skills/example-vercel-ai-sdk",
       "@remote-skills/example-langchain",
+      "@remote-skills/example-mastra",
     ],
     commands: [
       buildCliCommand,
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/docs", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-publisher", "run", "check"] },
       {
@@ -79,6 +92,8 @@ const groups = {
       { kind: "pnpm", args: ["run", "test:vercel-ai-sdk"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-langchain", "run", "check"] },
       { kind: "pnpm", args: ["run", "test:langchain"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/example-mastra", "run", "check"] },
+      { kind: "pnpm", args: ["run", "test:mastra"] },
     ],
   },
 } as const;

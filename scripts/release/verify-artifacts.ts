@@ -105,6 +105,9 @@ try {
       ...(state.manifests.some((entry) => entry.id === "langchain")
         ? [resolve(import.meta.dirname, "../../tests/examples/langchain.test.ts")]
         : []),
+      ...(state.manifests.some((entry) => entry.id === "mastra")
+        ? [resolve(import.meta.dirname, "../../tests/examples/mastra.test.ts")]
+        : []),
     ],
     candidateEnvironment,
   );

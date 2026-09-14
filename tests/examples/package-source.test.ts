@@ -13,7 +13,7 @@ import {
 } from "./helpers/package-source.ts";
 
 const source: PackageSource = {
-  npm: ["cli", "client", "ai-sdk"].map((name) => ({
+  npm: ["cli", "client", "ai-sdk", "mastra"].map((name) => ({
     name: `@remote-skills/${name}`,
     version: "0.0.1-alpha.0",
     spec: `@remote-skills/${name}@0.0.1-alpha.0`,

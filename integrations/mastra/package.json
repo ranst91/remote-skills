@@ -1,0 +1,48 @@
+{
+  "name": "@remote-skills/mastra",
+  "version": "0.0.1-alpha.0",
+  "description": "Verified remote sources for Mastra's native workspace skills.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "DESIGN.md",
+    "VERIFICATION.md"
+  ],
+  "peerDependencies": {
+    "@mastra/core": "1.65.0",
+    "@remote-skills/client": "^0.0.1-alpha.0"
+  },
+  "devDependencies": {
+    "@mastra/core": "1.65.0",
+    "@remote-skills/client": "workspace:*",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "ai": "7.0.95",
+    "zod": "4.3.6"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "check": "pnpm typecheck && pnpm test",
+    "pack:local": "node scripts/pack-local.ts",
+    "package:check": "node scripts/check-package.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ranst91/remote-skills.git",
+    "directory": "integrations/mastra"
+  }
+}

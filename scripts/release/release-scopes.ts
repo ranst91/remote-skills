@@ -21,6 +21,13 @@ export const releasePackages = [
     example: "examples/langchain",
     scope: "integration-langchain",
   },
+  {
+    id: "mastra",
+    name: "@remote-skills/mastra",
+    manifest: "integrations/mastra/package.json",
+    scope: "integration-mastra",
+    example: "examples/mastra",
+  },
 ] as const;
 export const pythonPackages = [
   {
@@ -44,6 +51,7 @@ export const releaseScopes = {
   core: {},
   "integration-ai-sdk": {},
   "integration-langchain": {},
+  "integration-mastra": {},
 } as const;
 export type Scope = keyof typeof releaseScopes;
 export function isScope(value: string): value is Scope {

@@ -143,6 +143,16 @@ function packageManagerContracts(
 }
 
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
+  ...["apps/docs/content/docs/integrations/mastra.mdx", "integrations/mastra/README.md"].flatMap(
+    (path) =>
+      packageManagerContracts(path, 0, [
+        {
+          command: "pnpm add @remote-skills/mastra @remote-skills/client @mastra/core",
+          mode: "static",
+          reason: "registry-install",
+        },
+      ]),
+  ),
   ["examples/vercel-ai-sdk/README.md#0", basicChatContract],
   [
     "integrations/langchain/README.md#0",
@@ -276,6 +286,26 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
         command: "pnpm --filter @remote-skills/example-langchain dev",
         mode: "static",
         reason: "long-running-local-server-scripts/examples/langchain.ts",
+      },
+    ],
+  ],
+  [
+    "examples/mastra/README.md#0",
+    [
+      {
+        command: "pnpm install --frozen-lockfile",
+        mode: "static",
+        reason: "locked-workspace-install",
+      },
+    ],
+  ],
+  [
+    "examples/mastra/README.md#1",
+    [
+      {
+        command: "pnpm --filter @remote-skills/example-mastra dev",
+        mode: "static",
+        reason: "long-running-server",
       },
     ],
   ],
@@ -646,7 +676,7 @@ async function executeBashContracts(snippets: readonly Snippet[]) {
   };
 }
 
-type TypeScriptGroup = "core" | "ai-sdk" | "langchain";
+type TypeScriptGroup = "core" | "ai-sdk" | "langchain" | "mastra";
 
 function langChainDocumentation(snippet: Snippet) {
   const path = relative(repositoryRoot, snippet.path).replaceAll("\\", "/");
@@ -700,6 +730,19 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], group: Typ
         );
       }
     }
+    if (group === "mastra") {
+      await symlink(
+        resolve(repositoryRoot, "integrations/mastra"),
+        resolve(packageScope, "mastra"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      await mkdir(resolve(project, "node_modules/@mastra"), { recursive: true });
+      await symlink(
+        resolve(repositoryRoot, "integrations/mastra/node_modules/@mastra/core"),
+        resolve(project, "node_modules/@mastra/core"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+    }
     await writeFile(resolve(project, "package.json"), '{"type":"module"}\n');
     await writeFile(
       resolve(project, "tsconfig.json"),
@@ -714,7 +757,7 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], group: Typ
             // AI SDK retains main's existing exception; DeepAgents 1.13.4 references
             // ZodPreprocess absent in Zod 4.3.6. Snippet bodies stay strict in both.
             // Core consumers continue checking all declarations.
-            skipLibCheck: group === "ai-sdk" || group === "langchain",
+            skipLibCheck: group !== "core",
             target: "ES2022",
             typeRoots: [resolve(repositoryRoot, "node_modules/@types")],
             types: ["node"],
@@ -740,7 +783,10 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], group: Typ
       ]
         .filter(Boolean)
         .join("\n");
-      await writeFile(resolve(project, `snippet-${index}.ts`), `${prelude}\n${snippet.code}`);
+      await writeFile(
+        resolve(project, `snippet-${index}.ts`),
+        `${group === "mastra" ? "" : prelude}\n${snippet.code}`,
+      );
     }
     checkedSpawn(
       process.execPath,
@@ -756,7 +802,12 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], group: Typ
 
 export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
   checkedSpawn("pnpm", ["--filter", "@remote-skills/client", "build"]);
-  const groups: Record<TypeScriptGroup, Snippet[]> = { core: [], "ai-sdk": [], langchain: [] };
+  const groups: Record<TypeScriptGroup, Snippet[]> = {
+    core: [],
+    "ai-sdk": [],
+    langchain: [],
+    mastra: [],
+  };
   for (const snippet of snippets) {
     if (/\bfrom\s+["'](?:@remote-skills\/ai-sdk|ai)["']/u.test(snippet.code)) {
       groups["ai-sdk"].push(snippet);
@@ -767,10 +818,12 @@ export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
       )
     ) {
       groups.langchain.push(snippet);
+    } else if (/from ["'](?:@remote-skills\/mastra|@mastra\/core)/u.test(snippet.code)) {
+      groups.mastra.push(snippet);
     } else groups.core.push(snippet);
   }
   if (groups.core.length > 0) await compileTypeScriptProject(groups.core, "core");
-  for (const integration of ["ai-sdk", "langchain"] as const) {
+  for (const integration of ["ai-sdk", "langchain", "mastra"] as const) {
     if (groups[integration].length === 0) continue;
     // pnpm filters alone can succeed without a matching workspace. Require the real
     // package manifest first so an unmerged prerequisite cannot silently skip coverage.

@@ -41,6 +41,9 @@ export const TYPESCRIPT_PROJECT_CONFIG_PATHS = [
   "integrations/langchain/tsconfig.json",
   "integrations/langchain/tsconfig.build.json",
   "examples/langchain/tsconfig.json",
+  "integrations/mastra/tsconfig.json",
+  "integrations/mastra/tsconfig.build.json",
+  "examples/mastra/tsconfig.json",
   "apps/docs/tsconfig.json",
   "examples/tsconfig.json",
   "examples/consumers/typescript/tsconfig.json",
@@ -62,6 +65,7 @@ const implicitAnyDiagnosticCodes = new Set([
 const generatedSourceRoots = [
   resolve("apps/docs/.next"),
   resolve("examples/langchain/.next"),
+  resolve("examples/mastra/.next"),
   resolve("packages/sdk-typescript/dist"),
 ] as const;
 
