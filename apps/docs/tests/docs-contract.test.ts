@@ -505,7 +505,7 @@ agent.activateSkill("greeting");
 
 test("the documented static host returns exact CLI-built bytes", async () => {
   const report = await verifyExactHostedBuildBytes();
-  assert.equal(report.artifacts, 1);
+  assert.equal(report.artifacts, 3);
   assert.ok(report.indexBytes > 0);
 });
 

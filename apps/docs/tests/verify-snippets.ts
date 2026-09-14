@@ -919,7 +919,11 @@ async function validatePublisherInputs(snippets: readonly Snippet[]) {
 export async function verifyDocumentationSnippets() {
   const files = await publicDocumentationFiles();
   const snippets: Snippet[] = [];
-  for (const path of files) snippets.push(...extractSnippets(path, await readFile(path, "utf8")));
+  for (const path of files) {
+    // Preserve the vendored skill README verbatim; its chat commands are not our CLI snippets.
+    if (path === resolve(repositoryRoot, "examples/publisher/skills/caveman/README.md")) continue;
+    snippets.push(...extractSnippets(path, await readFile(path, "utf8")));
+  }
   if (snippets.length === 0) throw new Error("documentation snippet inventory is empty");
 
   for (const snippet of snippets) {

@@ -14,9 +14,13 @@ export async function buildVersionedOrigin(destination: string) {
     resolve(publisherRoot, "remote-skills.json"),
     resolve(projectDirectory, "remote-skills.json"),
   );
-  await cp(resolve(publisherRoot, "skills"), resolve(projectDirectory, "skills"), {
-    recursive: true,
-  });
+  // This history scenario exercises code-review only, independent of other demo skills.
+  await mkdir(resolve(projectDirectory, "skills"), { recursive: true });
+  await cp(
+    resolve(publisherRoot, "skills/code-review"),
+    resolve(projectDirectory, "skills/code-review"),
+    { recursive: true },
+  );
   const currentSkill = await readFile(resolve(projectDirectory, "skills/code-review/SKILL.md"));
   const priorSkill = await readFile(
     resolve(import.meta.dirname, "../fixtures/releases/1.4.7/SKILL.md"),
