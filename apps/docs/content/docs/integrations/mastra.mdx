@@ -38,8 +38,6 @@ bun add @remote-skills/mastra @remote-skills/client @mastra/core
 </Tab>
 </Tabs>
 
-The integration runs in a Node.js server environment. In a web application, put the client and agent setup in your server route.
-
 </Step>
 <Step>
 
@@ -79,9 +77,7 @@ try {
 }
 ```
 
-This example uses `OPENAI_API_KEY` from your server environment. You can use your existing Mastra model instead; model credentials are separate from credentials for a private skill host.
-
-`maxSteps: 6` lets the agent continue after loading instructions or reading a file. Keep the integration open until the response stream has finished, as shown above, so those tools remain available throughout the response.
+For an existing agent, pass its instructions and tool hooks to `remoteSkills()`; keep its model and tools on `Agent`. See [agent composition](/docs/api-reference#mastra-composition) if you use custom hooks or a Workspace.
 
 </Step>
 <Step>
@@ -97,20 +93,8 @@ Your agent can now discover your published skills and follow their instructions 
 </Step>
 </Steps>
 
-## Keep your existing agent settings
-
-Pass your agent's instructions and tool hooks into `remoteSkills()` through its `instructions` and `hooks` options. The integration adds skill guidance and composes your hooks with the loading hooks it needs. Your existing tools and model settings can remain on the `Agent` configuration.
-
-Keep the returned `workspace`, `hooks`, and `instructions` together when spreading `agentOptions`. Replacing the workspace or overriding the hooks when constructing or running the agent can prevent a selected skill's instructions from loading. If your agent already has a Workspace, this integration supplies a separate skills-only Workspace; it does not merge into the existing one. The [Mastra API reference](/docs/api-reference#mastra-integration) covers composition and tool names.
-
 ## Conversations and private skills
 
-For a conversation that needs the same skill versions across turns, keep one integration open until the conversation ends. A new integration can discover published updates; an existing one keeps its selected skills pinned. See [Caching and updates](/docs/cache-and-offline) for that lifetime.
+Selected skills stay on the same versions throughout a session. Updates are picked up in new sessions, following the publisher’s cache settings. See [Caching and updates](/docs/cache-and-offline) for details.
 
-The integration uses your client's [authentication and scope settings](/docs/authentication-and-scopes), cache, and request limits. Each integration connects to one publisher and one credential context, so create separate integrations for different users' access. You can also pass a caller-owned SDK session or restrict skill versions; the [source options](/docs/api-reference#mastra-source-options) describe both forms.
-
-## Search and supporting files
-
-Mastra's `skill_search` searches the contents of explicitly named skills. It requires a nonempty `skillNames` list, so the agent can search relevant skills without downloading the whole catalog. `skill_read` returns text files; use the [client SDK](/docs/consume#read-resources-as-needed) when your application needs binary resources.
-
-The Workspace provides skill reading, without command execution or file-writing tools. A skill that requires running a script needs capabilities supplied separately by your application. Loading its instructions does not grant those permissions; see [Trust and security](/docs/trust-and-security).
+If your skills publisher requires authentication, configure credentials in your client. See [Authentication and scopes](/docs/authentication-and-scopes) for details.

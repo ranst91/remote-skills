@@ -53,13 +53,19 @@ export class RemoteSkillSource implements SkillSource {
     const resources = await selected.list();
     const skillFile = await selected.readBytes("SKILL.md");
     this.#assertOpen();
-    this.#views.set(name, {
-      selected,
-      files: new Map([
-        ["SKILL.md", skillFile.byteLength],
-        ...resources.map((r) => [r.path, r.size] as const),
-      ]),
-    });
+    const files = new Map([
+      ["SKILL.md", skillFile.byteLength],
+      ...resources.map((r) => [r.path, r.size] as const),
+    ]);
+    // Validate the complete tree so resource order cannot hide a file used as a directory.
+    for (const path of files.keys()) {
+      let separator = path.indexOf("/");
+      while (separator !== -1) {
+        if (files.has(path.slice(0, separator))) throw new RemoteSkillsError("archive_unsafe");
+        separator = path.indexOf("/", separator + 1);
+      }
+    }
+    this.#views.set(name, { selected, files });
   }
 
   unpublish(name: string): void {
