@@ -409,7 +409,7 @@ test("GitHub Actions are commit-pinned and maintained by Dependabot", () => {
   for (const [action, major] of [
     ["actions/checkout", "v7"],
     ["actions/setup-node", "v7"],
-    ["pnpm/action-setup", "v4"],
+    ["pnpm/action-setup", "v6"],
     ["astral-sh/setup-uv", "v10"],
   ]) {
     assert.match(
