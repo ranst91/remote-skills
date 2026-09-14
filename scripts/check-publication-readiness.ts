@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
-  existsSync,
   copyFileSync,
+  existsSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
@@ -21,8 +21,9 @@ import { gunzipSync } from "node:zlib";
 import { createPnpmCommand } from "./lib/pnpm-command.ts";
 import { resolveCompatibleUvCommand } from "./lib/uv-command.ts";
 import { checkInstalledIntegration } from "./release/installed-integration.ts";
-import { readReleaseState } from "./release/release-lib.ts";
-import { installPythonArtifact } from "./release/python-artifacts.ts";
+import { checkInstalledPythonIntegration } from "./release/installed-python-integration.ts";
+import { inspectionPython, installPythonArtifact } from "./release/python-artifacts.ts";
+import { pythonPackages, readReleaseState, releasePackages } from "./release/release-lib.ts";
 
 const repositoryRoot = realpathSync(
   process.env.REMOTE_SKILLS_SOURCE_ROOT ?? fileURLToPath(new URL("..", import.meta.url)),
@@ -31,11 +32,11 @@ const contract = {
   schemaVersion: 1,
   kind: "remote-skills-local-publication-readiness",
   artifacts: [
-    "@remote-skills/cli npm tarball",
-    "@remote-skills/client npm tarball",
-    "@remote-skills/ai-sdk npm tarball",
-    "remote-skills Python wheel",
-    "remote-skills Python source distribution",
+    ...releasePackages.map(({ name }) => `${name} npm tarball`),
+    ...pythonPackages.flatMap(({ name }) => [
+      `${name} Python wheel`,
+      `${name} Python source distribution`,
+    ]),
   ],
   registryAccess: false,
   publication: false,
@@ -370,7 +371,25 @@ function cleanInstallNpm(packed: PackedNpm, workRoot: string): void {
   }
 }
 
-function cleanInstallPython(distribution: string, label: string, workRoot: string): string {
+type PythonManifest = ReturnType<typeof readReleaseState>["pythonManifests"][number];
+type PythonFormat = "wheel" | "sdist";
+interface PythonArtifacts {
+  descriptor: PythonManifest;
+  wheel: string;
+  sdist: string;
+  inspections: readonly [unknown, unknown];
+}
+
+function cleanInstallPython(
+  artifact: PythonArtifacts,
+  format: PythonFormat,
+  sdk: PythonArtifacts,
+  workRoot: string,
+): string {
+  const { descriptor } = artifact;
+  const label = `${descriptor.id}-${format}`;
+  const distribution = artifact[format];
+  const distributions = descriptor.scope === "core" ? [distribution] : [sdk[format], distribution];
   const environmentRoot = join(workRoot, `python-install-${label}`);
   run(uvCommand, [
     "venv",
@@ -386,13 +405,13 @@ function cleanInstallPython(distribution: string, label: string, workRoot: strin
       : join(environmentRoot, "bin", "python");
   const constraints = process.env.REMOTE_SKILLS_PYTHON_CONSTRAINTS;
   if (!constraints) throw new Error("Python artifact dependencies must be prepared explicitly");
-  if (label === "wheel") {
-    const emptyCache = join(workRoot, "missing-python-dependencies");
+  if (format === "wheel") {
+    const emptyCache = join(workRoot, `missing-python-dependencies-${descriptor.id}`);
     mkdirSync(emptyCache);
     let missingDependency = false;
     try {
       installPythonArtifact(
-        distribution,
+        distributions,
         python,
         constraints,
         { ...offlineEnvironment, UV_CACHE_DIR: emptyCache },
@@ -409,15 +428,27 @@ function cleanInstallPython(distribution: string, label: string, workRoot: strin
     }
     if (!missingDependency)
       throw new Error("The artifact unexpectedly installed without its required dependency cache");
-    console.log("Verified: an empty cache rejects the wheel's missing runtime dependencies.");
+    console.log(`Verified: an empty cache rejects ${descriptor.name}'s required dependencies.`);
   }
-  installPythonArtifact(distribution, python, constraints, offlineEnvironment, repositoryRoot);
+  installPythonArtifact(distributions, python, constraints, offlineEnvironment, repositoryRoot);
   run(python, [
     "-I",
     "-c",
-    'from importlib.metadata import version; from pathlib import Path; import remote_skills, sys, uts46; root = Path(sys.prefix).resolve(); assert version("remote-skills") == sys.argv[1]; assert version("uts46") == "0.2.0"; assert Path(remote_skills.__file__).resolve().is_relative_to(root); assert Path(uts46.__file__).resolve().is_relative_to(root)',
-    releaseState.pythonVersion,
+    'from importlib import import_module; from importlib.metadata import version; from pathlib import Path; import sys, uts46; root = Path(sys.prefix).resolve(); module = import_module(sys.argv[1]); assert version(sys.argv[2]) == sys.argv[3]; assert Path(module.__file__).resolve().is_relative_to(root); assert version("remote-skills") == sys.argv[4]; assert version("uts46") == "0.2.0"; assert Path(uts46.__file__).resolve().is_relative_to(root)',
+    descriptor.importName,
+    descriptor.name,
+    descriptor.version,
+    sdk.descriptor.version,
   ]);
+  if (descriptor.scope !== "core") {
+    checkInstalledPythonIntegration(
+      repositoryRoot,
+      environmentRoot,
+      python,
+      { sdkVersion: sdk.descriptor.version, integrationVersion: descriptor.version },
+      offlineEnvironment,
+    );
+  }
   return version(python, ["--version"]);
 }
 
@@ -440,89 +471,124 @@ try {
   mkdirSync(artifactDirectory);
 
   runPnpm(["package:check"]);
-  const cli = packNpm("@remote-skills/cli", artifactDirectory);
-  const client = packNpm("@remote-skills/client", artifactDirectory);
-  const integration = packNpm("@remote-skills/ai-sdk", artifactDirectory);
-  run(uvCommand, [
-    "build",
-    "--offline",
-    "--no-index",
-    "--no-python-downloads",
-    "--no-config",
-    "--no-create-gitignore",
-    "--out-dir",
-    artifactDirectory,
-    "packages/sdk-python",
-  ]);
-
-  const names = readdirSync(artifactDirectory).sort();
-  const wheelName = names.find((name) => name.endsWith(".whl"));
-  const sourceName = names.find((name) => name.endsWith(".tar.gz"));
-  if (!wheelName || !sourceName || names.length !== 5) {
-    throw new Error(`expected five local artifacts, found: ${names.join(", ")}`);
-  }
-  const wheel = join(artifactDirectory, wheelName);
-  const source = join(artifactDirectory, sourceName);
-  const pythonInspectionValue: unknown = JSON.parse(
+  // Readiness constructs every registered artifact, including unselected core SDKs
+  // needed by selected integrations. Publication selection happens in its own plan.
+  const npmArtifacts = releaseState.manifests.map((entry) => ({
+    descriptor: entry,
+    packed: packNpm(entry.name, artifactDirectory),
+  }));
+  const constraints = process.env.REMOTE_SKILLS_PYTHON_CONSTRAINTS;
+  if (!constraints) throw new Error("Python artifact dependencies must be prepared explicitly");
+  const pythonArtifacts: PythonArtifacts[] = releaseState.pythonManifests.map((descriptor) => {
+    const buildDirectory = join(workRoot, `python-build-${descriptor.id}`);
+    mkdirSync(buildDirectory);
     run(uvCommand, [
-      "run",
-      "--project",
-      "packages/sdk-python",
-      "--locked",
-      "--no-sync",
-      "python",
-      "scripts/inspect-python-distributions.py",
-      wheel,
-      source,
-    ]),
-  );
-  if (!Array.isArray(pythonInspectionValue) || pythonInspectionValue.length !== 2) {
-    throw new Error("Python artifact inspection must describe exactly two distributions");
+      "build",
+      "--offline",
+      "--no-index",
+      "--no-python-downloads",
+      "--no-config",
+      "--no-create-gitignore",
+      "--build-constraint",
+      constraints,
+      "--out-dir",
+      buildDirectory,
+      dirname(descriptor.manifestPath),
+    ]);
+    const names = readdirSync(buildDirectory).sort();
+    const wheelName = names.find((name) => name.endsWith(".whl"));
+    const sourceName = names.find((name) => name.endsWith(".tar.gz"));
+    if (!wheelName || !sourceName || names.length !== 2) {
+      throw new Error(`${descriptor.name} must build exactly one wheel and one sdist`);
+    }
+    for (const name of names) {
+      if (existsSync(join(artifactDirectory, name)))
+        throw new Error(`Duplicate artifact filename: ${name}`);
+      copyFileSync(join(buildDirectory, name), join(artifactDirectory, name));
+    }
+    const wheel = join(artifactDirectory, wheelName);
+    const sdist = join(artifactDirectory, sourceName);
+    const descriptorPath = join(workRoot, `python-inspection-${descriptor.id}.json`);
+    writeFileSync(
+      descriptorPath,
+      JSON.stringify({
+        name: descriptor.name,
+        version: descriptor.version,
+        importName: descriptor.importName,
+        manifestPath: resolve(repositoryRoot, descriptor.manifestPath),
+      }),
+    );
+    const inspection: unknown = JSON.parse(
+      run(inspectionPython(constraints), [
+        "-I",
+        resolve(import.meta.dirname, "inspect-python-distributions.py"),
+        "--descriptor",
+        descriptorPath,
+        wheel,
+        sdist,
+      ]),
+    );
+    if (!Array.isArray(inspection) || inspection.length !== 2) {
+      throw new Error(`${descriptor.name} inspection must describe exactly two distributions`);
+    }
+    return { descriptor, wheel, sdist, inspections: [inspection[0], inspection[1]] };
+  });
+  const expectedFiles = [
+    ...npmArtifacts.map(({ packed }) => basename(packed.filename)),
+    ...pythonArtifacts.flatMap(({ wheel, sdist }) => [basename(wheel), basename(sdist)]),
+  ].sort();
+  if (JSON.stringify(readdirSync(artifactDirectory).sort()) !== JSON.stringify(expectedFiles)) {
+    throw new Error("Built artifact inventory differs from registered package descriptors");
   }
-  cleanInstallNpm(cli, workRoot);
-  cleanInstallNpm(client, workRoot);
-  checkInstalledIntegration([client.filename, integration.filename], repositoryRoot);
-  const wheelPython = cleanInstallPython(wheel, "wheel", workRoot);
-  const sourcePython = cleanInstallPython(source, "sdist", workRoot);
-  if (wheelPython !== sourcePython || !/^Python 3\.11\./u.test(wheelPython)) {
+
+  const client = npmArtifacts.find(({ descriptor }) => descriptor.id === "client")?.packed;
+  const sdk = pythonArtifacts.find(({ descriptor }) => descriptor.scope === "core");
+  if (!client || !sdk) throw new Error("Registered core SDK artifacts are missing");
+  for (const { descriptor, packed } of npmArtifacts) {
+    if (descriptor.scope === "core") cleanInstallNpm(packed, workRoot);
+    else {
+      checkInstalledIntegration(
+        [client.filename, packed.filename],
+        repositoryRoot,
+        dirname(descriptor.manifestPath),
+      );
+    }
+  }
+  const pythonVersions = pythonArtifacts.flatMap((artifact) =>
+    (["wheel", "sdist"] as const).map((format) =>
+      cleanInstallPython(artifact, format, sdk, workRoot),
+    ),
+  );
+  const pythonVersion = pythonVersions[0];
+  if (
+    !pythonVersion ||
+    new Set(pythonVersions).size !== 1 ||
+    !/^Python 3\.11\./u.test(pythonVersion)
+  ) {
     throw new Error("Python clean-install versions differ or are unsupported");
   }
 
   const artifacts = [
-    artifactEvidence(
-      integration.filename,
-      { ecosystem: "npm", name: integration.name, version: integration.version },
-      inspectNpmTarball(integration),
+    ...npmArtifacts.map(({ packed }) =>
+      artifactEvidence(
+        packed.filename,
+        { ecosystem: "npm", name: packed.name, version: packed.version },
+        inspectNpmTarball(packed),
+      ),
     ),
-    artifactEvidence(
-      cli.filename,
-      { ecosystem: "npm", name: cli.name, version: cli.version },
-      inspectNpmTarball(cli),
-    ),
-    artifactEvidence(
-      client.filename,
-      { ecosystem: "npm", name: client.name, version: client.version },
-      inspectNpmTarball(client),
-    ),
-    artifactEvidence(
-      wheel,
-      {
-        ecosystem: "pypi",
-        name: "remote-skills",
-        version: releaseState.pythonVersion,
-        format: "wheel",
-      },
-      pythonInspectionValue[0],
-    ),
-    artifactEvidence(
-      source,
-      {
-        ecosystem: "pypi",
-        name: "remote-skills",
-        version: releaseState.pythonVersion,
-        format: "sdist",
-      },
-      pythonInspectionValue[1],
+    ...pythonArtifacts.flatMap((artifact) =>
+      (["wheel", "sdist"] as const).map((format, index) =>
+        artifactEvidence(
+          artifact[format],
+          {
+            ecosystem: "pypi",
+            name: artifact.descriptor.name,
+            version: artifact.descriptor.version,
+            format,
+          },
+          artifact.inspections[index],
+        ),
+      ),
     ),
   ];
   const environment = {
@@ -531,15 +597,15 @@ try {
     architecture: process.arch,
     node: process.version,
     pnpm: pnpmVersion(),
-    python: wheelPython,
+    python: pythonVersion,
     uv: version(uvCommand, ["--version"]),
   };
   requireRepositoryState(sourceCommit);
   const retained = process.env.PUBLICATION_ARTIFACT_OUTPUT;
   if (retained) {
     for (const [kind, files] of [
-      ["npm", [cli.filename, client.filename, integration.filename]],
-      ["python", [wheel, source]],
+      ["npm", npmArtifacts.map(({ packed }) => packed.filename)],
+      ["python", pythonArtifacts.flatMap(({ wheel, sdist }) => [wheel, sdist])],
     ] as const) {
       mkdirSync(join(retained, kind), { recursive: true });
       for (const file of files) copyFileSync(file, join(retained, kind, basename(file)));

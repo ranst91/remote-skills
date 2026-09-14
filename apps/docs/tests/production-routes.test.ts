@@ -15,7 +15,9 @@ const expectedMarkdownRoutes = [
   "/docs/hosting/archive-to-origin.md",
   "/docs/hosting/git-pages.md",
   "/docs/consume.md",
+  "/docs/integrations.md",
   "/docs/vercel-ai-sdk.md",
+  "/docs/integrations/mastra.md",
   "/docs/concepts.md",
   "/docs/hosting/local-or-remote.md",
   "/docs/cache-and-offline.md",
@@ -120,6 +122,17 @@ test("production build serves llms.txt and every indexed canonical Markdown rout
         assert.match(markdown, /\*\*Archives are served exactly as built\.\*\*/u);
       }
     }
+
+    const integrationsPage = await fetch(`${baseUrl}/docs/integrations`);
+    assert.equal(integrationsPage.status, 200);
+    const integrationsHtml = await integrationsPage.text();
+    assert.match(integrationsHtml, /Integrations/u);
+    assert.match(integrationsHtml, /href="\/docs\/vercel-ai-sdk"/u);
+    assert.equal(
+      (await fetch(`${baseUrl}/docs/vercel-ai-sdk`)).status,
+      200,
+      "the established Vercel documentation URL remains usable",
+    );
 
     for (const [oldPage, destination] of [
       ["typescript", "consume"],

@@ -6,11 +6,19 @@ import { join } from "node:path";
 import {
   isScope,
   pythonManifest,
+  pythonPackages,
   releasePackages,
   releaseScopes,
   type Scope,
 } from "./release-scopes.ts";
-export { pythonManifest, releasePackages, releaseScopes, type Scope } from "./release-scopes.ts";
+
+export {
+  pythonManifest,
+  pythonPackages,
+  releasePackages,
+  releaseScopes,
+  type Scope,
+} from "./release-scopes.ts";
 export type Bump = "patch" | "minor" | "major";
 export const releaseIntent = "release-state.json";
 export type Channel = "stable" | "alpha";
@@ -143,49 +151,86 @@ export function clientPeerCompatible(range: string, version: string) {
       ? candidate.major === 0 && candidate.minor === lower.minor
       : comparison === 0;
 }
+const legacyPackageIds = new Set<string>(["cli", "client", "ai_sdk"]);
+const legacyScopes: Scope[] = ["core", "integration-ai-sdk"];
 export function readReleaseState(root = process.cwd()) {
-  const manifests = releasePackages.map((entry) => {
-    const manifest = manifestObject(readFileSync(join(root, entry.manifest), "utf8"));
-    if (stringField(manifest, "name") !== entry.name)
-      throw new Error(`Unexpected package identity: ${entry.manifest}`);
-    const version = stringField(manifest, "version");
-    parseVersion(version);
-    return { ...entry, manifestPath: entry.manifest, manifest, version };
-  });
+  const intentSource = existsSync(join(root, releaseIntent))
+    ? readFileSync(join(root, releaseIntent), "utf8")
+    : undefined;
+  const intent = intentSource ? parseReleaseIntent(intentSource) : undefined;
+  const legacy = intentSource !== undefined && intent === undefined;
+  const availableManifest = (manifest: string) =>
+    existsSync(join(root, manifest)) ||
+    Boolean(
+      execFileSync("git", ["ls-tree", "--name-only", "HEAD", "--", manifest], {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }).trim(),
+    );
+  const manifests = releasePackages
+    .filter(
+      (entry) => !legacy || legacyPackageIds.has(entry.id) || availableManifest(entry.manifest),
+    )
+    .map((entry) => {
+      const manifest = manifestObject(readFileSync(join(root, entry.manifest), "utf8"));
+      if (stringField(manifest, "name") !== entry.name)
+        throw new Error(`Unexpected package identity: ${entry.manifest}`);
+      const version = stringField(manifest, "version");
+      parseVersion(version);
+      return { ...entry, manifestPath: entry.manifest, manifest, version };
+    });
   const npmVersion = manifests.find((entry) => entry.id === "client")?.version;
   if (!npmVersion) throw new Error("Missing core release packages");
-  const pythonVersion = readPythonVersion(readFileSync(join(root, pythonManifest), "utf8"));
+  const pythonManifests = pythonPackages
+    .filter((entry) => !legacy || entry.scope === "core" || availableManifest(entry.manifest))
+    .map((entry) => {
+      const source = readFileSync(join(root, entry.manifest), "utf8");
+      const project = source.split(/^\[project\]\s*$/mu)[1]?.split(/^\[/mu)[0];
+      if (project?.match(/^name\s*=\s*"([^"]+)"/mu)?.[1] !== entry.name)
+        throw new Error(`Unexpected Python identity: ${entry.manifest}`);
+      return { ...entry, manifestPath: entry.manifest, source, version: readPythonVersion(source) };
+    });
+  const pythonVersion = pythonManifests.find((entry) => entry.scope === "core")?.version;
+  if (!pythonVersion) throw new Error("Missing core Python package");
   for (const scope of Object.keys(releaseScopes)) {
     const versions = manifests
       .filter((entry) => entry.scope === scope)
       .map((entry) => entry.version);
-    if (new Set(versions).size !== 1) throw new Error(`Coordinated ${scope} package version drift`);
+    if (!versions.length && legacy) continue;
+    if (
+      new Set(versions).size !== 1 ||
+      pythonManifests.some(
+        (entry) => entry.scope === scope && entry.version !== toPythonVersion(versions[0] ?? ""),
+      )
+    )
+      throw new Error(`Coordinated ${scope} package version drift`);
   }
-  if (pythonVersion !== toPythonVersion(npmVersion))
-    throw new Error("Coordinated core package version drift");
-  const intent = existsSync(join(root, releaseIntent))
-    ? parseReleaseIntent(readFileSync(join(root, releaseIntent), "utf8"))
-    : undefined;
   const selectedScopes = intent
     ? Object.keys(intent.scopes).filter(isScope)
-    : Object.keys(releaseScopes).filter(isScope);
-  const selectedPackages: SelectedPackage[] = manifests
-    .filter((entry) => selectedScopes.includes(entry.scope))
-    .map((entry) => ({
-      id: entry.id,
-      name: entry.name,
-      version: entry.version,
-      registry: "npm",
-      scope: entry.scope,
-    }));
-  if (selectedScopes.includes("core"))
-    selectedPackages.push({
-      id: "python",
-      name: "remote-skills",
-      version: pythonVersion,
-      registry: "pypi",
-      scope: "core",
-    });
+    : legacy
+      ? legacyScopes
+      : Object.keys(releaseScopes).filter(isScope);
+  const selectedPackages: SelectedPackage[] = [
+    ...manifests
+      .filter((entry) => selectedScopes.includes(entry.scope))
+      .map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        version: entry.version,
+        registry: "npm" as const,
+        scope: entry.scope,
+      })),
+    ...pythonManifests
+      .filter((entry) => selectedScopes.includes(entry.scope))
+      .map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        version: entry.version,
+        registry: "pypi" as const,
+        scope: entry.scope,
+      })),
+  ];
   const releases = selectedScopes.map((scope) => {
     const version = manifests.find((entry) => entry.scope === scope)?.version;
     if (!version) throw new Error(`Missing scope ${scope}`);
@@ -202,6 +247,7 @@ export function readReleaseState(root = process.cwd()) {
   });
   return {
     manifests,
+    pythonManifests,
     npmVersion,
     pythonVersion,
     intent,
@@ -233,6 +279,28 @@ function checkPeers(
       throw new Error(
         `${entry.name} client peer is incompatible with ${clientVersion}; review its peer range and select its integration scope before releasing`,
       );
+  }
+}
+// The integration currently declares an exact SDK pin. Unknown requirement syntax
+// requires explicit policy support rather than silently widening compatibility.
+function checkPythonPeers(
+  manifests: ReturnType<typeof readReleaseState>["pythonManifests"],
+  sdkVersion: string,
+) {
+  for (const entry of manifests) {
+    const project = entry.source.split(/^\[project\]\s*$/mu)[1]?.split(/^\[/mu)[0] ?? "";
+    const dependencies = project.match(/^dependencies\s*=\s*\[([\s\S]*?)\]/mu)?.[1] ?? "";
+    for (const match of dependencies.matchAll(/["'](remote[-_]skills(?:\b)[^"']*)["']/gu)) {
+      const dependency = match[1] ?? "";
+      if (/^remote[-_]skills[-_]/u.test(dependency)) continue;
+      if (
+        dependency !== `remote-skills==${sdkVersion}` &&
+        dependency !== `remote_skills==${sdkVersion}`
+      )
+        throw new Error(
+          `${entry.name} Python SDK dependency is incompatible with ${sdkVersion}; review its exact requirement and select its integration scope before releasing`,
+        );
+    }
   }
 }
 export function changelogSection(source: string, version: string) {
@@ -281,11 +349,15 @@ export function prepareRelease(
     )
       throw new Error(`Package version differs from release baseline: ${entry.name}`);
   }
-  if (
-    readPythonVersion(baselineFile(pythonManifest)) !==
-    toPythonVersion(accumulated.core?.previousVersion ?? state.npmVersion)
-  )
-    throw new Error("Python release baseline drift");
+  for (const entry of state.pythonManifests) {
+    const baselineVersion = readPythonVersion(baselineFile(entry.manifestPath));
+    const pending = accumulated[entry.scope];
+    if (
+      entry.version !== (pending ? toPythonVersion(pending.version) : baselineVersion) ||
+      (pending && toPythonVersion(pending.previousVersion) !== baselineVersion)
+    )
+      throw new Error(`Python release baseline drift: ${entry.name}`);
+  }
   const previous =
     accumulated[scope]?.previousVersion ??
     state.manifests.find((entry) => entry.scope === scope)?.version;
@@ -321,12 +393,20 @@ export function prepareRelease(
       .map((entry) => ({ ...entry, manifest: manifestObject(baselineFile(entry.manifestPath)) })),
     clientVersion,
   );
-  if (releaseScopes[scope].python)
+  const pythonClientVersion = toPythonVersion(clientVersion);
+  checkPythonPeers(state.pythonManifests, pythonClientVersion);
+  checkPythonPeers(
+    state.pythonManifests
+      .filter((entry) => !intent.scopes[entry.scope])
+      .map((entry) => ({ ...entry, source: baselineFile(entry.manifestPath) })),
+    pythonClientVersion,
+  );
+  for (const entry of state.pythonManifests.filter((entry) => entry.scope === scope))
     writes.push({
-      path: pythonManifest,
-      source: readFileSync(join(root, pythonManifest), "utf8").replace(
-        `version = "${state.pythonVersion}"`,
-        `version = "${toPythonVersion(version)}"`,
+      path: entry.manifestPath,
+      source: entry.source.replace(
+        /(^\[project\][\s\S]*?^version\s*=\s*")[^"]+(".*$)/mu,
+        `$1${toPythonVersion(version)}$2`,
       ),
     });
   let changelog = readFileSync(join(root, "CHANGELOG.md"), "utf8");
@@ -352,7 +432,9 @@ export function prepareRelease(
     const packageNames: string[] = state.manifests
       .filter((entry) => entry.scope === scope)
       .map((entry) => entry.name);
-    if (releaseScopes[scope].python) packageNames.push("remote-skills");
+    packageNames.push(
+      ...state.pythonManifests.filter((entry) => entry.scope === scope).map((entry) => entry.name),
+    );
     // A factual scope summary allows preparation after a prior release consumed
     // Unreleased. The heading records the version, so revising a selection never
     // leaves a stale version in these notes or rewrites a maintainer's prose.
@@ -429,22 +511,25 @@ export function validateReleaseCommit(root: string, sha: string) {
     if (selection && selection.bump !== "initial" && current === previous)
       throw new Error("Release version did not change");
   }
-  const currentPython = readPythonVersion(git("show", `${sha}:${pythonManifest}`));
-  const previousPython = readPythonVersion(git("show", `${sha}^1:${pythonManifest}`));
-  const core = intent.scopes.core;
-  if (
-    core
-      ? currentPython !== toPythonVersion(core.version) ||
-        previousPython !== toPythonVersion(core.previousVersion)
-      : currentPython !== previousPython
-  )
-    throw new Error("Release Python version drift");
+  for (const entry of pythonPackages) {
+    const current = readPythonVersion(git("show", `${sha}:${entry.manifest}`));
+    const previous = readPythonVersion(git("show", `${sha}^1:${entry.manifest}`));
+    const selection = intent.scopes[entry.scope];
+    if (
+      selection
+        ? current !== toPythonVersion(selection.version) ||
+          previous !== toPythonVersion(selection.previousVersion)
+        : current !== previous
+    )
+      throw new Error(`Release Python version drift: ${entry.name}`);
+  }
   for (const [scope, selection] of Object.entries(intent.scopes))
     changelogSection(git("show", `${sha}:CHANGELOG.md`), `${scope}/v${selection.version}`);
   if (git("rev-parse", "HEAD") !== sha)
     throw new Error("Release validation requires the exact commit checked out");
   const state = readReleaseState(root);
   checkPeers(state.manifests, state.npmVersion);
+  checkPythonPeers(state.pythonManifests, state.pythonVersion);
   return state;
 }
 
@@ -467,7 +552,7 @@ function validateLegacyRelease(git: (...args: string[]) => string, sha: string, 
     if (git("ls-tree", "--name-only", `${sha}^1`, releaseIntent))
       throw new Error("The initial release was already prepared");
   }
-  for (const entry of releasePackages) {
+  for (const entry of releasePackages.filter((entry) => legacyPackageIds.has(entry.id))) {
     const current = stringField(manifestObject(git("show", `${sha}:${entry.manifest}`)), "version");
     const previous = stringField(
       manifestObject(git("show", `${sha}^1:${entry.manifest}`)),

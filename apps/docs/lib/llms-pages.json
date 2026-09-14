@@ -9,7 +9,11 @@
   },
   {
     "title": "Consume",
-    "pages": ["consume", "vercel-ai-sdk"]
+    "pages": ["consume"]
+  },
+  {
+    "title": "Integrations",
+    "pages": ["integrations", "vercel-ai-sdk", "integrations/mastra"]
   },
   {
     "title": "Concepts",

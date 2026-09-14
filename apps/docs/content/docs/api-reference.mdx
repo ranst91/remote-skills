@@ -3,7 +3,7 @@ title: API reference
 description: SDK constructors, parameters, return values, data types, and errors.
 ---
 
-Reference for `@remote-skills/client`, Python's `remote_skills`, and the [Vercel AI SDK integration](#vercel-ai-sdk-integration). Method tables show awaited return values: TypeScript methods return promises, and Python async methods are awaited. For a runnable integration, see [Consume skills](/docs/consume).
+Reference for `@remote-skills/client`, Python's `remote_skills`, and the [Vercel AI SDK](#vercel-ai-sdk-integration) and [Mastra](#mastra-integration) integrations. Method tables show awaited return values: TypeScript methods return promises, and Python async methods are awaited. For a runnable integration, see [Consume skills](/docs/consume).
 
 ## Client creation
 
@@ -324,6 +324,58 @@ The package also exports the types `RemoteSkillsOptions`, `RemoteSkillsIntegrati
 | `readFile` | Vercel's file-reader input, including `path` | UTF-8 file content from the verified skill. Binary reads return `resource_not_text`; binary access remains available through SDK sessions. |
 
 Tool errors retain SDK error codes without diagnostic context. Unexpected tool failures return a fixed message; setup errors remain available to the application. Abort signals are checked around tool operations, but an already-started SDK download follows the client's timeout and session-close behavior rather than per-call cancellation.
+
+## Mastra integration
+
+`remoteSkills(options: RemoteSkillsOptions): Promise<RemoteSkillsIntegration>` is exported by `@remote-skills/mastra`. For installation and a complete agent example, see the [Mastra guide](/docs/integrations/mastra).
+
+### Mastra source options
+
+Exactly one source form is accepted:
+
+| Form | Type | Behavior |
+| --- | --- | --- |
+| `{ client, origin }` | `RemoteSkillsClient`, `string` | Opens a session for one configured origin alias and owns its lifetime. |
+| `{ session }` | `RemoteSkillsSession` | Uses a caller-owned session without taking ownership of it. |
+
+Both forms also accept:
+
+| Option | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `versions` | `Readonly<Record<string, string>>` | Unset | Skill names mapped to SDK version constraints. Unknown names or empty constraints fail setup. Existing session pins remain authoritative. |
+| `instructions` | `string` | `"Help the user using relevant skills."` | Your agent's instructions, followed by guidance for skill selection, required reference reads, and named search. |
+| `hooks` | `ToolHooks` from `@mastra/core/tools` | Unset | Your tool hooks, composed with the required skill-loading hooks. |
+
+Creation discovers catalog metadata without downloading skill contents. Authentication, scopes, cache policy, transport, timeouts, and limits come from the supplied client or session. One integration binds one origin and one credential context. If setup fails, a session opened by the integration is closed; a caller-owned session stays open.
+
+### Mastra integration members
+
+| Member | Type | Contract |
+| --- | --- | --- |
+| `agentOptions` | `{ workspace: Workspace; hooks: ToolHooks; instructions: string }` | Settings to spread into a Mastra `Agent`. Provides a skills-only Workspace, composed hooks, and skill guidance; does not configure a model or step limit. |
+| `session` | `RemoteSkillsSession` | Underlying session, including catalog access, selected versions, and confirmed-scope metadata. |
+| `close()` | `Promise<void>` | Disables new operations, waits for in-flight native skill calls and their hooks, destroys the Workspace, and closes an owned session. Safe to call repeatedly. Leaves a caller-owned session and the SDK cache intact. |
+| `[Symbol.asyncDispose]()` | `Promise<void>` | Same cleanup as `close()`; supports `await using`. |
+
+The package also exports the types `RemoteSkillsOptions` and `RemoteSkillsIntegration`. Consume response streams before closing the integration. When reusing a caller-owned session, close the integration first, then close the session when your application has finished using it.
+
+### Mastra native tools
+
+These are Mastra's existing Workspace tools, with native schemas and result formatting. The integration loads and verifies selected content before the native tool runs.
+
+| Tool | Required input | Behavior |
+| --- | --- | --- |
+| `skill` | `name: string` | Loads the named skill's instructions and pins its verified contents for the session. |
+| `skill_read` | `skillName: string`, `path: string` | Reads a skill-relative UTF-8 file. Loads the skill first if necessary. Binary content fails with `resource_not_text`; byte access is available through the SDK. |
+| `skill_search` | `query: string`, `skillNames: string[]` | Searches text in explicitly named catalog skills, loading only those skills as needed. Both the query and skill list must be nonempty. |
+
+### Mastra composition
+
+Pass your hooks through the `hooks` option. Your before hook runs before activation and can deny a call with `{ proceed: false }`. Your after hook runs after the native tool; Mastra does not invoke it when a before hook fails or denies the call.
+
+Retain the supplied Workspace, hooks, and instructions on the agent. Replacing hooks at construction or execution, renaming native skill tools, or calling the raw Workspace loader bypasses the required loading path. Reserve `skill`, `skill_read`, and `skill_search` for the native tools and avoid same-named skills from other sources.
+
+The integration creates its own skills-only Workspace; it does not merge an existing Workspace, add filesystem or sandbox tools, or index the whole remote catalog. It runs in Node.js on the server. For skill selection and reading within an application, use the Agent tool path shown in the [guide](/docs/integrations/mastra#connect-your-agent).
 
 ## Request failures
 

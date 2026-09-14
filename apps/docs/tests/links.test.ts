@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, normalize, relative, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -19,7 +19,8 @@ function resolveInternalTarget(file: string, target: string): string | undefined
   if (!withoutFragment) return undefined;
   if (withoutFragment.startsWith("/docs/")) {
     const slug = withoutFragment.slice("/docs/".length).replace(/\/$/u, "") || "index";
-    return join(docsRoot, `${slug}.mdx`);
+    const page = join(docsRoot, `${slug}.mdx`);
+    return readFileExists(page) ? page : join(docsRoot, slug, "index.mdx");
   }
   if (withoutFragment === "/docs") return join(docsRoot, "index.mdx");
   if (withoutFragment.startsWith("/")) return undefined;

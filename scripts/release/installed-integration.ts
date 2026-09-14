@@ -3,19 +3,23 @@ import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnPnpmSync } from "../lib/pnpm-command.ts";
-import { manifestObject, stringField } from "./release-lib.ts";
 import {
   assertLockedIntegrationResolution,
   writeLockedIntegrationProject,
 } from "./integration-dependencies.ts";
+import { manifestObject, stringField } from "./release-lib.ts";
 
-export function checkInstalledIntegration(archives: readonly string[], root = process.cwd()) {
-  const consumer = mkdtempSync(join(tmpdir(), "installed-ai-sdk-"));
+export function checkInstalledIntegration(
+  archives: readonly string[],
+  root = process.cwd(),
+  integrationPath = "integrations/ai-sdk",
+) {
+  const consumer = mkdtempSync(join(tmpdir(), "installed-integration-"));
   try {
     const manifest = manifestObject(
-      readFileSync(join(root, "integrations/ai-sdk/package.json"), "utf8"),
+      readFileSync(join(root, integrationPath, "package.json"), "utf8"),
     );
-    writeLockedIntegrationProject(root, consumer);
+    writeLockedIntegrationProject(root, consumer, integrationPath);
     // Dependency setup seeds both package contents and metadata before this offline test.
     // Registry overrides change pnpm's metadata cache key, even with networking disabled.
     const offlineEnvironment = { ...process.env };
@@ -45,9 +49,9 @@ export function checkInstalledIntegration(archives: readonly string[], root = pr
       consumer,
       archives.map((file) => resolve(file)),
     );
-    const source = join(root, "integrations/ai-sdk/tests/installed-consumer.ts");
+    const source = join(root, integrationPath, "tests/installed-consumer.ts");
     copyFileSync(source, join(consumer, "check.ts"));
-    const result = spawnSync(process.execPath, ["check.ts"], {
+    const result = spawnSync(process.execPath, ["check.ts", stringField(manifest, "version")], {
       cwd: consumer,
       encoding: "utf8",
       timeout: 30_000,
@@ -61,7 +65,14 @@ export function checkInstalledIntegration(archives: readonly string[], root = pr
         cwd: consumer,
         encoding: "utf8",
       });
-      if (version.status !== 0 || version.stdout.trim() !== stringField(manifest, "version"))
+      if (
+        version.status !== 0 ||
+        version.stdout.trim() !==
+          stringField(
+            manifestObject(readFileSync(join(root, "packages/cli/package.json"), "utf8")),
+            "version",
+          )
+      )
         throw new Error("Installed CLI version differs from release version");
     }
     return result.stdout.trim();

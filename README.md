@@ -153,13 +153,14 @@ Remote Skills provides the publisher CLI and model-agnostic consumer SDKs around
 
 There is no managed Remote Skills service. You host the exact static build output and integrate a consumer SDK into your own host application. For Vercel AI SDK, the [integration](apps/docs/content/docs/vercel-ai-sdk.mdx) connects remote skills to its existing skill loader.
 
-See the [integration package](integrations/ai-sdk/README.md) and [TypeScript chat demo](examples/vercel-ai-sdk/README.md) for package details and a runnable example.
+See the [Vercel integration package](integrations/ai-sdk/README.md) and [TypeScript chat demo](examples/vercel-ai-sdk/README.md), or the [Mastra native Workspace integration](integrations/mastra/README.md) and [Next.js chat demo](examples/mastra/README.md).
+
 
 ## Documentation
 
 Start with the [Quickstart](apps/docs/content/docs/quickstart.mdx): install the packages, publish a greeting skill, and use its instructions in your agent.
 
-The documentation site under `apps/docs` groups the rest into Publish, Consume, Concepts, and Reference.
+The documentation site under `apps/docs` groups the rest into Publish, Consume, Integrations, Concepts, and Reference.
 Runnable examples and their setup commands are indexed in [examples/README.md](examples/README.md).
 
 ## License

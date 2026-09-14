@@ -145,6 +145,26 @@ function packageManagerContracts(
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
   ["examples/vercel-ai-sdk/README.md#0", basicChatContract],
   [
+    "examples/mastra/README.md#0",
+    [
+      {
+        command: "pnpm install --frozen-lockfile",
+        mode: "static",
+        reason: "locked-workspace-install",
+      },
+    ],
+  ],
+  [
+    "examples/mastra/README.md#1",
+    [
+      {
+        command: "pnpm --filter @remote-skills/example-mastra dev",
+        mode: "static",
+        reason: "long-running-server",
+      },
+    ],
+  ],
+  [
     "README.md#0",
     [
       { command: "remote-skills validate", mode: "execute", action: "validate" },
@@ -275,6 +295,16 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
       reason: "registry-install",
     },
   ]),
+  ...["apps/docs/content/docs/integrations/mastra.mdx", "integrations/mastra/README.md"].flatMap(
+    (path) =>
+      packageManagerContracts(path, 0, [
+        {
+          command: "pnpm add @remote-skills/mastra @remote-skills/client @mastra/core",
+          mode: "static",
+          reason: "registry-install",
+        },
+      ]),
+  ),
   [
     "apps/docs/content/docs/quickstart.mdx#9",
     [
@@ -533,6 +563,19 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], integratio
         process.platform === "win32" ? "junction" : "dir",
       );
     }
+    if (snippets.some((snippet) => snippet.code.includes("@remote-skills/mastra"))) {
+      await symlink(
+        resolve(repositoryRoot, "integrations/mastra"),
+        resolve(packageScope, "mastra"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      await mkdir(resolve(project, "node_modules/@mastra"), { recursive: true });
+      await symlink(
+        resolve(repositoryRoot, "integrations/mastra/node_modules/@mastra/core"),
+        resolve(project, "node_modules/@mastra/core"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+    }
     await writeFile(resolve(project, "package.json"), '{"type":"module"}\n');
     await writeFile(
       resolve(project, "tsconfig.json"),
@@ -571,7 +614,10 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], integratio
       ]
         .filter(Boolean)
         .join("\n");
-      await writeFile(resolve(project, `snippet-${index}.ts`), `${prelude}\n${snippet.code}`);
+      // Mastra examples are complete integration entry points: compile the published
+      // setup itself, without supplying variables the reader was never given.
+      const setup = snippet.code.includes("@remote-skills/mastra") ? "" : prelude;
+      await writeFile(resolve(project, `snippet-${index}.ts`), `${setup}\n${snippet.code}`);
     }
     checkedSpawn(
       process.execPath,
@@ -590,7 +636,11 @@ export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
   const ordinary: Snippet[] = [];
   const integration: Snippet[] = [];
   for (const snippet of snippets) {
-    if (/\bfrom\s+["'](?:@remote-skills\/ai-sdk|ai)["']/u.test(snippet.code)) {
+    if (
+      /\bfrom\s+["'](?:@remote-skills\/(?:ai-sdk|mastra)|@mastra\/core(?:\/[^"']+)?|ai)["']/u.test(
+        snippet.code,
+      )
+    ) {
       integration.push(snippet);
     } else ordinary.push(snippet);
   }
@@ -605,6 +655,14 @@ export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
       throw new Error("documentation requires the real @remote-skills/ai-sdk workspace");
     }
     checkedSpawn("pnpm", ["--filter", "@remote-skills/ai-sdk", "build"]);
+    if (integration.some((snippet) => snippet.code.includes("@remote-skills/mastra"))) {
+      const mastraManifest: unknown = JSON.parse(
+        await readFile(resolve(repositoryRoot, "integrations/mastra/package.json"), "utf8"),
+      );
+      if (!isJsonObject(mastraManifest) || mastraManifest.name !== "@remote-skills/mastra")
+        throw new Error("documentation requires the real @remote-skills/mastra workspace");
+      checkedSpawn("pnpm", ["--filter", "@remote-skills/mastra", "build"]);
+    }
     await compileTypeScriptProject(integration, true);
   }
 }

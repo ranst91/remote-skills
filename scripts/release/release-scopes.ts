@@ -12,12 +12,30 @@ export const releasePackages = [
     name: "@remote-skills/ai-sdk",
     manifest: "integrations/ai-sdk/package.json",
     scope: "integration-ai-sdk",
+    example: "examples/vercel-ai-sdk",
+  },
+  {
+    id: "mastra",
+    name: "@remote-skills/mastra",
+    manifest: "integrations/mastra/package.json",
+    scope: "integration-mastra",
+    example: "examples/mastra",
+  },
+] as const;
+export const pythonPackages = [
+  {
+    id: "python",
+    name: "remote-skills",
+    manifest: "packages/sdk-python/pyproject.toml",
+    scope: "core",
+    importName: "remote_skills",
   },
 ] as const;
 export const pythonManifest = "packages/sdk-python/pyproject.toml";
 export const releaseScopes = {
-  core: { python: true },
-  "integration-ai-sdk": { python: false },
+  core: {},
+  "integration-ai-sdk": {},
+  "integration-mastra": {},
 } as const;
 export type Scope = keyof typeof releaseScopes;
 export function isScope(value: string): value is Scope {

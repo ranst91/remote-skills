@@ -1,9 +1,18 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { type TestContext, test } from "node:test";
+import { pythonPackages, releasePackages } from "../../scripts/release/release-scopes.ts";
 
 const gate = resolve("scripts/check-no-publication.ts");
 
@@ -46,11 +55,15 @@ function readinessEvidence(commit: string, overrides: ReadinessOverrides = {}) {
     registryAccess: false,
     publication: false,
     artifacts: [
-      { ecosystem: "npm", name: "@remote-skills/cli", localArtifact: true },
-      { ecosystem: "npm", name: "@remote-skills/client", localArtifact: true },
-      { ecosystem: "npm", name: "@remote-skills/ai-sdk", localArtifact: true },
-      { ecosystem: "pypi", name: "remote-skills", format: "wheel", localArtifact: true },
-      { ecosystem: "pypi", name: "remote-skills", format: "sdist", localArtifact: true },
+      ...releasePackages.map(({ name }) => ({ ecosystem: "npm", name, localArtifact: true })),
+      ...pythonPackages.flatMap(({ name }) =>
+        ["wheel", "sdist"].map((format) => ({
+          ecosystem: "pypi",
+          name,
+          format,
+          localArtifact: true,
+        })),
+      ),
     ],
     ...overrides,
   };
@@ -76,6 +89,12 @@ function makeFixture(testContext: TestContext, files: FixtureFiles = {}): GateFi
       "The publisher builds a static origin. No package was published, reserved, tagged, or uploaded to npm or PyPI.\n",
     ...files,
   });
+  // The gate derives artifact identities from the inspected source checkout.
+  for (const entry of [...releasePackages, ...pythonPackages]) {
+    const destination = join(repository, entry.manifest);
+    mkdirSync(dirname(destination), { recursive: true });
+    copyFileSync(entry.manifest, destination);
+  }
   for (const args of [
     ["init", "--quiet"],
     ["config", "user.name", "Boundary Test"],
@@ -359,6 +378,33 @@ test("no-publication gate rejects an extra positive readiness string", (testCont
 
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /readiness-completed-publication-claim/u);
+  assert.equal(existsSync(fixture.output), false);
+});
+
+for (const [index, artifact] of readinessEvidence("fixture").artifacts.entries()) {
+  const label = `${artifact.name}${"format" in artifact ? ` ${artifact.format}` : ""}`;
+  test(`no-publication gate rejects missing registered artifact ${label}`, (testContext) => {
+    const fixture = makeFixture(testContext);
+    const evidence = readinessEvidence(fixture.commit);
+    evidence.artifacts.splice(index, 1);
+    writeFileSync(fixture.readiness, JSON.stringify(evidence));
+    const result = runGate(fixture);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /readiness-publication-claim/u);
+    assert.equal(existsSync(fixture.output), false);
+  });
+}
+
+test("no-publication gate rejects a duplicate artifact with unchanged inventory size", (context) => {
+  const fixture = makeFixture(context);
+  const evidence = readinessEvidence(fixture.commit);
+  const first = evidence.artifacts[0];
+  assert.ok(first);
+  evidence.artifacts[evidence.artifacts.length - 1] = first;
+  writeFileSync(fixture.readiness, JSON.stringify(evidence));
+  const result = runGate(fixture);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /readiness-publication-claim/u);
   assert.equal(existsSync(fixture.output), false);
 });
 
