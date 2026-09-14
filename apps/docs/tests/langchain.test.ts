@@ -2,22 +2,27 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { verifyPythonSnippets, verifyTypeScriptSnippets } from "./verify-snippets.ts";
+import {
+  verifyBashSnippet,
+  verifyPythonSnippets,
+  verifyTypeScriptSnippets,
+} from "./verify-snippets.ts";
 
 const page = new URL("../content/docs/integrations/langchain.mdx", import.meta.url);
 
-async function examples(language: "ts" | "python") {
+async function examples(language: "ts" | "python" | "bash") {
   const source = await readFile(page, "utf8");
   return Array.from(
     source.matchAll(
       new RegExp(`^\x60\x60\x60${language}([^\\n]*)\\n([\\s\\S]*?)^\x60\x60\x60$`, "gmu"),
     ),
-    (match) => {
+    (match, ordinal) => {
       assert.ok(match[2]);
       return {
         code: match[2],
         info: `${language}${match[1] ?? ""}`,
         language,
+        ordinal,
         path: fileURLToPath(page),
       };
     },
@@ -35,6 +40,8 @@ test("LangChain guide provides complete native consumer examples for all six pat
     assert.match(snippet.code, /await using session = await client\.session\("team"\)/u);
     assert.match(snippet.code, /await using remote = await remoteSkills\(\{ session \}\)/u);
     assert.match(snippet.code, /return await (?:agent|graph)\.invoke\(/u);
+    assert.match(snippet.code, /const model = await initChatModel\(/u);
+    assert.match(snippet.code, /console\.log\(result\.messages/u);
     assert.doesNotMatch(snippet.code, /\.activate\(/u);
   }
   for (const snippet of python) {
@@ -43,6 +50,9 @@ test("LangChain guide provides complete native consumer examples for all six pat
     assert.match(snippet.code, /async with client\.session\("team"\) as session:/u);
     assert.match(snippet.code, /source = await create_remote_skills_backend\(session\)/u);
     assert.match(snippet.code, /return await agent\.ainvoke\(/u);
+    assert.match(snippet.code, /model = init_chat_model\(/u);
+    assert.match(snippet.code, /print\(result\["messages"\]/u);
+    assert.match(snippet.code, /asyncio\.run\(main\(\)\)/u);
     assert.doesNotMatch(snippet.code, /\.activate\(/u);
   }
   assert.match(typescript[0]?.code ?? "", /\.\.\.remote\.deepAgentOptions/u);
@@ -105,5 +115,25 @@ test("Python import checks never execute example bodies", () => {
         path: fileURLToPath(page),
       },
     ]),
+  );
+});
+
+test("LangChain walkthrough installation commands are classified and syntactically valid", async () => {
+  const commands = await examples("bash");
+  assert.equal(commands.length, 5);
+  for (const command of commands) verifyBashSnippet(command);
+});
+
+test("LangChain README snippets must supply their own adapter and model context", async () => {
+  await assert.rejects(
+    verifyTypeScriptSnippets([
+      {
+        code: 'import { createAgent } from "langchain";\ncreateAgent({ model, middleware: remote.middleware });\n',
+        info: "ts",
+        language: "ts",
+        path: fileURLToPath(new URL("../../../integrations/langchain/README.md", import.meta.url)),
+      },
+    ]),
+    /Cannot find name '(?:model|remote)'/u,
   );
 });

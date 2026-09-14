@@ -200,6 +200,7 @@ async function modelServer(instructions: string, resource: string, artifactCount
 
 function configureEnvironment(origin: string, model: string) {
   const values: Record<string, string | undefined> = {
+    NODE_ENV: "development",
     OPENAI_API_KEY: dummyKey,
     OPENAI_MODEL: modelName,
     OPENAI_BASE_URL: model,
@@ -304,7 +305,11 @@ for (const path of paths) {
       const response = await POST(
         new Request("http://127.0.0.1/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Host: "127.0.0.1",
+            Origin: "http://127.0.0.1",
+          },
           body: JSON.stringify({
             message: "Welcome a new teammate using our prescribed greeting style.",
             path,

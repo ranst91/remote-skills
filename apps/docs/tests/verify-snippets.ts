@@ -145,6 +145,106 @@ function packageManagerContracts(
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
   ["examples/vercel-ai-sdk/README.md#0", basicChatContract],
   [
+    "integrations/langchain/README.md#0",
+    [
+      {
+        command: "npm install @remote-skills/client @remote-skills/langchain",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "integrations/langchain/README.md#1",
+    [
+      {
+        command: "pnpm add @remote-skills/client @remote-skills/langchain",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "integrations/langchain/README.md#2",
+    [
+      {
+        command: "bun add @remote-skills/client @remote-skills/langchain",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "apps/docs/content/docs/integrations/langchain.mdx#0",
+    [
+      {
+        command: "npm install @remote-skills/langchain @remote-skills/client @langchain/openai",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "apps/docs/content/docs/integrations/langchain.mdx#1",
+    [
+      {
+        command: "pnpm add @remote-skills/langchain @remote-skills/client @langchain/openai",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "apps/docs/content/docs/integrations/langchain.mdx#2",
+    [
+      {
+        command: "bun add @remote-skills/langchain @remote-skills/client @langchain/openai",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "integrations/langchain-python/README.md#0",
+    [
+      {
+        command: "uv add remote-skills remote-skills-langchain",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "integrations/langchain-python/README.md#1",
+    [
+      {
+        command: "pip install remote-skills remote-skills-langchain",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "apps/docs/content/docs/integrations/langchain.mdx#3",
+    [
+      {
+        command: "uv add remote-skills-langchain remote-skills langchain-openai",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
+    "apps/docs/content/docs/integrations/langchain.mdx#4",
+    [
+      {
+        command: "pip install remote-skills-langchain remote-skills langchain-openai",
+        mode: "static",
+        reason: "public-package-installation",
+      },
+    ],
+  ],
+  [
     "examples/langchain/README.md#0",
     [
       {
@@ -155,17 +255,7 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
       {
         command: "uv sync --locked --all-packages",
         mode: "static",
-        reason: "root-locked-python-workspace-setup",
-      },
-      {
-        command: "cp examples/langchain/.env.example examples/langchain/.env",
-        mode: "static",
-        reason: "local-environment-setup-for-scripts/examples/langchain.ts",
-      },
-      {
-        command: "pnpm --filter @remote-skills/example-langchain dev",
-        mode: "static",
-        reason: "long-running-local-server-scripts/examples/langchain.ts",
+        reason: "root-locked-workspace-setup",
       },
     ],
   ],
@@ -173,31 +263,19 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
     "examples/langchain/README.md#1",
     [
       {
-        command: "pnpm --filter @remote-skills/example-langchain check",
+        command: "cp examples/langchain/.env.example examples/langchain/.env",
         mode: "static",
-        reason: "executed-by-@remote-skills/example-langchain-check",
+        reason: "local-environment-setup-for-scripts/examples/langchain.ts",
       },
     ],
   ],
   [
-    "integrations/langchain-python/README.md#0",
+    "examples/langchain/README.md#2",
     [
       {
-        command: "pnpm --filter @remote-skills/langchain-python-workspace check",
+        command: "pnpm --filter @remote-skills/example-langchain dev",
         mode: "static",
-        reason: "executed-by-@remote-skills/langchain-python-workspace-check",
-      },
-      {
-        command: "pnpm --filter @remote-skills/langchain-python-workspace package:check",
-        mode: "static",
-        reason: "executed-by-integrations/langchain-python/tests/package_smoke.py",
-      },
-      {
-        command:
-          "node scripts/run-uv.ts build --package remote-skills-langchain --out-dir /tmp/remote-skills-langchain-artifacts",
-        mode: "static",
-        reason:
-          "distribution-build-exercised-by-integrations/langchain-python/tests/package_smoke.py",
+        reason: "long-running-local-server-scripts/examples/langchain.ts",
       },
     ],
   ],
@@ -653,39 +731,11 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], group: Typ
       const needsClient = /\bclient\./u.test(snippet.code) && !declaresClient;
       const needsToken =
         /\btoken\b/u.test(snippet.code) && !/\bconst\s+token\b/u.test(snippet.code);
-      const isLangChain =
-        relative(repositoryRoot, snippet.path).replaceAll("\\", "/") ===
-        "integrations/langchain/README.md";
-      const declaresContext = (name: string) =>
-        new RegExp(
-          `\\b(?:(?:declare\\s+)?(?:const|let|var)|(?:await\\s+)?using)\\s+${name}\\b`,
-          "u",
-        ).test(snippet.code);
-      const needsRemote =
-        isLangChain && /\bremote\./u.test(snippet.code) && !declaresContext("remote");
-      const needsSession =
-        isLangChain && /\bsession\b/u.test(snippet.code) && !declaresContext("session");
-      const needsModel =
-        isLangChain && /\bmodel\b/u.test(snippet.code) && !declaresContext("model");
-      const needsRemoteSkillsImport =
-        isLangChain &&
-        /\bremoteSkills\s*\(/u.test(snippet.code) &&
-        !snippet.code.includes('from "@remote-skills/langchain"');
       const prelude = [
         importsClient ? "" : 'import { createRemoteSkills } from "@remote-skills/client";',
         needsToken ? 'const token = "documentation-token";' : "",
         needsClient
           ? 'const client = createRemoteSkills({ origins: { acme: { url: "https://skills.example.com" } } });'
-          : "",
-        needsRemoteSkillsImport ? 'import { remoteSkills } from "@remote-skills/langchain";' : "",
-        needsRemote
-          ? 'declare const remote: import("@remote-skills/langchain").RemoteSkillsIntegration;'
-          : "",
-        needsSession
-          ? 'declare const session: import("@remote-skills/client").RemoteSkillsSession;'
-          : "",
-        needsModel
-          ? 'declare const model: import("@langchain/core/language_models/chat_models").BaseChatModel;'
           : "",
       ]
         .filter(Boolean)

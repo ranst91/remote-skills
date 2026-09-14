@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { pythonAgent } from "../../../server/python-process.ts";
+import { rejectChatRequest } from "../../../server/request-policy.ts";
 import { typescriptAgent } from "../../../server/typescript-agent.ts";
 
 export const runtime = "nodejs";
@@ -19,6 +20,8 @@ const inputSchema = z
 const failure = "The agent could not complete your message. Please try again.";
 
 export async function POST(request: Request) {
+  const rejection = rejectChatRequest(request, process.env.NODE_ENV);
+  if (rejection) return rejection;
   let input: z.infer<typeof inputSchema>;
   try {
     const text = await request.text();
