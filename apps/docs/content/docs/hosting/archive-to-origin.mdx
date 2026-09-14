@@ -16,7 +16,7 @@ From your skill project, run:
 <Tab>
 
 ```bash
-npm exec -- remote-skills build
+npx @remote-skills/cli build
 ```
 
 </Tab>
@@ -36,7 +36,11 @@ bun run remote-skills build
 </Tab>
 </Tabs>
 
+Use the scoped package name `@remote-skills/cli` with `npx`. The unscoped `remote-skills` name belongs to a different npm package. With the [CLI installed](/docs/quickstart#serve-it), this runs your installed version; otherwise npm offers to install it temporarily.
+
 `build` validates your skills first, then packages them. You do not need to run `validate` beforehand: that command is a check you can use while writing, without creating output. Validation errors stop the build.
+
+A successful build prints no output. Check `dist/.well-known/agent-skills/index.json` for your skills and the generated `artifacts/` directory for their files.
 
 A skill with only `SKILL.md` becomes a Markdown file; a skill with resources becomes a compressed archive. The build writes a catalog at `dist/.well-known/agent-skills/index.json`, with skill files in the `artifacts/` directory beside it.
 
@@ -81,7 +85,7 @@ After deployment, run:
 <Tab>
 
 ```bash
-npm exec -- remote-skills verify https://skills.example.com
+npx @remote-skills/cli verify https://skills.example.com
 ```
 
 </Tab>
@@ -116,7 +120,7 @@ Hosts can require authentication for their skills. The CLI can send the required
 <Tab>
 
 ```bash
-SKILLS_AUTH='Bearer …' npm exec -- remote-skills verify \
+SKILLS_AUTH='Bearer …' npx @remote-skills/cli verify \
   https://skills.example.com \
   --header-env Authorization=SKILLS_AUTH \
   --scope engineering

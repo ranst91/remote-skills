@@ -13,8 +13,8 @@ Checks configuration, skill frontmatter, references, file safety, and size limit
 <Tab>
 
 ```bash
-npm exec -- remote-skills validate
-npm exec -- remote-skills validate --strict
+npx @remote-skills/cli validate
+npx @remote-skills/cli validate --strict
 ```
 
 </Tab>
@@ -48,7 +48,7 @@ Validates the project, then writes a deployable catalog and skill artifacts. A v
 <Tab>
 
 ```bash
-npm exec -- remote-skills build --format tar.gz --out-dir dist
+npx @remote-skills/cli build --format tar.gz --out-dir dist
 ```
 
 </Tab>
@@ -86,7 +86,7 @@ Builds and serves the skills, watches source changes, and switches to each succe
 <Tab>
 
 ```bash
-npm exec -- remote-skills dev
+npx @remote-skills/cli dev
 # http://127.0.0.1:8787
 ```
 
@@ -125,7 +125,7 @@ Fetches the catalog and every advertised current or retained release, checking n
 <Tab>
 
 ```bash
-npm exec -- remote-skills verify https://skills.example.com --timeout-ms 30000 --retries 2
+npx @remote-skills/cli verify https://skills.example.com --timeout-ms 30000 --retries 2
 ```
 
 </Tab>

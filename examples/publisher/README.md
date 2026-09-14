@@ -1,7 +1,7 @@
 # Publisher example
 
 This ordinary Agent Skills tree builds a complete static origin. From this directory, after the
-repository's locked workspace setup:
+[repository setup](../README.md), including the final install that links the compiled CLI:
 
 ```bash
 pnpm validate

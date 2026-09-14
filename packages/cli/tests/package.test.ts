@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   accessSync,
@@ -13,6 +13,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, test } from "node:test";
@@ -402,7 +403,7 @@ test("the tarball contains only runtime package content", () => {
   );
 });
 
-test("the local tarball installs offline and runs through direct and no-install binaries", () => {
+test("the local tarball installs offline and runs through direct and no-install binaries", async () => {
   const { temporaryRoot, packed } = packageFixture();
   const cleanProject = path.join(temporaryRoot, "clean project with spaces");
   mkdirSync(path.join(cleanProject, "skills", "fixture-skill"), { recursive: true });
@@ -425,6 +426,11 @@ test("the local tarball installs offline and runs through direct and no-install 
       packed.filename,
     ],
     cleanProject,
+  );
+  mkdirSync(path.join(cleanProject, "skills/fixture-skill/references"));
+  writeFileSync(
+    path.join(cleanProject, "skills/fixture-skill/references/example.md"),
+    "A packaged resource.\n",
   );
   const installedManifest = readJsonObject(
     path.join(cleanProject, "node_modules", "@remote-skills", "cli", "package.json"),
@@ -470,10 +476,17 @@ test("the local tarball installs offline and runs through direct and no-install 
     0,
     describeSpawnFailure(directBuildRun.launch, directBuildRun.result),
   );
-  assert.equal(
-    existsSync(path.join(cleanProject, "dist", ".well-known", "agent-skills", "index.json")),
-    true,
-  );
+  assertBuiltFixture(cleanProject);
+  rmSync(path.join(cleanProject, "dist"), { recursive: true });
+  runPnpm(["exec", "remote-skills", "build"], cleanProject);
+  assertBuiltFixture(cleanProject);
+  rmSync(path.join(cleanProject, "dist"), { recursive: true });
+  const npmBuild = await runNpm(documentedNpmBuild(), cleanProject, {
+    ...offlineEnvironment,
+    npm_config_cache: path.join(temporaryRoot, "installed-npm-cache"),
+  });
+  assert.equal(npmBuild.status, 0, JSON.stringify(npmBuild));
+  assertBuiltFixture(cleanProject);
   const forbiddenLaunch = { command: process.execPath, args: [binary, "deploy"] };
   const forbidden = run(forbiddenLaunch.command, forbiddenLaunch.args, cleanProject);
   assert.equal(forbidden.error, undefined, describeSpawnFailure(forbiddenLaunch, forbidden));
@@ -493,4 +506,177 @@ test("the local tarball installs offline and runs through direct and no-install 
     invalidValidate.stderr,
     'remote-skills: error catalog_invalid skill_name="fixture-skill" path="skills/fixture-skill/SKILL.md" field="description"\n',
   );
+});
+
+// Read the command users copy, then execute it against the actual packed product.
+function documentedNpmBuild(): string[] {
+  const source = readFileSync(
+    path.join(repositoryRoot, "apps/docs/content/docs/hosting/archive-to-origin.mdx"),
+    "utf8",
+  );
+  const command = source.match(
+    /^(?:npm exec .+ remote-skills|npx @remote-skills\/cli) build$/mu,
+  )?.[0];
+  assert.ok(command, "hosting docs must contain an executable npm build command");
+  return command.startsWith("npx ") ? command.split(" ") : command.split(" ").slice(1);
+}
+
+function npmEntrypoint(npx = false): string {
+  const filename = npx ? "npx-cli.js" : "npm-cli.js";
+  const nodeDirectory = path.dirname(process.execPath);
+  const candidates = [
+    path.join(nodeDirectory, `node_modules/npm/bin/${filename}`),
+    path.join(nodeDirectory, `../lib/node_modules/npm/bin/${filename}`),
+  ];
+  const entrypoint = candidates.find((candidate) => existsSync(candidate));
+  assert.ok(entrypoint, "npm bundled with the active Node installation is required");
+  return entrypoint;
+}
+
+function runNpm(args: string[], cwd: string, env: NodeJS.ProcessEnv) {
+  return new Promise<{ status: number | null; stdout: string; stderr: string }>(
+    (resolve, reject) => {
+      const child = spawn(
+        process.execPath,
+        [npmEntrypoint(args[0] === "npx"), ...(args[0] === "npx" ? args.slice(1) : args)],
+        {
+          cwd,
+          env: {
+            ...Object.fromEntries(
+              Object.entries(env).filter(([key]) => !key.toLowerCase().startsWith("npm_config_")),
+            ),
+            npm_config_offline: env.npm_config_offline ?? "true",
+            npm_config_registry: env.npm_config_registry ?? "http://127.0.0.1:9",
+            npm_config_cache: env.npm_config_cache,
+            npm_config_yes: "true",
+            npm_config_audit: "false",
+            npm_config_fund: "false",
+            npm_config_fetch_retries: "0",
+            npm_config_userconfig: path.join(cwd, "empty-user.npmrc"),
+            npm_config_globalconfig: path.join(cwd, "empty-global.npmrc"),
+          },
+          shell: false,
+          timeout: 30_000,
+        },
+      );
+      let stdout = "";
+      let stderr = "";
+      child.stdout.setEncoding("utf8").on("data", (chunk: string) => {
+        stdout += chunk;
+      });
+      child.stderr.setEncoding("utf8").on("data", (chunk: string) => {
+        stderr += chunk;
+      });
+      child.once("error", reject);
+      child.once("close", (status) => resolve({ status, stdout, stderr }));
+    },
+  );
+}
+
+function assertBuiltFixture(project: string): void {
+  const directory = path.join(project, "dist/.well-known/agent-skills");
+  const catalog = readJsonObject(path.join(directory, "index.json"));
+  assert.ok(Array.isArray(catalog.skills));
+  assert.equal(catalog.skills.length, 1);
+  const entry: unknown = catalog.skills[0];
+  assert.ok(entry !== null && typeof entry === "object" && !Array.isArray(entry));
+  const skill = Object.fromEntries(Object.entries(entry));
+  assert.equal(skill.name, "fixture-skill");
+  assert.equal(skill.type, "archive");
+  const artifact = path.join(directory, requiredString(skill.url, "url"));
+  assert.ok(statSync(artifact).size > 0);
+  assert.equal(skill.digest, `sha256:${fileHash(artifact)}`);
+  const resource = packedTarEntry(artifact, "references/example.md");
+  assert.equal(resource?.bytes.toString("utf8"), "A packaged resource.\n");
+}
+
+test("the documented npm build resolves the scoped packed CLI with and without installation", async (t) => {
+  const { temporaryRoot, packed } = packageFixture();
+  const requests: string[] = [];
+  const bytes = readFileSync(packed.filename);
+  // A private registry makes package selection deterministic, with no public npm access.
+  const registry = createServer((request, response) => {
+    const url = decodeURIComponent(request.url ?? "");
+    requests.push(url);
+    if (url === "/cli.tgz") {
+      response.setHeader("content-type", "application/octet-stream");
+      response.end(bytes);
+    } else if (url === "/@remote-skills/cli") {
+      response.setHeader("content-type", "application/json");
+      response.end(
+        JSON.stringify({
+          name: manifest.name,
+          "dist-tags": { latest: manifest.version },
+          versions: {
+            [manifest.version]: {
+              name: manifest.name,
+              version: manifest.version,
+              bin: manifest.bin,
+              dist: {
+                tarball: `${registryUrl}/cli.tgz`,
+                integrity: `sha512-${createHash("sha512").update(bytes).digest("base64")}`,
+              },
+            },
+          },
+        }),
+      );
+    } else {
+      response.writeHead(404, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: "unexpected package request" }));
+    }
+  });
+  await new Promise<void>((resolve) => registry.listen(0, "127.0.0.1", resolve));
+  t.after(
+    () =>
+      new Promise<void>((resolve, reject) =>
+        registry.close((error) => (error ? reject(error) : resolve())),
+      ),
+  );
+  const address = registry.address();
+  assert.ok(address !== null && typeof address === "object");
+  const registryUrl = `http://127.0.0.1:${address.port}`;
+  for (const installed of [false, true]) {
+    const project = path.join(
+      temporaryRoot,
+      `documented npm ${installed ? "installed" : "missing"}`,
+    );
+    mkdirSync(path.join(project, "skills/fixture-skill/references"), { recursive: true });
+    writeFileSync(path.join(project, "package.json"), '{"private":true}\n');
+    writeFileSync(
+      path.join(project, "skills/fixture-skill/SKILL.md"),
+      "---\nname: fixture-skill\ndescription: Installed command regression.\n---\n\nBenign instructions.\n",
+    );
+    writeFileSync(
+      path.join(project, "skills/fixture-skill/references/example.md"),
+      "A packaged resource.\n",
+    );
+    const env = {
+      ...offlineEnvironment,
+      npm_config_offline: "false",
+      npm_config_registry: registryUrl,
+      npm_config_cache: path.join(project, "npm-cache"),
+      npm_config_yes: "true",
+      npm_config_audit: "false",
+      npm_config_fund: "false",
+    };
+    if (installed) {
+      const result = await runNpm(["install", "-D", "@remote-skills/cli"], project, env);
+      assert.equal(result.status, 0, JSON.stringify(result));
+    }
+    assert.equal(existsSync(path.join(project, "dist")), false);
+    const result = await runNpm(documentedNpmBuild(), project, env);
+    assert.equal(result.status, 0, JSON.stringify({ result, requests }));
+    assertBuiltFixture(project);
+    rmSync(path.join(project, "dist"), { recursive: true });
+    writeFileSync(
+      path.join(project, "skills/fixture-skill/SKILL.md"),
+      "---\nname: fixture-skill\n---\nInvalid.\n",
+    );
+    const invalid = await runNpm(documentedNpmBuild(), project, env);
+    assert.equal(invalid.status, 1, JSON.stringify(invalid));
+    assert.match(invalid.stderr, /catalog_invalid/u);
+    assert.equal(existsSync(path.join(project, "dist")), false);
+  }
+  assert.ok(requests.includes("/@remote-skills/cli"));
+  assert.equal(requests.includes("/remote-skills"), false);
 });
