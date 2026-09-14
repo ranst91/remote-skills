@@ -12,11 +12,11 @@ No marketplace. No copied installation in every agent. No proprietary skill form
 
 Start with ordinary Agent Skills such as `skills/code-review/SKILL.md`. Optional resources live inside the skill folder, for example `skills/code-review/references/security.md`.
 
-With the CLI installed in your project, validate and serve them locally:
+With Node.js 24 or newer and `npm install -D @remote-skills/cli` completed in your project, validate and serve them locally:
 
 ```bash
-remote-skills validate
-remote-skills dev
+npx @remote-skills/cli validate
+npx @remote-skills/cli dev
 ```
 
 The development origin is available at `http://127.0.0.1:8787`.
@@ -24,7 +24,7 @@ The development origin is available at `http://127.0.0.1:8787`.
 Build deploy-ready static output:
 
 ```bash
-remote-skills build
+npx @remote-skills/cli build
 ```
 
 ## I bundled it; what do I host?
@@ -45,13 +45,13 @@ Content-addressed artifacts may use immutable caching. Keep the fixed catalog on
 Configure the SDK with the origin root, such as `https://skills.example.com`, not the catalog URL. Then verify the deployed origin:
 
 ```bash
-remote-skills verify https://skills.example.com
+npx @remote-skills/cli verify https://skills.example.com
 ```
 
 Private origins can use ordinary headers:
 
 ```bash
-SKILLS_AUTH='Bearer …' remote-skills verify \
+SKILLS_AUTH='Bearer …' npx @remote-skills/cli verify \
   https://skills.example.com \
   --header-env Authorization=SKILLS_AUTH
 ```

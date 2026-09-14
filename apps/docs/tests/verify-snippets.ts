@@ -127,7 +127,7 @@ function packageManagerContracts(
   managers: readonly ("npm" | "pnpm" | "bun")[] = ["npm", "pnpm", "bun"],
 ): [string, readonly BashContractEntry[]][] {
   const commands = {
-    npm: { run: "npm exec -- ", install: "npm install " },
+    npm: { run: "npx ", install: "npm install " },
     pnpm: { run: "pnpm exec ", install: "pnpm add " },
     bun: { run: "bun run ", install: "bun add " },
   };
@@ -136,7 +136,10 @@ function packageManagerContracts(
     entries.map((entry) => ({
       ...entry,
       command: entry.command
-        .replace("pnpm exec ", commands[manager].run)
+        .replace(
+          "pnpm exec remote-skills",
+          `${commands[manager].run}${manager === "npm" ? "@remote-skills/cli" : "remote-skills"}`,
+        )
         .replace("pnpm add ", commands[manager].install),
     })),
   ]);
@@ -312,16 +315,16 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
   [
     "README.md#0",
     [
-      { command: "remote-skills validate", mode: "execute", action: "validate" },
-      { command: "remote-skills dev", mode: "static", reason: "long-running-server" },
+      { command: "npx @remote-skills/cli validate", mode: "execute", action: "validate" },
+      { command: "npx @remote-skills/cli dev", mode: "static", reason: "long-running-server" },
     ],
   ],
-  ["README.md#1", [{ command: "remote-skills build", mode: "execute", action: "build" }]],
+  ["README.md#1", [{ command: "npx @remote-skills/cli build", mode: "execute", action: "build" }]],
   [
     "README.md#2",
     [
       {
-        command: "remote-skills verify https://skills.example.com",
+        command: "npx @remote-skills/cli verify https://skills.example.com",
         mode: "static",
         reason: "external-origin",
       },
@@ -332,7 +335,7 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
     [
       {
         command:
-          "SKILLS_AUTH='Bearer …' remote-skills verify https://skills.example.com --header-env Authorization=SKILLS_AUTH",
+          "SKILLS_AUTH='Bearer …' npx @remote-skills/cli verify https://skills.example.com --header-env Authorization=SKILLS_AUTH",
         mode: "static",
         reason: "external-origin",
       },

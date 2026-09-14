@@ -209,12 +209,12 @@ test("Quickstart keeps three steps with separately copyable installation and usa
         "npm install -D @remote-skills/cli",
         "pnpm add -D @remote-skills/cli",
         "bun add -D @remote-skills/cli",
-        "npm exec -- remote-skills dev",
+        "npx @remote-skills/cli dev",
         "pnpm exec remote-skills dev",
         "bun run remote-skills dev",
       ],
       "bun add -D @remote-skills/cli",
-      "npm exec -- remote-skills dev",
+      "npx @remote-skills/cli dev",
     ],
     [
       usage,
@@ -432,14 +432,12 @@ test("Bash contracts reject invented CLI commands and flags", () => {
 
 test("package-manager tabs preserve the same validated CLI contract", () => {
   const path = fileURLToPath(new URL("publisher.mdx", docsRoot));
-  const runners = ["npm exec --", "pnpm exec", "bun run"];
+  const runners = ["npx @remote-skills/cli", "pnpm exec remote-skills", "bun run remote-skills"];
   for (const [ordinal, runner] of runners.entries()) {
     const snippet = { info: "bash", language: "bash" as const, ordinal, path };
-    assert.doesNotThrow(() =>
-      verifyBashSnippet({ ...snippet, code: `${runner} remote-skills validate` }),
-    );
+    assert.doesNotThrow(() => verifyBashSnippet({ ...snippet, code: `${runner} validate` }));
     assert.throws(
-      () => verifyBashSnippet({ ...snippet, code: `${runner} remote-skills validate --invented` }),
+      () => verifyBashSnippet({ ...snippet, code: `${runner} validate --invented` }),
       /unsupported documented Bash command/u,
     );
   }
