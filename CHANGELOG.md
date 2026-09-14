@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [integration-mastra/v0.0.1] - 2026-09-14
+
+- Release @remote-skills/mastra at the version named in this section.
+
 ## [integration-ai-sdk/v0.0.1] - 2026-09-11
 
 - Release @remote-skills/ai-sdk at the version named in this section.

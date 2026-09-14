@@ -1,14 +1,8 @@
 {
   "schemaVersion": 2,
-  "baseSha": "16af9989895d90dea5345cbd8b9438256459e04f",
+  "baseSha": "02ed75aad0923134dbb1c3d07b9541061b7a1b33",
   "scopes": {
-    "core": {
-      "version": "0.0.1",
-      "previousVersion": "0.0.1-alpha.0",
-      "bump": "patch",
-      "channel": "stable"
-    },
-    "integration-ai-sdk": {
+    "integration-mastra": {
       "previousVersion": "0.0.1-alpha.0",
       "version": "0.0.1",
       "bump": "patch",
