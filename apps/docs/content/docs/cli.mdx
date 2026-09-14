@@ -5,6 +5,8 @@ description: Command syntax, options, defaults, and exit codes.
 
 The [installed CLI](/docs/quickstart#serve-it) runs from your skill project's root. Options override [project configuration](/docs/configuration); defaults below are the built-in values. For the publishing workflow, see [Build and host](/docs/hosting/archive-to-origin).
 
+Successful commands print a short summary: `validate` reports skill counts, `build` also reports its output directory, and `verify` reports the origin and verified skill/artifact counts. Warnings and errors go to stderr; failures return a nonzero exit code.
+
 ## `remote-skills validate`
 
 Checks configuration, skill frontmatter, references, file safety, and size limits without creating output.

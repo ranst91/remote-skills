@@ -19,6 +19,7 @@ import path from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
+import { startStaticOrigin } from "../../../tests/examples/helpers/static-host.ts";
 
 type JsonObject = { [key: string]: unknown };
 type PackedPackage = {
@@ -487,6 +488,51 @@ test("the local tarball installs offline and runs through direct and no-install 
   });
   assert.equal(npmBuild.status, 0, JSON.stringify(npmBuild));
   assertBuiltFixture(cleanProject);
+  assert.equal(npmBuild.stdout, 'Built 1 skill in "dist".\n');
+  assert.equal(directValidateRun.result.stdout, "Validated 1 skill.\n");
+  const origin = await startStaticOrigin({ root: path.join(cleanProject, "dist") });
+  try {
+    const args = documentedNpmBuild().slice(0, -1);
+    const verified = await runNpm([...args, "verify", origin.origin], cleanProject, {
+      ...offlineEnvironment,
+      npm_config_cache: path.join(temporaryRoot, "installed-npm-cache"),
+    });
+    assert.equal(verified.status, 0, JSON.stringify(verified));
+    assert.equal(verified.stdout, `Verified ${origin.origin}: 1 skill, 1 artifact.\n`);
+    assert.equal(verified.stderr, "");
+    const index = readJsonObject(
+      path.join(cleanProject, "dist/.well-known/agent-skills/index.json"),
+    );
+    assert.ok(Array.isArray(index.skills));
+    const entry: unknown = index.skills[0];
+    assert.ok(entry !== null && typeof entry === "object" && "url" in entry);
+    const artifact = path.join(
+      cleanProject,
+      "dist/.well-known/agent-skills",
+      requiredString(entry.url, "url"),
+    );
+    writeFileSync(artifact, "corrupt artifact");
+    const failed = await runNpm([...args, "verify", origin.origin], cleanProject, {
+      ...offlineEnvironment,
+      npm_config_cache: path.join(temporaryRoot, "installed-npm-cache"),
+    });
+    assert.equal(failed.status, 1, JSON.stringify(failed));
+    assert.equal(failed.stdout, "");
+    assert.equal(
+      failed.stderr,
+      'remote-skills: error digest_mismatch skill_name="fixture-skill"\n',
+    );
+    const unsafe = await runNpm(
+      [...args, "verify", `${origin.origin}/?token=credential-canary`],
+      cleanProject,
+      { ...offlineEnvironment, npm_config_cache: path.join(temporaryRoot, "installed-npm-cache") },
+    );
+    assert.equal(unsafe.status, 2, JSON.stringify(unsafe));
+    assert.equal(unsafe.stdout, "");
+    assert.equal(unsafe.stderr, 'remote-skills: error configuration_invalid field="origin"\n');
+  } finally {
+    await origin.close();
+  }
   const forbiddenLaunch = { command: process.execPath, args: [binary, "deploy"] };
   const forbidden = run(forbiddenLaunch.command, forbiddenLaunch.args, cleanProject);
   assert.equal(forbidden.error, undefined, describeSpawnFailure(forbiddenLaunch, forbidden));

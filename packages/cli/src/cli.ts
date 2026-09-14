@@ -114,6 +114,14 @@ function renderDiagnostic(
   return `remote-skills: ${severity} ${code}${fields.length === 0 ? "" : ` ${fields.join(" ")}`}\n`;
 }
 
+function countLabel(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function warningSummary(count: number): string {
+  return count === 0 ? "" : ` (${countLabel(count, "warning")})`;
+}
+
 export async function dispatchCli(
   options: CliOptions,
   commands: CliCommands = {},
@@ -138,17 +146,27 @@ export async function dispatchCli(
       const result = await commands.validate({ projectDir: options.projectDir, args });
       for (const diagnostic of [...result.errors, ...result.warnings])
         options.stderr(renderDiagnostic(diagnostic.severity, diagnostic));
-      return result.exitCode === CLI_EXIT_CODES.success
-        ? CLI_EXIT_CODES.success
-        : CLI_EXIT_CODES.failure;
+      if (result.exitCode !== CLI_EXIT_CODES.success) return CLI_EXIT_CODES.failure;
+      options.stdout(
+        `Validated ${countLabel(result.skills.length, "skill")}${warningSummary(result.warnings.length)}.\n`,
+      );
+      return CLI_EXIT_CODES.success;
     }
     if (command === "build" && commands.build) {
       const result = await commands.build({ projectDir: options.projectDir, args });
       for (const diagnostic of [...result.errors, ...result.warnings])
         options.stderr(renderDiagnostic(diagnostic.severity, diagnostic));
-      return result.exitCode === CLI_EXIT_CODES.success
-        ? CLI_EXIT_CODES.success
-        : CLI_EXIT_CODES.failure;
+      if (result.exitCode !== CLI_EXIT_CODES.success) return CLI_EXIT_CODES.failure;
+      if (result.outputDir === undefined) throw new Error("Build output directory is missing");
+      const output = path
+        .relative(realpathSync(options.projectDir), result.outputDir)
+        .split(path.sep)
+        .join("/");
+      if (!isProjectRelativePath(output)) throw new Error("Build output directory is invalid");
+      options.stdout(
+        `Built ${countLabel(result.skills.length, "skill")} in ${JSON.stringify(output)}${warningSummary(result.warnings.length)}.\n`,
+      );
+      return CLI_EXIT_CODES.success;
     }
     if (command === "dev" && commands.dev) {
       const devOptions = {
@@ -165,9 +183,13 @@ export async function dispatchCli(
       const result = await commands.verify({ args, env: options.env });
       for (const diagnostic of result.failures)
         options.stderr(renderDiagnostic("error", diagnostic));
-      return result.exitCode === CLI_EXIT_CODES.success
-        ? CLI_EXIT_CODES.success
-        : CLI_EXIT_CODES.failure;
+      if (result.exitCode !== CLI_EXIT_CODES.success) return CLI_EXIT_CODES.failure;
+      const origin = new URL(result.origin).origin;
+      const skills = new Set(result.entries.map((entry) => entry.name)).size;
+      options.stdout(
+        `Verified ${origin}: ${countLabel(skills, "skill")}, ${countLabel(result.entries.length, "artifact")}.\n`,
+      );
+      return CLI_EXIT_CODES.success;
     }
   } catch (error) {
     if (
