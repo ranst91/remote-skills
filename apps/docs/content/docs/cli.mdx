@@ -5,6 +5,8 @@ description: Command syntax, options, defaults, and exit codes.
 
 The [installed CLI](/docs/quickstart#serve-it) runs from your skill project's root. Options override [project configuration](/docs/configuration); defaults below are the built-in values. For the publishing workflow, see [Build and host](/docs/hosting/archive-to-origin).
 
+Successful commands print a short summary: `validate` reports skill counts, `build` also reports its output directory, and `verify` reports the origin and verified skill/artifact counts. Warnings and errors go to stderr; failures return a nonzero exit code.
+
 ## `remote-skills validate`
 
 Checks configuration, skill frontmatter, references, file safety, and size limits without creating output.
@@ -13,8 +15,8 @@ Checks configuration, skill frontmatter, references, file safety, and size limit
 <Tab>
 
 ```bash
-npm exec -- remote-skills validate
-npm exec -- remote-skills validate --strict
+npx @remote-skills/cli validate
+npx @remote-skills/cli validate --strict
 ```
 
 </Tab>
@@ -48,7 +50,7 @@ Validates the project, then writes a deployable catalog and skill artifacts. A v
 <Tab>
 
 ```bash
-npm exec -- remote-skills build --format tar.gz --out-dir dist
+npx @remote-skills/cli build --format tar.gz --out-dir dist
 ```
 
 </Tab>
@@ -86,7 +88,7 @@ Builds and serves the skills, watches source changes, and switches to each succe
 <Tab>
 
 ```bash
-npm exec -- remote-skills dev
+npx @remote-skills/cli dev
 # http://127.0.0.1:8787
 ```
 
@@ -125,7 +127,7 @@ Fetches the catalog and every advertised current or retained release, checking n
 <Tab>
 
 ```bash
-npm exec -- remote-skills verify https://skills.example.com --timeout-ms 30000 --retries 2
+npx @remote-skills/cli verify https://skills.example.com --timeout-ms 30000 --retries 2
 ```
 
 </Tab>

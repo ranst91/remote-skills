@@ -24,7 +24,11 @@ assert.ok(
 );
 const expectedVersion = expectedMetadata.version;
 
-async function runDispatcher(args: string[], commands: CliCommands = {}, projectDir = "/project") {
+async function runDispatcher(
+  args: string[],
+  commands: CliCommands = {},
+  projectDir = process.cwd(),
+) {
   let stdout = "";
   let stderr = "";
   const exitCode = await cli.dispatchCli(
@@ -81,7 +85,12 @@ for (const command of ["validate", "build"] as const) {
       projectDir,
     );
     assert.equal(result.exitCode, 0);
-    assert.equal(result.stdout, "");
+    assert.equal(
+      result.stdout,
+      command === "validate"
+        ? "Validated 1 skill (1 warning).\n"
+        : 'Built 1 skill in "dist" (1 warning).\n',
+    );
     assert.match(
       result.stderr,
       /^remote-skills: warning catalog_invalid skill_name="fixture-skill" path="skills\/fixture-skill\/SKILL.md"/u,
@@ -208,7 +217,14 @@ function createCommandHarness() {
     },
     build: async (options) => {
       calls.push({ command: "build", options });
-      return { exitCode: 0, valid: true, skills: [], errors: [], warnings: [] };
+      return {
+        exitCode: 0,
+        valid: true,
+        skills: [],
+        errors: [],
+        warnings: [],
+        outputDir: path.resolve(options.projectDir, "dist"),
+      };
     },
     dev: async (options) => {
       calls.push({ command: "dev", options });
@@ -260,9 +276,9 @@ for (const args of [["--version"], ["-V"]]) {
 }
 
 const commandCases: Array<readonly [string, string[], object]> = [
-  ["validate", ["--strict"], { projectDir: "/project", args: ["--strict"] }],
-  ["build", ["--archive"], { projectDir: "/project", args: ["--archive"] }],
-  ["dev", ["--port", "9000"], { projectDir: "/project", args: ["--port", "9000"] }],
+  ["validate", ["--strict"], { projectDir: process.cwd(), args: ["--strict"] }],
+  ["build", ["--archive"], { projectDir: process.cwd(), args: ["--archive"] }],
+  ["dev", ["--port", "9000"], { projectDir: process.cwd(), args: ["--port", "9000"] }],
   ["verify", ["https://skills.example.test"], { args: ["https://skills.example.test"], env: {} }],
 ];
 for (const [command, args, expectedOptions] of commandCases) {
@@ -361,4 +377,61 @@ test("the launched entrypoint preserves the stable unknown-command exit", () => 
   assert.equal(result.status, cli.CLI_EXIT_CODES.usage);
   assert.equal(result.stdout, "");
   assert.equal(result.stderr, "remote-skills: unknown command: deploy\n");
+});
+
+for (const command of ["validate", "build"] as const) {
+  test(`${command} announces the real skill count and build destination`, async (t) => {
+    const projectDir = createProject(
+      t,
+      "---\nname: fixture-skill\ndescription: Friendly output.\n---\nBenign instructions.\n",
+    );
+    const args = command === "build" ? [command, "--out-dir", "output with spaces"] : [command];
+    const result = await runDispatcher(
+      args,
+      { validate: runValidateCommand, build: runBuildCommand },
+      projectDir,
+    );
+    assert.deepEqual(result, {
+      exitCode: 0,
+      stdout:
+        command === "validate"
+          ? "Validated 1 skill.\n"
+          : 'Built 1 skill in "output with spaces".\n',
+      stderr: "",
+    });
+  });
+}
+
+test("verify counts distinct skills and every verified artifact without printing URL credentials", async () => {
+  const result = await runDispatcher(["verify"], {
+    verify: async () => ({
+      exitCode: 0,
+      verified: true,
+      origin:
+        "https://user:credential-canary@skills.example.test/private?secret=credential-canary#fragment",
+      failures: [],
+      entries: [
+        { name: "first", digest: "sha256:fixture", version: "1.0.0" },
+        { name: "first", digest: "sha256:fixture", version: "2.0.0" },
+        { name: "second", digest: "sha256:fixture" },
+      ],
+    }),
+  });
+  assert.deepEqual(result, {
+    exitCode: 0,
+    stdout: "Verified https://skills.example.test: 2 skills, 3 artifacts.\n",
+    stderr: "",
+  });
+});
+
+test("empty successful results are reported with zero counts", async () => {
+  const harness = createCommandHarness();
+  assert.equal(
+    (await runDispatcher(["validate"], harness.commands)).stdout,
+    "Validated 0 skills.\n",
+  );
+  assert.equal(
+    (await runDispatcher(["verify"], harness.commands)).stdout,
+    "Verified https://skills.example.test: 0 skills, 0 artifacts.\n",
+  );
 });
