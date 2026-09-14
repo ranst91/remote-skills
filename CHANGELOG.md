@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [core/v0.0.2] - 2026-09-14
+
+- Release @remote-skills/cli, @remote-skills/client, remote-skills at the version named in this section.
+
 ## [integration-langchain/v0.0.1] - 2026-09-14
 
 - Release @remote-skills/langchain, remote-skills-langchain at the version named in this section.

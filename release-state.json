@@ -9,8 +9,14 @@
       "channel": "stable"
     },
     "integration-langchain": {
-      "previousVersion": "0.0.1-alpha.0",
       "version": "0.0.1",
+      "previousVersion": "0.0.1-alpha.0",
+      "bump": "patch",
+      "channel": "stable"
+    },
+    "core": {
+      "previousVersion": "0.0.1",
+      "version": "0.0.2",
       "bump": "patch",
       "channel": "stable"
     }
