@@ -2066,6 +2066,7 @@ test("publisher coordination waits while another process writes its pending reco
   );
   const originalOpen = fs.promises.open;
   let scheduledWrite = false;
+  let pendingInspections = 0;
   try {
     await waitForWorkerReady(ready, completion);
     writeFileSync(barrier, "go\n");
@@ -2077,9 +2078,10 @@ test("publisher coordination waits while another process writes its pending reco
     fs.promises.open = async (target, flags, ...arguments_) => {
       const handle = await originalOpen(target, flags, ...arguments_);
       if (String(target) !== pending) return handle;
+      pendingInspections += 1;
       return new Proxy(handle, {
         get(selectedHandle, property) {
-          if (property === "stat") {
+          if (property === "stat" && !scheduledWrite) {
             return async (options: { bigint: true }) => {
               const before = await selectedHandle.stat(options);
               assert.equal(before.size, 0n);
@@ -2091,7 +2093,8 @@ test("publisher coordination waits while another process writes its pending reco
           }
           if (property === "close") {
             return async () => {
-              writeFileSync(`${barrier}.publish`, "publish\n");
+              // Keep publication paused until a later scan has inspected the written record.
+              if (pendingInspections > 1) writeFileSync(`${barrier}.publish`, "publish\n");
               await selectedHandle.close();
             };
           }
@@ -2109,6 +2112,7 @@ test("publisher coordination waits while another process writes its pending reco
     });
     await boundedWorkerWait(completion);
     assert.equal(scheduledWrite, true);
+    assert.ok(pendingInspections >= 2, "inspect the written record before it is published");
     const outputDir = path.join(projectDir, "dist");
     const entry = readIndex(outputDir).skills[0];
     const bytes = readFileSync(artifactPath(outputDir, entry));
