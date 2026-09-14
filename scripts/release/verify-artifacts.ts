@@ -14,6 +14,7 @@ import { createPnpmCommand } from "../lib/pnpm-command.ts";
 import { buildPublicationPlan, pythonArtifactPaths } from "./publication-plan.ts";
 import { preparePythonArtifactCache } from "./python-artifacts.ts";
 import { readReleaseState } from "./release-lib.ts";
+import { prepareSdkDependencies } from "./sdk-dependencies.ts";
 
 const [destination, sourceRoot, ...extra] = process.argv.slice(2);
 if (extra.length) throw new Error("usage: verify-artifacts.ts [artifact-directory] [source-root]");
@@ -36,11 +37,20 @@ function run(command: string, args: string[], env: NodeJS.ProcessEnv = environme
 }
 try {
   const state = readReleaseState(root);
+  const dependencies = await prepareSdkDependencies(state, join(work, "sdk-dependencies"));
+  environment.REMOTE_SKILLS_SDK_DEPENDENCIES = join(work, "sdk-dependencies.json");
+  writeFileSync(environment.REMOTE_SKILLS_SDK_DEPENDENCIES, JSON.stringify(dependencies));
   const build = createPnpmCommand(["ci:build:repository"]);
   run(build.command, build.args);
   console.log("Preparing declared artifact dependencies in empty private caches.");
   run(process.execPath, [resolve(import.meta.dirname, "seed-package-cache.ts")]);
-  const constraints = preparePythonArtifactCache(root, work, environment, state.pythonManifests);
+  const constraints = preparePythonArtifactCache(
+    root,
+    work,
+    environment,
+    state.pythonManifests,
+    dependencies.python,
+  );
   const evidence = join(work, "readiness.json");
   run(process.execPath, [resolve(import.meta.dirname, "../check-publication-readiness.ts")], {
     ...environment,
@@ -65,25 +75,23 @@ try {
   for (const helper of ["publish-artifacts.ts", "publication-lib.ts"])
     copyFileSync(join(import.meta.dirname, helper), join(output, helper));
   const candidate = join(work, "candidate-packages.json");
-  writeFileSync(
-    candidate,
-    JSON.stringify({
-      npm: state.manifests.map((entry) => ({
-        name: entry.name,
-        version: entry.version,
-        spec: join(
-          output,
-          "npm",
-          `${entry.name.replace(/^@/u, "").replaceAll("/", "-")}-${entry.version}.tgz`,
-        ),
-      })),
-      python: state.pythonManifests.map((entry) => ({
-        name: entry.name,
-        version: entry.version,
-        spec: join(output, pythonArtifactPaths(entry)[0] ?? ""),
-      })),
-    }),
-  );
+  const candidates = {
+    npm: state.manifests.map((entry) => ({
+      name: entry.name,
+      version: entry.version,
+      spec: join(
+        output,
+        "npm",
+        `${entry.name.replace(/^@/u, "").replaceAll("/", "-")}-${entry.version}.tgz`,
+      ),
+    })),
+    python: state.pythonManifests.map((entry) => ({
+      name: entry.name,
+      version: entry.version,
+      spec: join(output, pythonArtifactPaths(entry)[0] ?? ""),
+    })),
+  };
+  writeFileSync(candidate, JSON.stringify(candidates));
   const candidateEnvironment: NodeJS.ProcessEnv = {
     ...environment,
     REMOTE_SKILLS_E2E_PACKAGES: candidate,
@@ -101,16 +109,45 @@ try {
       "--test",
       "--test-concurrency=1",
       resolve(import.meta.dirname, "../../tests/examples/end-to-end.test.ts"),
-      resolve(import.meta.dirname, "../../tests/examples/vercel-ai-sdk.test.ts"),
-      ...(state.manifests.some((entry) => entry.id === "langchain")
-        ? [resolve(import.meta.dirname, "../../tests/examples/langchain.test.ts")]
-        : []),
-      ...(state.manifests.some((entry) => entry.id === "mastra")
-        ? [resolve(import.meta.dirname, "../../tests/examples/mastra.test.ts")]
-        : []),
     ],
     candidateEnvironment,
   );
+  for (const integration of state.manifests.filter((entry) => entry.scope !== "core")) {
+    const sdk = dependencies.npm[integration.name];
+    const pythonIntegration = state.pythonManifests.find(
+      (entry) => entry.scope === integration.scope,
+    );
+    const pythonSdk = pythonIntegration && dependencies.python[pythonIntegration.name];
+    const manifest = join(work, `candidate-${integration.id}.json`);
+    writeFileSync(
+      manifest,
+      JSON.stringify({
+        npm: candidates.npm.map((entry) =>
+          entry.name === "@remote-skills/client" && sdk?.path
+            ? { ...entry, version: sdk.version, spec: sdk.path }
+            : entry,
+        ),
+        python: candidates.python.map((entry) =>
+          entry.name === "remote-skills" && pythonSdk?.wheel
+            ? { ...entry, version: pythonSdk.version, spec: pythonSdk.wheel }
+            : entry,
+        ),
+      }),
+    );
+    const suite = integration.id === "ai_sdk" ? "vercel-ai-sdk" : integration.id;
+    run(
+      process.execPath,
+      [
+        "--test",
+        "--test-concurrency=1",
+        resolve(import.meta.dirname, `../../tests/examples/${suite}.test.ts`),
+      ],
+      {
+        ...candidateEnvironment,
+        REMOTE_SKILLS_E2E_PACKAGES: manifest,
+      },
+    );
+  }
   console.log(`Verified candidate artifacts and selected publication plan: ${output}`);
 } finally {
   rmSync(work, { recursive: true, force: true });

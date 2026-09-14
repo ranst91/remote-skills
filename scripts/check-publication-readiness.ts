@@ -24,6 +24,7 @@ import { checkInstalledIntegration } from "./release/installed-integration.ts";
 import { checkInstalledPythonIntegration } from "./release/installed-python-integration.ts";
 import { inspectionPython, installPythonArtifact } from "./release/python-artifacts.ts";
 import { pythonPackages, readReleaseState, releasePackages } from "./release/release-lib.ts";
+import { readSdkDependencies } from "./release/sdk-dependencies.ts";
 
 const repositoryRoot = realpathSync(
   process.env.REMOTE_SKILLS_SOURCE_ROOT ?? fileURLToPath(new URL("..", import.meta.url)),
@@ -383,7 +384,7 @@ interface PythonArtifacts {
 function cleanInstallPython(
   artifact: PythonArtifacts,
   format: PythonFormat,
-  sdk: PythonArtifacts,
+  sdk: { version: string; wheel: string; sdist: string },
   workRoot: string,
 ): string {
   const { descriptor } = artifact;
@@ -438,14 +439,14 @@ function cleanInstallPython(
     descriptor.importName,
     descriptor.name,
     descriptor.version,
-    sdk.descriptor.version,
+    sdk.version,
   ]);
   if (descriptor.scope !== "core") {
     checkInstalledPythonIntegration(
       repositoryRoot,
       environmentRoot,
       python,
-      { sdkVersion: sdk.descriptor.version, integrationVersion: descriptor.version },
+      { sdkVersion: sdk.version, integrationVersion: descriptor.version },
       offlineEnvironment,
     );
   }
@@ -544,11 +545,12 @@ try {
   const client = npmArtifacts.find(({ descriptor }) => descriptor.id === "client")?.packed;
   const sdk = pythonArtifacts.find(({ descriptor }) => descriptor.scope === "core");
   if (!client || !sdk) throw new Error("Registered core SDK artifacts are missing");
+  const dependencies = readSdkDependencies(process.env.REMOTE_SKILLS_SDK_DEPENDENCIES);
   for (const { descriptor, packed } of npmArtifacts) {
     if (descriptor.scope === "core") cleanInstallNpm(packed, workRoot);
     else {
       checkInstalledIntegration(
-        [client.filename, packed.filename],
+        [dependencies.npm[descriptor.name]?.path ?? client.filename, packed.filename],
         repositoryRoot,
         dirname(descriptor.manifestPath),
       );
@@ -556,7 +558,16 @@ try {
   }
   const pythonVersions = pythonArtifacts.flatMap((artifact) =>
     (["wheel", "sdist"] as const).map((format) =>
-      cleanInstallPython(artifact, format, sdk, workRoot),
+      cleanInstallPython(
+        artifact,
+        format,
+        {
+          version: dependencies.python[artifact.descriptor.name]?.version ?? sdk.descriptor.version,
+          wheel: dependencies.python[artifact.descriptor.name]?.wheel ?? sdk.wheel,
+          sdist: dependencies.python[artifact.descriptor.name]?.sdist ?? sdk.sdist,
+        },
+        workRoot,
+      ),
     ),
   );
   const pythonVersion = pythonVersions[0];

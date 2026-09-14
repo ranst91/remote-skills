@@ -5,8 +5,9 @@ import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { spawnPnpmSync } from "../../../scripts/lib/pnpm-command.ts";
 import { checkInstalledIntegration } from "../../../scripts/release/installed-integration.ts";
+import { installedNpmSdk } from "../../../scripts/release/sdk-dependencies.ts";
 
-test("the packed integration installs with its client peer and runs the native skills loader", (t) => {
+test("the packed integration installs with its client peer and runs the native skills loader", async (t) => {
   const root = resolve(import.meta.dirname, "../../..");
   const directory = mkdtempSync(join(tmpdir(), "ai-sdk-packages-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
@@ -19,6 +20,10 @@ test("the packed integration installs with its client peer and runs the native s
   }
   const archives = readdirSync(directory).map((file) => join(directory, file));
   assert.equal(archives.length, 2);
+  const sdk = await installedNpmSdk(root, "@remote-skills/ai-sdk", join(directory, "dependencies"));
+  const consumerArchives = archives.map((path) =>
+    path.includes("remote-skills-client-") ? (sdk?.path ?? path) : path,
+  );
   const registry = process.env.npm_config_registry;
   const offline = process.env.npm_config_offline;
   t.after(() => {
@@ -31,7 +36,7 @@ test("the packed integration installs with its client peer and runs the native s
   process.env.npm_config_registry = "http://127.0.0.1:9";
   process.env.npm_config_offline = "true";
   assert.match(
-    checkInstalledIntegration(archives, root),
+    checkInstalledIntegration(consumerArchives, root),
     /native discovery, lazy activation and file read passed/,
   );
 });

@@ -128,9 +128,10 @@ function plannedVersion(previous: string, bump: Bump | "initial", channel: Chann
 // The supported internal peer contract is an exact version or a caret range.
 // Reject unfamiliar ranges for explicit maintainer review instead of widening them.
 export function clientPeerCompatible(range: string, version: string) {
-  if (range === version) return true;
-  if (!range.startsWith("^"))
-    throw new Error("Unsupported client peer range; use an exact version or caret range");
+  if (!range.startsWith("^")) {
+    parseVersion(range);
+    return range === version;
+  }
   const lower = parseVersion(range.slice(1));
   const candidate = parseVersion(version);
   const parts = [
@@ -262,45 +263,76 @@ export function readReleaseState(root = process.cwd()) {
 export function releaseSelections(root = process.cwd()) {
   return readReleaseState(root).releases;
 }
+export interface PublishedSdkVersions {
+  npm: readonly string[];
+  pypi: readonly string[];
+}
+export const noPublishedSdkVersions: PublishedSdkVersions = { npm: [], pypi: [] };
+export class UnavailableSdkVersionError extends Error {
+  readonly registry: "npm" | "pypi";
+  constructor(registry: "npm" | "pypi", requirement: string) {
+    super(`No compatible available ${registry} SDK for ${requirement}`);
+    this.registry = registry;
+  }
+}
+export function npmSdkRequirement(manifest: object): string | undefined {
+  const peers: unknown = Reflect.get(manifest, "peerDependencies");
+  const range: unknown =
+    typeof peers === "object" && peers !== null
+      ? Reflect.get(peers, "@remote-skills/client")
+      : undefined;
+  if (range !== undefined && typeof range !== "string")
+    throw new Error("Invalid client peer range");
+  return range;
+}
+export function pythonSdkRequirement(source: string): string | undefined {
+  const project = source.split(/^\[project\]\s*$/mu)[1]?.split(/^\[/mu)[0] ?? "";
+  const dependencies = project.match(/^dependencies\s*=\s*\[([\s\S]*?)\]/mu)?.[1] ?? "";
+  const matches = [...dependencies.matchAll(/["'](remote[-_]skills(?:\b)[^"']*)["']/gu)]
+    .map((match) => match[1] ?? "")
+    .filter((value) => !/^remote[-_]skills[-_]/u.test(value));
+  if (!matches.length) return undefined;
+  const version = /^remote[-_]skills==([0-9]+\.[0-9]+\.[0-9]+(?:a[0-9]+)?)$/u.exec(
+    matches[0] ?? "",
+  )?.[1];
+  if (matches.length !== 1 || !version)
+    throw new Error("Python SDK dependency requires one exact version");
+  parseVersion(version.replace(/a([0-9]+)$/u, "-alpha.$1"));
+  return version;
+}
+export function selectSdkVersion(
+  registry: "npm" | "pypi",
+  requirement: string,
+  candidate: string | undefined,
+  available: readonly string[],
+): string {
+  const accepts = (version: string) =>
+    registry === "npm" ? clientPeerCompatible(requirement, version) : requirement === version;
+  if (candidate && accepts(candidate)) return candidate;
+  const selected = available.find(accepts);
+  if (!selected) throw new UnavailableSdkVersionError(registry, requirement);
+  return selected;
+}
 function checkPeers(
   manifests: ReturnType<typeof readReleaseState>["manifests"],
-  clientVersion: string,
+  clientVersion: string | undefined,
+  available: readonly string[] = [],
 ) {
   for (const entry of manifests) {
-    const peers: unknown = Reflect.get(entry.manifest, "peerDependencies");
-    const range: unknown =
-      typeof peers === "object" && peers !== null
-        ? Reflect.get(peers, "@remote-skills/client")
-        : undefined;
-    if (
-      range !== undefined &&
-      (typeof range !== "string" || !clientPeerCompatible(range, clientVersion))
-    )
-      throw new Error(
-        `${entry.name} client peer is incompatible with ${clientVersion}; review its peer range and select its integration scope before releasing`,
-      );
+    const range = npmSdkRequirement(entry.manifest);
+    if (range !== undefined) selectSdkVersion("npm", range, clientVersion, available);
   }
 }
 // The integration currently declares an exact SDK pin. Unknown requirement syntax
 // requires explicit policy support rather than silently widening compatibility.
 function checkPythonPeers(
   manifests: ReturnType<typeof readReleaseState>["pythonManifests"],
-  sdkVersion: string,
+  sdkVersion: string | undefined,
+  available: readonly string[] = [],
 ) {
   for (const entry of manifests) {
-    const project = entry.source.split(/^\[project\]\s*$/mu)[1]?.split(/^\[/mu)[0] ?? "";
-    const dependencies = project.match(/^dependencies\s*=\s*\[([\s\S]*?)\]/mu)?.[1] ?? "";
-    for (const match of dependencies.matchAll(/["'](remote[-_]skills(?:\b)[^"']*)["']/gu)) {
-      const dependency = match[1] ?? "";
-      if (/^remote[-_]skills[-_]/u.test(dependency)) continue;
-      if (
-        dependency !== `remote-skills==${sdkVersion}` &&
-        dependency !== `remote_skills==${sdkVersion}`
-      )
-        throw new Error(
-          `${entry.name} Python SDK dependency is incompatible with ${sdkVersion}; review its exact requirement and select its integration scope before releasing`,
-        );
-    }
+    const requirement = pythonSdkRequirement(entry.source);
+    if (requirement) selectSdkVersion("pypi", requirement, sdkVersion, available);
   }
 }
 export function changelogSection(source: string, version: string) {
@@ -322,6 +354,7 @@ export function prepareRelease(
   dryRun: boolean,
   scope: Scope = "core",
   baseSha?: string,
+  published: PublishedSdkVersions = noPublishedSdkVersions,
 ) {
   const state = readReleaseState(root);
   const baseline =
@@ -386,20 +419,27 @@ export function prepareRelease(
     });
   }
   const clientVersion = scope === "core" ? version : state.npmVersion;
-  checkPeers(state.manifests, clientVersion);
+  for (const entry of state.manifests.filter((entry) => !intent.scopes[entry.scope]))
+    if (
+      npmSdkRequirement(entry.manifest) !==
+      npmSdkRequirement(manifestObject(baselineFile(entry.manifestPath)))
+    )
+      throw new Error(`Select ${entry.scope} before changing its client peer requirement`);
   checkPeers(
-    state.manifests
-      .filter((entry) => !intent.scopes[entry.scope])
-      .map((entry) => ({ ...entry, manifest: manifestObject(baselineFile(entry.manifestPath)) })),
-    clientVersion,
+    state.manifests.filter((entry) => intent.scopes[entry.scope]),
+    intent.scopes.core ? clientVersion : undefined,
+    published.npm,
   );
   const pythonClientVersion = toPythonVersion(clientVersion);
-  checkPythonPeers(state.pythonManifests, pythonClientVersion);
+  for (const entry of state.pythonManifests.filter((entry) => !intent.scopes[entry.scope]))
+    if (
+      pythonSdkRequirement(entry.source) !== pythonSdkRequirement(baselineFile(entry.manifestPath))
+    )
+      throw new Error(`Select ${entry.scope} before changing its Python SDK requirement`);
   checkPythonPeers(
-    state.pythonManifests
-      .filter((entry) => !intent.scopes[entry.scope])
-      .map((entry) => ({ ...entry, source: baselineFile(entry.manifestPath) })),
-    pythonClientVersion,
+    state.pythonManifests.filter((entry) => intent.scopes[entry.scope]),
+    intent.scopes.core ? pythonClientVersion : undefined,
+    published.pypi,
   );
   for (const entry of state.pythonManifests.filter((entry) => entry.scope === scope))
     writes.push({
@@ -467,7 +507,11 @@ export function prepareRelease(
     changedFiles: writes.map((write) => write.path),
   };
 }
-export function validateReleaseCommit(root: string, sha: string) {
+export function validateReleaseCommit(
+  root: string,
+  sha: string,
+  published: PublishedSdkVersions = noPublishedSdkVersions,
+) {
   if (!/^[0-9a-f]{40}$/u.test(sha)) throw new Error("Release SHA must be a full commit SHA");
   const git = (...args: string[]) =>
     execFileSync("git", args, {
@@ -528,8 +572,28 @@ export function validateReleaseCommit(root: string, sha: string) {
   if (git("rev-parse", "HEAD") !== sha)
     throw new Error("Release validation requires the exact commit checked out");
   const state = readReleaseState(root);
-  checkPeers(state.manifests, state.npmVersion);
-  checkPythonPeers(state.pythonManifests, state.pythonVersion);
+  for (const entry of state.manifests.filter((entry) => !intent.scopes[entry.scope]))
+    if (
+      npmSdkRequirement(entry.manifest) !==
+      npmSdkRequirement(manifestObject(git("show", `${sha}^1:${entry.manifestPath}`)))
+    )
+      throw new Error(`Select ${entry.scope} before changing its client peer requirement`);
+  for (const entry of state.pythonManifests.filter((entry) => !intent.scopes[entry.scope]))
+    if (
+      pythonSdkRequirement(entry.source) !==
+      pythonSdkRequirement(git("show", `${sha}^1:${entry.manifestPath}`))
+    )
+      throw new Error(`Select ${entry.scope} before changing its Python SDK requirement`);
+  checkPeers(
+    state.manifests.filter((entry) => intent.scopes[entry.scope]),
+    intent.scopes.core ? state.npmVersion : undefined,
+    published.npm,
+  );
+  checkPythonPeers(
+    state.pythonManifests.filter((entry) => intent.scopes[entry.scope]),
+    intent.scopes.core ? state.pythonVersion : undefined,
+    published.pypi,
+  );
   return state;
 }
 
