@@ -9,6 +9,7 @@
     "REMOTE_SKILLS_E2E_CLI",
     "REMOTE_SKILLS_E2E_PYTHON",
     "REMOTE_SKILLS_E2E_CONSUMER",
+    "REMOTE_SKILLS_SDK_DEPENDENCIES",
     "npm_execpath",
     "npm_package_name",
     "GITHUB_OUTPUT"

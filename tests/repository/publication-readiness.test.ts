@@ -39,6 +39,8 @@ function makeRepositoryFixture(testContext: TestContext): string {
     "installed-python-integration.ts",
     "python-artifacts.ts",
     "integration-dependencies.ts",
+    "sdk-dependencies.ts",
+    "published-sdks.ts",
   ])
     copyFileSync(`scripts/release/${name}`, join(repository, "scripts/release", name));
   copyFileSync(

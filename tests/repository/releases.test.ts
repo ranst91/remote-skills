@@ -1,29 +1,45 @@
-import { createHash } from "node:crypto";
-import {
-  buildPublicationPlan,
-  pythonArtifactPaths,
-} from "../../scripts/release/publication-plan.ts";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import {
+  buildPublicationPlan,
+  pythonArtifactPaths,
+} from "../../scripts/release/publication-plan.ts";
+import {
   clientPeerCompatible,
   manifestObject,
   nextReleaseVersion,
-  prepareRelease,
+  type PublishedSdkVersions,
+  prepareRelease as prepareReleaseSource,
   pythonPackages,
   readReleaseState,
   releasePackages,
   toPythonVersion,
-  validateReleaseCommit,
+  validateReleaseCommit as validateReleaseCommitSource,
 } from "../../scripts/release/release-lib.ts";
+import { prepareSdkDependencies } from "../../scripts/release/sdk-dependencies.ts";
+
+const published = new Map<string, PublishedSdkVersions>();
+function prepareRelease(...args: Parameters<typeof prepareReleaseSource>) {
+  args[6] ??= published.get(args[0]);
+  return prepareReleaseSource(...args);
+}
+function validateReleaseCommit(...args: Parameters<typeof validateReleaseCommitSource>) {
+  args[2] ??= published.get(args[0]);
+  return validateReleaseCommitSource(...args);
+}
 
 function fixture(t: TestContext, version = "0.0.1-alpha.0", peer = `^${version}`) {
   const root = mkdtempSync(join(tmpdir(), "release-test-"));
-  t.after(() => rmSync(root, { recursive: true, force: true }));
+  published.set(root, { npm: [version], pypi: [toPythonVersion(version)] });
+  t.after(() => {
+    published.delete(root);
+    rmSync(root, { recursive: true, force: true });
+  });
   for (const entry of releasePackages) {
     mkdirSync(dirname(join(root, entry.manifest)), { recursive: true });
     writeFileSync(
@@ -70,6 +86,80 @@ test("release channels advance stable versions and promote alpha to its intended
   assert.equal(nextReleaseVersion("0.0.1-alpha.0", "patch", "stable"), "0.0.1");
 });
 
+test("selected integration rejects an unavailable SDK, while compatible co-selection needs no published candidate", (t) => {
+  const { root, base } = fixture(t, "0.0.1", "^0.0.2");
+  assert.throws(
+    () => prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base),
+    /No compatible available npm SDK/u,
+  );
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base, { npm: [], pypi: [] });
+  assert.deepEqual(readReleaseState(root).selectedScopes, ["core", "integration-ai-sdk"]);
+});
+
+test("an accumulated integration keeps its reviewed published SDK when core advances independently", (t) => {
+  const { root, base, git } = fixture(t, "0.0.1", "^0.0.1-alpha.0");
+  prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base);
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  const state = readReleaseState(root);
+  assert.equal(state.npmVersion, "0.0.2");
+  assert.deepEqual(state.selectedScopes.toSorted(), ["core", "integration-ai-sdk"]);
+  git("add", ".");
+  git("commit", "--quiet", "-m", "chore: release packages");
+  assert.equal(validateReleaseCommit(root, git("rev-parse", "HEAD")).npmVersion, "0.0.2");
+});
+
+test("changing an unselected integration peer still requires selecting its scope", (t) => {
+  const { root, base } = fixture(t, "0.0.1");
+  const path = join(root, "integrations/ai-sdk/package.json");
+  writeFileSync(path, readFileSync(path, "utf8").replace("^0.0.1", "^0.0.2"));
+  assert.throws(
+    () => prepareRelease(root, "patch", "stable", false, "core", base),
+    /Select integration-ai-sdk before changing/u,
+  );
+});
+
+test("core candidate and integration consumers retain different verified SDK artifacts", async (t) => {
+  const { root, base } = fixture(t, "0.0.1", "^0.0.1-alpha.0");
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  const bytes = Buffer.from("published 0.0.1 SDK archive");
+  const dependencies = await prepareSdkDependencies(
+    readReleaseState(root),
+    join(root, "dependencies"),
+    {
+      versions: { npm: ["0.0.1"], pypi: [] },
+      npm: new Map([
+        [
+          "0.0.1",
+          {
+            url: "https://registry.npmjs.org/client-0.0.1.tgz",
+            algorithm: "sha512",
+            encoding: "base64",
+            digest: createHash("sha512").update(bytes).digest("base64"),
+          },
+        ],
+      ]),
+      pypi: new Map(),
+    },
+    async () => new Response(bytes),
+  );
+  const integrationSdk = dependencies.npm["@remote-skills/ai-sdk"];
+  assert.equal(integrationSdk?.version, "0.0.1");
+  assert.ok(integrationSdk?.path);
+  assert.deepEqual(readFileSync(integrationSdk.path), bytes);
+  assert.equal(readReleaseState(root).npmVersion, "0.0.2");
+});
+
+test("selected Python integrations cannot depend on an unpublished unselected SDK", (t) => {
+  const { root, base } = fixture(t, "0.0.1");
+  const path = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(path, `${readFileSync(path, "utf8")}dependencies = ["remote-skills==0.0.2"]\n`);
+  assert.throws(
+    () => prepareRelease(root, "patch", "stable", false, "integration-langchain", base),
+    /No compatible available pypi SDK/u,
+  );
+});
+
 test("core promotion preserves 0.0.1 and leaves integration bytes untouched", (t) => {
   const { root, base } = fixture(t);
   const before = readFileSync(join(root, "integrations/ai-sdk/package.json"), "utf8");
@@ -82,6 +172,19 @@ test("core promotion preserves 0.0.1 and leaves integration bytes untouched", (t
   );
   assert.equal(state.releases[0]?.gitTag, "core/v0.0.1");
   assert.equal(readFileSync(join(root, "integrations/ai-sdk/package.json"), "utf8"), before);
+});
+
+test("a core patch releases 0.0.2 without changing integrations that retain their older client", (t) => {
+  const { root, base, git } = fixture(t, "0.0.1", "^0.0.1-alpha.0");
+  const path = join(root, "integrations/ai-sdk/package.json");
+  const before = readFileSync(path, "utf8");
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  assert.equal(readReleaseState(root).npmVersion, "0.0.2");
+  assert.equal(readFileSync(path, "utf8"), before);
+  assert.deepEqual(readReleaseState(root).selectedScopes, ["core"]);
+  git("add", ".");
+  git("commit", "-m", "chore: release packages");
+  assert.equal(validateReleaseCommit(root, git("rev-parse", "HEAD")).npmVersion, "0.0.2");
 });
 
 test("integration alpha advances independently and repeated requests do not compound", (t) => {
@@ -125,14 +228,18 @@ test("accumulating a second scope and replacing intent preserves human notes and
   assert.match(readFileSync(manifestPath, "utf8"), /Human description/u);
 });
 
-test("previews and incompatible core bumps never mutate files", (t) => {
+test("previews and unsatisfiable selected integration dependencies never mutate files", (t) => {
   const { root, base } = fixture(t, "0.0.1");
   const before = readFileSync(join(root, "packages/cli/package.json"), "utf8");
   prepareRelease(root, "patch", "stable", true, "integration-ai-sdk", base);
   assert.equal(readFileSync(join(root, "packages/cli/package.json"), "utf8"), before);
   assert.throws(
-    () => prepareRelease(root, "patch", "stable", false, "core", base),
-    /incompatible/u,
+    () =>
+      prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base, {
+        npm: [],
+        pypi: [],
+      }),
+    /No compatible available/u,
   );
   assert.equal(readFileSync(join(root, "packages/cli/package.json"), "utf8"), before);
 });
@@ -302,21 +409,18 @@ test("LangChain accumulation preserves an independent core selection and rejects
   assert.throws(() => readReleaseState(root), /version drift/u);
 });
 
-test("core promotion fails closed for an unselected exact Python SDK dependency, without edits", (t) => {
+test("core promotion preserves unselected Python dependencies and selected integrations retain published SDKs", (t) => {
   const { root, git } = fixture(t);
   const path = join(root, "integrations/langchain-python/pyproject.toml");
   writeFileSync(path, readFileSync(path, "utf8") + 'dependencies = ["remote-skills==0.0.1a0"]\n');
   git("add", ".");
   git("commit", "--quiet", "-m", "fix: declare SDK dependency");
   const base = git("rev-parse", "HEAD");
-  const before = readFileSync(join(root, "packages/cli/package.json"), "utf8");
-  assert.throws(
-    () => prepareRelease(root, "patch", "stable", false, "core", base),
-    /Python SDK dependency is incompatible/u,
-  );
-  assert.equal(readFileSync(join(root, "packages/cli/package.json"), "utf8"), before);
+  const before = readFileSync(path, "utf8");
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  assert.equal(readFileSync(path, "utf8"), before);
   prepareRelease(root, "patch", "alpha", false, "integration-langchain", base);
-  assert.equal(readReleaseState(root).pythonVersion, "0.0.1a0");
+  assert.equal(readReleaseState(root).pythonVersion, "0.0.1");
 });
 
 test("core-only release preserves both LangChain manifest bytes", (t) => {

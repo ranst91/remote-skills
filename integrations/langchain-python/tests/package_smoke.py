@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from email.parser import BytesParser
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -170,6 +171,21 @@ def main() -> None:
         for package in packages:
             uv('build', '--offline', '--no-python-downloads', '--project', str(root), '--package', package['name'], '--out-dir', str(artifacts))
             distributions.append(inspect_distributions(artifacts, package))
+        sdk_version = packages[0]['version']
+        dependencies = None
+        if dependency_file := environment.get('REMOTE_SKILLS_SDK_DEPENDENCIES'):
+            dependencies = json.loads(Path(dependency_file).read_text())
+        else:
+            requirement = next(Requirement(value) for value in packages[1]['dependencies'] if Requirement(value).name == 'remote-skills')
+            if not requirement.specifier.contains(sdk_version, prereleases=True):
+                dependencies = json.loads(subprocess.check_output([
+                    'node', str(root / 'scripts/release/prepare-sdk-dependencies.ts'),
+                    str(root), str(target / 'dependencies'),
+                ], cwd=root, env=environment, text=True))
+        sdk = dependencies['python'].get('remote-skills-langchain') if dependencies else None
+        if sdk and sdk.get('wheel'):
+            distributions[0] = Path(sdk['wheel']), Path(sdk['sdist'])
+            sdk_version = sdk['version']
         for index, kind in enumerate(('wheel', 'sdist')):
             consumer = target / kind
             consumer.mkdir()
@@ -180,7 +196,7 @@ def main() -> None:
             uv('pip', 'check', '--offline', '--no-config', '--python', str(python))
             smoke = consumer / 'smoke.py'
             smoke.write_text(CONSUMER)
-            subprocess.run([str(python), '-I', str(smoke), *(package['version'] for package in packages)], cwd=consumer, env=environment, check=True)
+            subprocess.run([str(python), '-I', str(smoke), sdk_version, packages[1]['version']], cwd=consumer, env=environment, check=True)
             print(f'{kind} metadata, isolated installation, and native execution passed.')
 
 

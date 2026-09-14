@@ -1,11 +1,11 @@
 import { appendFileSync, readFileSync } from "node:fs";
+import { readPublishedSdks } from "./published-sdks.ts";
 import {
   changelogSection,
   prepareRelease,
   readReleaseState,
   validateReleaseCommit,
 } from "./release-lib.ts";
-
 import { isScope } from "./release-scopes.ts";
 
 const [command, ...args] = process.argv.slice(2);
@@ -29,12 +29,17 @@ try {
       mode === "--dry-run",
       scope,
       baseSha,
+      (await readPublishedSdks()).versions,
     );
     if (process.env.GITHUB_OUTPUT)
       appendFileSync(process.env.GITHUB_OUTPUT, `npm_version=${result.npmVersion}\n`);
     console.log(JSON.stringify(result, null, 2));
   } else if (command === "validate" && args.length === 1 && args[0]) {
-    console.log(JSON.stringify(validateReleaseCommit(process.cwd(), args[0])));
+    console.log(
+      JSON.stringify(
+        validateReleaseCommit(process.cwd(), args[0], (await readPublishedSdks()).versions),
+      ),
+    );
   } else if (command === "metadata" && args.length === 0) {
     const state = readReleaseState();
     if (process.env.GITHUB_OUTPUT)
