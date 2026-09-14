@@ -17,6 +17,7 @@ const requiredSlugs = [
   "integrations",
   "integrations/mastra",
   "vercel-ai-sdk",
+  "integrations/langchain",
   "authentication-and-scopes",
   "versions",
   "cache-and-offline",

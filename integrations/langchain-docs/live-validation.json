@@ -1,0 +1,940 @@
+{
+  "recordedOn": "2026-09-10",
+  "liveExecutionOwner": "Manager task under its direct user authorization",
+  "limitations": [
+    "Each six-path matrix is one observed run, not a success-rate estimate or a guarantee.",
+    "Prescribed-style success is a distinct task and does not relabel earlier bare-greeting outcomes.",
+    "The successful live run used OPENAI_MODEL=gpt-4.1 explicitly before that model became the demo default; source hashes identify the captured runtime files.",
+    "Only sanitized tool names, target kinds, event order, content-match flags, timings, source hashes and fixture hashes are retained. No raw provider request or response bodies are stored.",
+    "The local assembled-request audit uses a dummy loopback provider and is not live-wire evidence."
+  ],
+  "baselineCheckerCorrection": {
+    "path": "deepagents-ts",
+    "issue": "The original checker overwrote the initial instruction-read positions on a later reread, falsely rejecting a valid instruction-to-reference sequence.",
+    "preservedBaselineUnmodified": true,
+    "interpretedPass": true,
+    "correctedCheckerValidation": "Five synthetic cases passed, covering rereads, wrong order, missing content, incorrect final text and errors."
+  },
+  "runs": [
+    {
+      "scenario": "bare greeting baseline",
+      "evidence": {
+        "commit": "27c8298036393790b5277463b885a211cedf163c",
+        "model": "gpt-4.1-mini",
+        "userInput": "Hello!",
+        "fixtureHashes": {
+          "instructions": "44d1b2a02b5a285fef6f7cc1f42a0c491ed587b9a2db5464eecc6a63091d720c",
+          "reference": "ff5b252e38e0bd0b237e7c468ee86e7e637b3129112ce64dfe6ee0e736f567af"
+        },
+        "results": [
+          {
+            "path": "deepagents-ts",
+            "httpStatus": 200,
+            "elapsedMs": 6119,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": false,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "langchain-ts",
+            "httpStatus": 200,
+            "elapsedMs": 1102,
+            "nativeCalls": [],
+            "order": ["catalog", "text", "done"],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": false,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "langgraph-ts",
+            "httpStatus": 200,
+            "elapsedMs": 2741,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "deepagents-python",
+            "httpStatus": 200,
+            "elapsedMs": 11152,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langchain-python",
+            "httpStatus": 200,
+            "elapsedMs": 7099,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langgraph-python",
+            "httpStatus": 200,
+            "elapsedMs": 6893,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "bare greeting with generic completion guidance",
+      "evidence": {
+        "baseCommit": "27c8298036393790b5277463b885a211cedf163c",
+        "phase": "generic completion guidance",
+        "sourceHashes": {
+          "typescript-agent.ts": "181f92170d00be1eb9d121c83c8ba3227b487880f90395b8e9c9e25ee16c16ef",
+          "python_agent.py": "565f9821f53ecb0314924140d54302431fe1cabc010d8c1136b086e7b3dc5d0f"
+        },
+        "model": "gpt-4.1-mini",
+        "userInput": "Hello!",
+        "fixtureHashes": {
+          "instructions": "44d1b2a02b5a285fef6f7cc1f42a0c491ed587b9a2db5464eecc6a63091d720c",
+          "reference": "ff5b252e38e0bd0b237e7c468ee86e7e637b3129112ce64dfe6ee0e736f567af"
+        },
+        "results": [
+          {
+            "path": "deepagents-ts",
+            "httpStatus": 200,
+            "elapsedMs": 10051,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langchain-ts",
+            "httpStatus": 200,
+            "elapsedMs": 3967,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langgraph-ts",
+            "httpStatus": 200,
+            "elapsedMs": 2990,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "deepagents-python",
+            "httpStatus": 200,
+            "elapsedMs": 11157,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "langchain-python",
+            "httpStatus": 200,
+            "elapsedMs": 7783,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langgraph-python",
+            "httpStatus": 200,
+            "elapsedMs": 7650,
+            "nativeCalls": [
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "instructions"
+              }
+            ],
+            "order": [
+              "catalog",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "bare greeting with full model",
+      "evidence": {
+        "baseCommit": "27c8298036393790b5277463b885a211cedf163c",
+        "phase": "full model comparison with generic completion guidance",
+        "sourceHashes": {
+          "typescript-agent.ts": "181f92170d00be1eb9d121c83c8ba3227b487880f90395b8e9c9e25ee16c16ef",
+          "python_agent.py": "565f9821f53ecb0314924140d54302431fe1cabc010d8c1136b086e7b3dc5d0f"
+        },
+        "model": "gpt-4.1",
+        "userInput": "Hello!",
+        "fixtureHashes": {
+          "instructions": "44d1b2a02b5a285fef6f7cc1f42a0c491ed587b9a2db5464eecc6a63091d720c",
+          "reference": "ff5b252e38e0bd0b237e7c468ee86e7e637b3129112ce64dfe6ee0e736f567af"
+        },
+        "results": [
+          {
+            "path": "deepagents-ts",
+            "httpStatus": 200,
+            "elapsedMs": 3240,
+            "nativeCalls": [],
+            "order": ["catalog", "text", "done"],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": false,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "langchain-ts",
+            "httpStatus": 200,
+            "elapsedMs": 1528,
+            "nativeCalls": [],
+            "order": ["catalog", "text", "done"],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": false,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "langgraph-ts",
+            "httpStatus": 200,
+            "elapsedMs": 826,
+            "nativeCalls": [],
+            "order": ["catalog", "text", "done"],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": false,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "deepagents-python",
+            "httpStatus": 200,
+            "elapsedMs": 4238,
+            "nativeCalls": [],
+            "order": ["catalog", "text", "done"],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": false,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "langchain-python",
+            "httpStatus": 200,
+            "elapsedMs": 4082,
+            "nativeCalls": [],
+            "order": ["catalog", "text", "done"],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": false,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          },
+          {
+            "path": "langgraph-python",
+            "httpStatus": 200,
+            "elapsedMs": 3119,
+            "nativeCalls": [],
+            "order": ["catalog", "text", "done"],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": false,
+              "referenceLoaded": false,
+              "instructionsBeforeReference": false,
+              "correctFinal": false,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": false
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "prescribed greeting style",
+      "evidence": {
+        "baseCommit": "27c8298036393790b5277463b885a211cedf163c",
+        "phase": "distinct remote-context scenario with generic completion guidance",
+        "sourceHashes": {
+          "typescript-agent.ts": "181f92170d00be1eb9d121c83c8ba3227b487880f90395b8e9c9e25ee16c16ef",
+          "python_agent.py": "565f9821f53ecb0314924140d54302431fe1cabc010d8c1136b086e7b3dc5d0f"
+        },
+        "model": "gpt-4.1",
+        "userInput": "Welcome a new teammate using our prescribed greeting style.",
+        "fixtureHashes": {
+          "instructions": "44d1b2a02b5a285fef6f7cc1f42a0c491ed587b9a2db5464eecc6a63091d720c",
+          "reference": "ff5b252e38e0bd0b237e7c468ee86e7e637b3129112ce64dfe6ee0e736f567af"
+        },
+        "results": [
+          {
+            "path": "deepagents-ts",
+            "httpStatus": 200,
+            "elapsedMs": 2713,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langchain-ts",
+            "httpStatus": 200,
+            "elapsedMs": 3128,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langgraph-ts",
+            "httpStatus": 200,
+            "elapsedMs": 2773,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "deepagents-python",
+            "httpStatus": 200,
+            "elapsedMs": 6110,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "ls",
+                "target": "other"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "tool:other:start",
+              "tool:other:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langchain-python",
+            "httpStatus": 200,
+            "elapsedMs": 5745,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          },
+          {
+            "path": "langgraph-python",
+            "httpStatus": 200,
+            "elapsedMs": 4614,
+            "nativeCalls": [
+              {
+                "name": "read_file",
+                "target": "instructions"
+              },
+              {
+                "name": "read_file",
+                "target": "reference"
+              }
+            ],
+            "order": [
+              "catalog",
+              "read_file:instructions:start",
+              "read_file:instructions:end",
+              "read_file:reference:start",
+              "read_file:reference:end",
+              "text",
+              "done"
+            ],
+            "flags": {
+              "catalogDiscovered": true,
+              "instructionsLoaded": true,
+              "referenceLoaded": true,
+              "instructionsBeforeReference": true,
+              "correctFinal": true,
+              "completionLast": true,
+              "noError": true
+            },
+            "pass": true
+          }
+        ]
+      }
+    }
+  ],
+  "localAssembledRequestAudit": [
+    {
+      "audit": "local assembled provider request",
+      "path": "deepagents-ts",
+      "model": "gpt-4.1",
+      "flags": {
+        "correctModel": true,
+        "catalogDescriptionPresent": true,
+        "catalogPathPresent": true,
+        "genericCompletionGuidancePresent": true,
+        "nativeProgressiveGuidancePresent": true,
+        "originalInstructionsAbsentInitially": true,
+        "referenceContentsAbsentInitially": true,
+        "nativeReadFileSchemaPresent": true,
+        "modelChoosesTools": true,
+        "noArtifactDuringDiscovery": true
+      }
+    },
+    {
+      "audit": "local assembled provider request",
+      "path": "langchain-ts",
+      "model": "gpt-4.1",
+      "flags": {
+        "correctModel": true,
+        "catalogDescriptionPresent": true,
+        "catalogPathPresent": true,
+        "genericCompletionGuidancePresent": true,
+        "nativeProgressiveGuidancePresent": true,
+        "originalInstructionsAbsentInitially": true,
+        "referenceContentsAbsentInitially": true,
+        "nativeReadFileSchemaPresent": true,
+        "modelChoosesTools": true,
+        "noArtifactDuringDiscovery": true
+      }
+    },
+    {
+      "audit": "local assembled provider request",
+      "path": "langgraph-ts",
+      "model": "gpt-4.1",
+      "flags": {
+        "correctModel": true,
+        "catalogDescriptionPresent": true,
+        "catalogPathPresent": true,
+        "genericCompletionGuidancePresent": true,
+        "nativeProgressiveGuidancePresent": true,
+        "originalInstructionsAbsentInitially": true,
+        "referenceContentsAbsentInitially": true,
+        "nativeReadFileSchemaPresent": true,
+        "modelChoosesTools": true,
+        "noArtifactDuringDiscovery": true
+      }
+    },
+    {
+      "audit": "local assembled provider request",
+      "path": "deepagents-python",
+      "model": "gpt-4.1",
+      "flags": {
+        "correctModel": true,
+        "catalogDescriptionPresent": true,
+        "catalogPathPresent": true,
+        "genericCompletionGuidancePresent": true,
+        "nativeProgressiveGuidancePresent": true,
+        "originalInstructionsAbsentInitially": true,
+        "referenceContentsAbsentInitially": true,
+        "nativeReadFileSchemaPresent": true,
+        "modelChoosesTools": true,
+        "noArtifactDuringDiscovery": true
+      }
+    },
+    {
+      "audit": "local assembled provider request",
+      "path": "langchain-python",
+      "model": "gpt-4.1",
+      "flags": {
+        "correctModel": true,
+        "catalogDescriptionPresent": true,
+        "catalogPathPresent": true,
+        "genericCompletionGuidancePresent": true,
+        "nativeProgressiveGuidancePresent": true,
+        "originalInstructionsAbsentInitially": true,
+        "referenceContentsAbsentInitially": true,
+        "nativeReadFileSchemaPresent": true,
+        "modelChoosesTools": true,
+        "noArtifactDuringDiscovery": true
+      }
+    },
+    {
+      "audit": "local assembled provider request",
+      "path": "langgraph-python",
+      "model": "gpt-4.1",
+      "flags": {
+        "correctModel": true,
+        "catalogDescriptionPresent": true,
+        "catalogPathPresent": true,
+        "genericCompletionGuidancePresent": true,
+        "nativeProgressiveGuidancePresent": true,
+        "originalInstructionsAbsentInitially": true,
+        "referenceContentsAbsentInitially": true,
+        "nativeReadFileSchemaPresent": true,
+        "modelChoosesTools": true,
+        "noArtifactDuringDiscovery": true
+      }
+    }
+  ]
+}

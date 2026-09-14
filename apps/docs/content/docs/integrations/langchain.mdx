@@ -1,0 +1,313 @@
+---
+title: LangChain and DeepAgents
+description: Let your LangChain, LangGraph, or DeepAgents agent discover and load remote skills.
+---
+
+Connect your LangChain or DeepAgents application to [published skills](/docs/hosting/archive-to-origin). Your agent sees their names and descriptions, then uses its native `read_file` tool to load the instructions and supporting files that fit the task.
+
+<Steps>
+<Step>
+
+## Install the integration
+
+In your existing LangChain or DeepAgents application, install the adapter and SDK. The examples use OpenAI; keep your existing model provider if you already have one configured.
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm install @remote-skills/langchain @remote-skills/client @langchain/openai
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm add @remote-skills/langchain @remote-skills/client @langchain/openai
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun add @remote-skills/langchain @remote-skills/client @langchain/openai
+```
+
+</Tab>
+</Tabs>
+
+</Tab>
+<Tab>
+
+<Tabs items={["uv", "pip"]} groupId="python-package-manager" persist>
+<Tab>
+
+```bash
+uv add remote-skills-langchain remote-skills langchain-openai
+```
+
+</Tab>
+<Tab>
+
+```bash
+pip install remote-skills-langchain remote-skills langchain-openai
+```
+
+</Tab>
+</Tabs>
+
+</Tab>
+</Tabs>
+
+Use a server environment. In a web application, put the client and agent setup in your server route.
+
+</Step>
+<Step>
+
+## Connect your agent
+
+Choose the framework you already use, then your language. Each example configures a model, connects to your skills, and prints the agent's answer. Set `OPENAI_API_KEY` in your server environment for this model; it is separate from credentials for a private skill host.
+
+The `team` connection points to the URL serving your skills. For the [Quickstart's local publisher](/docs/quickstart#serve-it), use `http://127.0.0.1:8787` and add `allowLoopbackHttp: true` to the TypeScript origin configuration or `allow_loopback_http=True` to Python's `Origin`.
+
+<Tabs items={["DeepAgents", "LangChain", "LangGraph"]} groupId="langchain-framework" persist>
+<Tab>
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="deepagents.ts"
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/langchain";
+import { createDeepAgent } from "deepagents";
+import { initChatModel } from "langchain";
+
+export async function runAgent(message: string) {
+  const model = await initChatModel("gpt-4.1", { modelProvider: "openai" });
+  const client = createRemoteSkills({
+    origins: { team: { url: "https://skills.example.com" } },
+  });
+  await using session = await client.session("team");
+  await using remote = await remoteSkills({ session });
+
+  const agent = createDeepAgent({ model, ...remote.deepAgentOptions });
+  return await agent.invoke({
+    messages: [{ role: "user", content: message }],
+  });
+}
+
+const result = await runAgent("Welcome a new teammate using our greeting style.");
+console.log(result.messages.at(-1)?.content);
+```
+
+</Tab>
+<Tab>
+
+```python title="deepagents_example.py"
+import asyncio
+
+from deepagents import create_deep_agent
+from langchain.chat_models import init_chat_model
+from remote_skills import Origin, RemoteSkills
+from remote_skills_langchain import create_remote_skills_backend
+
+async def run_agent(message: str):
+    model = init_chat_model("gpt-4.1", model_provider="openai")
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session("team") as session:
+        source = await create_remote_skills_backend(session)
+        agent = create_deep_agent(model=model, **source.deep_agent_options())
+        return await agent.ainvoke({
+            "messages": [{"role": "user", "content": message}],
+        })
+
+async def main():
+    result = await run_agent("Welcome a new teammate using our greeting style.")
+    print(result["messages"][-1].content)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+</Tab>
+<Tab>
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="langchain.ts"
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/langchain";
+import { createAgent, initChatModel } from "langchain";
+
+export async function runAgent(message: string) {
+  const model = await initChatModel("gpt-4.1", { modelProvider: "openai" });
+  const client = createRemoteSkills({
+    origins: { team: { url: "https://skills.example.com" } },
+  });
+  await using session = await client.session("team");
+  await using remote = await remoteSkills({ session });
+
+  const agent = createAgent({ model, middleware: remote.middleware });
+  return await agent.invoke({
+    messages: [{ role: "user", content: message }],
+  });
+}
+
+const result = await runAgent("Welcome a new teammate using our greeting style.");
+console.log(result.messages.at(-1)?.content);
+```
+
+</Tab>
+<Tab>
+
+```python title="langchain_example.py"
+import asyncio
+
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from remote_skills import Origin, RemoteSkills
+from remote_skills_langchain import create_remote_skills_backend
+
+async def run_agent(message: str):
+    model = init_chat_model("gpt-4.1", model_provider="openai")
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session("team") as session:
+        source = await create_remote_skills_backend(session)
+        agent = create_agent(model=model, middleware=source.middleware())
+        return await agent.ainvoke({
+            "messages": [{"role": "user", "content": message}],
+        })
+
+async def main():
+    result = await run_agent("Welcome a new teammate using our greeting style.")
+    print(result["messages"][-1].content)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+</Tab>
+<Tab>
+
+Build your own nodes and edges around the native agent subgraph:
+
+<Tabs items={["TypeScript", "Python"]} groupId="sdk-language" persist>
+<Tab>
+
+```ts title="langgraph.ts"
+import { END, MessagesAnnotation, START, StateGraph } from "@langchain/langgraph";
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/langchain";
+import { createAgent, initChatModel } from "langchain";
+
+export async function runAgent(message: string) {
+  const model = await initChatModel("gpt-4.1", { modelProvider: "openai" });
+  const client = createRemoteSkills({
+    origins: { team: { url: "https://skills.example.com" } },
+  });
+  await using session = await client.session("team");
+  await using remote = await remoteSkills({ session });
+
+  const nativeAgent = createAgent({ model, middleware: remote.middleware });
+  const graph = new StateGraph(MessagesAnnotation)
+    .addNode("prepare", () => ({}))
+    .addNode("skills", nativeAgent.graph)
+    .addNode("complete", () => ({}))
+    .addEdge(START, "prepare")
+    .addEdge("prepare", "skills")
+    .addEdge("skills", "complete")
+    .addEdge("complete", END)
+    .compile();
+
+  return await graph.invoke({
+    messages: [{ role: "user", content: message }],
+  });
+}
+
+const result = await runAgent("Welcome a new teammate using our greeting style.");
+console.log(result.messages.at(-1)?.content);
+```
+
+</Tab>
+<Tab>
+
+```python title="langgraph_example.py"
+import asyncio
+
+from langchain.agents import create_agent
+from langchain.chat_models import init_chat_model
+from langgraph.graph import END, START, MessagesState, StateGraph
+from remote_skills import Origin, RemoteSkills
+from remote_skills_langchain import create_remote_skills_backend
+
+async def run_agent(message: str):
+    model = init_chat_model("gpt-4.1", model_provider="openai")
+    client = RemoteSkills(origins={
+        "team": Origin(url="https://skills.example.com"),
+    })
+    async with client.session("team") as session:
+        source = await create_remote_skills_backend(session)
+        native_agent = create_agent(model=model, middleware=source.middleware())
+        graph = StateGraph(MessagesState)
+        graph.add_node("prepare", lambda state: {})
+        graph.add_node("skills", native_agent)
+        graph.add_node("complete", lambda state: {})
+        graph.add_edge(START, "prepare")
+        graph.add_edge("prepare", "skills")
+        graph.add_edge("skills", "complete")
+        graph.add_edge("complete", END)
+        agent = graph.compile()
+        return await agent.ainvoke({
+            "messages": [{"role": "user", "content": message}],
+        })
+
+async def main():
+    result = await run_agent("Welcome a new teammate using our greeting style.")
+    print(result["messages"][-1].content)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+</Tab>
+</Tabs>
+
+</Tab>
+</Tabs>
+
+Keep the SDK session open until the agent finishes, as these examples do. DeepAgents uses all three settings returned by `deepAgentOptions` or `deep_agent_options()` so its default subagent can discover the same skills. The [composition reference](/docs/api-reference#langchain-composition) covers custom subagents and LangGraph nodes.
+
+</Step>
+<Step>
+
+## See the agent use a skill
+
+Send a request that matches one of your published skills. If you published the Quickstart's `howdy` skill, the welcome request above gives the model a reason to read `/skills/howdy/SKILL.md`. Look for **“Howdy partner!”** at the start of its printed answer. The model chooses whether to use a skill, so an unrelated request can receive a direct answer.
+
+Only catalog metadata is loaded at setup. Reading a selected skill downloads and verifies its complete artifact; later resource reads reuse that copy and add content to the model's context only when requested.
+
+Your agent can now discover and use remote skills through native middleware and tools. To inspect the `read_file` calls alongside the answer, run the [chat demo](https://github.com/ranst91/remote-skills/tree/main/examples/langchain), which includes a local publisher and all six compositions.
+
+</Step>
+</Steps>
+
+For streaming or conversations, keep the session open for the entire stream or conversation. The [LangChain API reference](/docs/api-reference#langchain-integration) covers lifecycle, version selection, and backend contracts. Private skills use your SDK client's existing [authentication and scope settings](/docs/authentication-and-scopes).
+
+The adapter supplies read-only skill tools. Loading a script does not execute it or grant additional tool permissions; your application controls those capabilities. See [Trust and security](/docs/trust-and-security) for the content boundary.

@@ -20,12 +20,19 @@ const groups = {
     ],
   },
   typescript: {
-    owners: ["@remote-skills/client", "@remote-skills/ai-sdk", "@remote-skills/mastra"],
+    owners: [
+      "@remote-skills/client",
+      "@remote-skills/ai-sdk",
+      "@remote-skills/langchain",
+      "@remote-skills/mastra",
+    ],
     commands: [
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "check"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "check"] },
       // Frozen workspace installs cache tarballs, but not all registry metadata
@@ -35,9 +42,13 @@ const groups = {
     ],
   },
   python: {
-    owners: ["@remote-skills/python-workspace"],
+    owners: ["@remote-skills/python-workspace", "@remote-skills/langchain-python-workspace"],
     commands: [
       { kind: "pnpm", args: ["--filter", "@remote-skills/python-workspace", "run", "check"] },
+      {
+        kind: "pnpm",
+        args: ["--filter", "@remote-skills/langchain-python-workspace", "run", "check"],
+      },
     ],
   },
   protocol: {
@@ -55,12 +66,14 @@ const groups = {
       "@remote-skills/example-typescript-consumer",
       "@remote-skills/example-python-consumer",
       "@remote-skills/example-vercel-ai-sdk",
+      "@remote-skills/example-langchain",
       "@remote-skills/example-mastra",
     ],
     commands: [
       buildCliCommand,
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/docs", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-publisher", "run", "check"] },
@@ -77,6 +90,8 @@ const groups = {
         args: ["--filter", "@remote-skills/example-vercel-ai-sdk", "run", "check"],
       },
       { kind: "pnpm", args: ["run", "test:vercel-ai-sdk"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/example-langchain", "run", "check"] },
+      { kind: "pnpm", args: ["run", "test:langchain"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-mastra", "run", "check"] },
       { kind: "pnpm", args: ["run", "test:mastra"] },
     ],

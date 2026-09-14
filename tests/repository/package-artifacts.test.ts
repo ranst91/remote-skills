@@ -22,6 +22,16 @@ const publicPackages = [
     name: "remote-skills",
   },
   { ecosystem: "npm", manifest: "integrations/ai-sdk/package.json", name: "@remote-skills/ai-sdk" },
+  {
+    ecosystem: "npm",
+    manifest: "integrations/langchain/package.json",
+    name: "@remote-skills/langchain",
+  },
+  {
+    ecosystem: "pypi",
+    manifest: "integrations/langchain-python/pyproject.toml",
+    name: "remote-skills-langchain",
+  },
 ] as const;
 
 interface PackageMaterial {
@@ -167,7 +177,8 @@ test("package input inventory is deterministic local metadata with verified mate
       ...entry,
       version:
         entry.ecosystem === "pypi"
-          ? readReleaseState().pythonVersion
+          ? readReleaseState().pythonManifests.find((manifest) => manifest.name === entry.name)
+              ?.version
           : readReleaseState().manifests.find((manifest) => manifest.name === entry.name)?.version,
     })),
   );
@@ -198,6 +209,12 @@ test("package input inventory is deterministic local metadata with verified mate
     "pyproject.toml",
     "tsconfig.base.json",
     "uv.lock",
+    "integrations/langchain/package.json",
+    "integrations/langchain/scripts/pack-local.ts",
+    "integrations/langchain/tsconfig.json",
+    "integrations/langchain/src/native.ts",
+    "integrations/langchain-python/pyproject.toml",
+    "integrations/langchain-python/src/remote_skills_langchain/backend.py",
   ]);
   for (const material of inventory.materials) {
     assert.equal(material.path.split("/").includes("__pycache__"), false, material.path);

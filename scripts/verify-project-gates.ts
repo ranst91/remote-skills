@@ -9,12 +9,15 @@ const expectedProjects = [
   "@remote-skills/cli",
   "@remote-skills/client",
   "@remote-skills/ai-sdk",
+  "@remote-skills/langchain",
   "@remote-skills/mastra",
   "@remote-skills/python-workspace",
+  "@remote-skills/langchain-python-workspace",
   "@remote-skills/example-publisher",
   "@remote-skills/example-typescript-consumer",
   "@remote-skills/example-python-consumer",
   "@remote-skills/example-vercel-ai-sdk",
+  "@remote-skills/example-langchain",
   "@remote-skills/example-mastra",
 ];
 

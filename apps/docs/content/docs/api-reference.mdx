@@ -3,7 +3,7 @@ title: API reference
 description: SDK constructors, parameters, return values, data types, and errors.
 ---
 
-Reference for `@remote-skills/client`, Python's `remote_skills`, and the [Vercel AI SDK](#vercel-ai-sdk-integration) and [Mastra](#mastra-integration) integrations. Method tables show awaited return values: TypeScript methods return promises, and Python async methods are awaited. For a runnable integration, see [Consume skills](/docs/consume).
+Reference for `@remote-skills/client`, Python's `remote_skills`, the [Vercel AI SDK integration](#vercel-ai-sdk-integration), the [Mastra integration](#mastra-integration), and the [LangChain and DeepAgents integration](#langchain-integration). Method tables show awaited return values: TypeScript methods return promises, and Python async methods are awaited. For a runnable integration, see [Consume skills](/docs/consume).
 
 ## Client creation
 
@@ -324,6 +324,68 @@ The package also exports the types `RemoteSkillsOptions`, `RemoteSkillsIntegrati
 | `readFile` | Vercel's file-reader input, including `path` | UTF-8 file content from the verified skill. Binary reads return `resource_not_text`; binary access remains available through SDK sessions. |
 
 Tool errors retain SDK error codes without diagnostic context. Unexpected tool failures return a fixed message; setup errors remain available to the application. Abort signals are checked around tool operations, but an already-started SDK download follows the client's timeout and session-close behavior rather than per-call cancellation.
+
+## LangChain integration
+
+`@remote-skills/langchain` and Python's `remote_skills_langchain` connect an SDK session to native skills and filesystem middleware. For installation, model setup, and complete examples in both languages, see [LangChain and DeepAgents](/docs/integrations/langchain).
+
+### LangChain source options
+
+| Language | Signature | Awaited result |
+| --- | --- | --- |
+| TypeScript | `remoteSkills(options: RemoteSkillsOptions)` | `RemoteSkillsIntegration` |
+| Python | `create_remote_skills_backend(session, *, root="/skills/", versions=None)` | `RemoteSkillsBackend` |
+
+| TypeScript option | Python argument | Default | Contract |
+| --- | --- | --- | --- |
+| `session` | `session` | Required | One caller-owned SDK session. Neither adapter closes it. |
+| `root` | `root` | `"/skills/"` | Absolute virtual directory ending in `/`; each segment contains only ASCII letters, digits, `_`, or `-`. It is not a host filesystem path. |
+| `versions` | `versions` | Unset / `None` | Mapping of catalog skill names to nonempty version ranges. Unknown names or empty ranges fail setup. |
+
+The TypeScript `versions` type is `Readonly<Record<string, string>>`; Python accepts `Mapping[str, str]`. Authentication, scopes, caching, request limits, and verification come from the supplied session's client. See [origin settings](#origin-settings). Invalid adapter options raise `RemoteSkillsError` with `configuration_invalid` in TypeScript, or `ValueError` in Python.
+
+Version ranges restrict SDK activation to releases still advertised by the publisher. The first activation pins a release for the session; later adapter options cannot replace that pin. Use one version policy per session. [Versions and history](/docs/versions) explains selection and retention.
+
+### LangChain returned adapter
+
+| TypeScript member | Python member | Contract |
+| --- | --- | --- |
+| `discoveryBackend` | `discovery` | Native backend view of catalog-derived frontmatter. Used only for discovery; this projection is metadata, not the original `SKILL.md`. |
+| `contentBackend` | `content` | Native backend view of original verified files. The first content read or listing within a skill activates its complete artifact through the SDK. |
+| `sources` | `sources` | One configured virtual root: a string array in TypeScript, a tuple in Python. |
+| `catalog` | `catalog` | Read-only catalog metadata. TypeScript entries have `name`, `description`, and virtual `path`; Python entries have `name`, `description`, `digest`, and `version`. |
+| `middleware` | `middleware()` | Native skills middleware followed by native filesystem middleware. Python creates a new middleware list per call. |
+| `deepAgentOptions` | `deep_agent_options()` | Native `backend`, `skills`, and `middleware` settings to pass together to a DeepAgents constructor. |
+| `close()` | — | TypeScript disables the adapter and waits for its pending work. Repeated calls are safe; the borrowed session remains open. |
+| `[Symbol.asyncDispose]()` | — | Same TypeScript cleanup as `close()`; supports `await using`. Python cleanup belongs to the SDK session's `async with`. |
+
+Discovery and root listings download no artifacts. Content reads activate and verify the complete artifact once; subsequent reads reuse those bytes. Native `read_file` retains text pagination and line numbering. Binary resources remain available through the content backend and [SDK resource methods](#resource-methods).
+
+### LangChain composition
+
+| Agent | TypeScript | Python |
+| --- | --- | --- |
+| DeepAgents | `createDeepAgent({ model, ...remote.deepAgentOptions })` | `create_deep_agent(model=model, **source.deep_agent_options())` |
+| Plain LangChain | `createAgent({ model, middleware: remote.middleware })` | `create_agent(model=model, middleware=source.middleware())` |
+| LangGraph | Add the native agent's compiled `.graph` as a subgraph node. | Add the native agent itself as a subgraph node. |
+
+Keep DeepAgents' returned `backend`, `skills`, and `middleware` together. They connect discovery to metadata and file reads to verified content, including in the default general-purpose subagent. Using only the content backend with automatic skills loading downloads artifacts during discovery; using only middleware leaves the default subagent without its catalog. For custom named subagents, pass the same native middleware through their `middleware` option so they share the SDK session and its pins.
+
+LangGraph support requires a native agent subgraph. Arbitrary raw model or tool nodes do not run LangChain middleware; there is no standalone middleware runtime supplied by this integration. The guide's [LangGraph example](/docs/integrations/langchain#connect-your-agent) shows the complete node composition.
+
+### LangChain lifetime and runtime
+
+| Concern | Required behavior |
+| --- | --- |
+| Invocation | Keep the SDK session open until the native invocation finishes. Close the TypeScript adapter before closing its session. |
+| Streaming | Consume the full stream before closing the adapter or session. |
+| Python execution | Use `ainvoke`, `astream`, or `astream_events` on the event loop that created the adapter. Synchronous backend reads are unsupported. |
+| Conversations and checkpoints | Bind one adapter, native agent, and checkpoint thread to one session, origin, and authorization context. Start a new adapter and checkpoint thread when that context changes. |
+| Multiple origins | Use separate adapters and agents. Concatenating native middleware tuples creates duplicate middleware names. |
+| TypeScript dependencies | Keep one shared copy of the LangChain peer dependencies and use the compatibility ranges in the adapter's package metadata. |
+| TypeScript compiler | The currently supported DeepAgents declarations require `skipLibCheck: true` because of an upstream Zod declaration mismatch. Keep `strict: true` for application type checking. |
+
+The native filesystem middleware exposes only `ls` and `read_file`. The adapter supplies no write, search, or command-execution tool and disables filesystem offloading because its content is read-only. It does not install files into an agent workspace. Digest verification establishes byte integrity; your application still controls [content trust and tool authorization](/docs/trust-and-security), including any tools a skill requests through `allowed-tools`.
 
 ## Mastra integration
 

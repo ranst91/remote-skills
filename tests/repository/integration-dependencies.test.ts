@@ -80,3 +80,27 @@ test("artifact dependency preparation rejects a missing lock entry instead of re
     /Missing locked integration dependency: bash-tool/u,
   );
 });
+
+test("explicit YAML snapshot keys retain exact dependency comparison", (context) => {
+  const root = mkdtempSync(join(tmpdir(), "integration-long-key-"));
+  const consumer = join(root, "consumer");
+  mkdirSync(consumer);
+  context.after(() => rmSync(root, { recursive: true, force: true }));
+  const key = `framework@1.0.0(peer@${"a".repeat(1100)})`;
+  const header = "\npackages:\n  dependency@1.0.0: {}\n\nsnapshots:\n";
+  writeFileSync(
+    join(root, "pnpm-lock.yaml"),
+    `${header}  '${key}':\n    dependencies:\n      dependency: 1.0.0\n`,
+  );
+  const explicit = `${header}  ? '${key}'\n  :\n    dependencies:\n      dependency: 1.0.0\n`;
+  writeFileSync(join(consumer, "pnpm-lock.yaml"), explicit);
+  assert.doesNotThrow(() => assertLockedIntegrationResolution(root, consumer, []));
+  writeFileSync(
+    join(consumer, "pnpm-lock.yaml"),
+    explicit.replace("dependency: 1.0.0", "dependency: 2.0.0"),
+  );
+  assert.throws(
+    () => assertLockedIntegrationResolution(root, consumer, []),
+    /Installed snapshots entry differs/u,
+  );
+});

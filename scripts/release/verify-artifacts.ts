@@ -21,7 +21,7 @@ const root = resolve(sourceRoot ?? process.cwd());
 const output = resolve(destination ?? join(tmpdir(), `remote-skills-verified-${Date.now()}`));
 if (existsSync(output)) throw new Error("Verified artifact output must not already exist");
 const work = mkdtempSync(join(tmpdir(), "remote-skills-artifact-gate-"));
-const environment = {
+const environment: NodeJS.ProcessEnv = {
   ...process.env,
   REMOTE_SKILLS_SOURCE_ROOT: root,
   UV_CACHE_DIR: join(work, "uv-cache"),
@@ -88,7 +88,7 @@ try {
     ...environment,
     REMOTE_SKILLS_E2E_PACKAGES: candidate,
     UV_OFFLINE: "true",
-    UV_PYTHON: process.env.REMOTE_SKILLS_PYTHON,
+    UV_PYTHON: environment.REMOTE_SKILLS_PYTHON,
     UV_PYTHON_DOWNLOADS: "never",
     npm_config_offline: "true",
   };
@@ -102,6 +102,9 @@ try {
       "--test-concurrency=1",
       resolve(import.meta.dirname, "../../tests/examples/end-to-end.test.ts"),
       resolve(import.meta.dirname, "../../tests/examples/vercel-ai-sdk.test.ts"),
+      ...(state.manifests.some((entry) => entry.id === "langchain")
+        ? [resolve(import.meta.dirname, "../../tests/examples/langchain.test.ts")]
+        : []),
       ...(state.manifests.some((entry) => entry.id === "mastra")
         ? [resolve(import.meta.dirname, "../../tests/examples/mastra.test.ts")]
         : []),

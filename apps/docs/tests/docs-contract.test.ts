@@ -21,6 +21,7 @@ const migratedTypeScriptFiles = [
   "tests/agent-accessibility.test.ts",
   "tests/docs-contract.test.ts",
   "tests/links.test.ts",
+  "tests/langchain.test.ts",
   "tests/production-routes.test.ts",
   "tests/verify-snippets.ts",
 ];
@@ -50,14 +51,19 @@ const rootNavigation = [
 ];
 
 const hostingNavigation = ["archive-to-origin", "git-pages"];
-const integrationNavigation = ["index", "[Vercel AI SDK](/docs/vercel-ai-sdk)", "mastra"];
+const integrationNavigation = [
+  "index",
+  "[Vercel AI SDK](/docs/vercel-ai-sdk)",
+  "langchain",
+  "mastra",
+];
 const navigation = rootNavigation
   .filter((slug) => !slug.startsWith("---"))
   .flatMap((slug) =>
     slug === "hosting"
       ? hostingNavigation.map((page) => `hosting/${page}`)
       : slug === "integrations"
-        ? ["integrations/index", "vercel-ai-sdk", "integrations/mastra"]
+        ? ["integrations/index", "vercel-ai-sdk", "integrations/langchain", "integrations/mastra"]
         : [slug],
   );
 
@@ -458,12 +464,16 @@ skills.tools.bash;
   );
 });
 
-test("consumer entry points lead to both framework integration guides", () => {
+test("consumer entry points lead to every framework integration guide", () => {
   for (const slug of ["quickstart", "consume"]) {
     assert.match(readDoc(slug), /\]\(\/docs\/integrations\)/u);
   }
   const integrations = readDoc("integrations/index");
-  for (const path of ["/docs/vercel-ai-sdk", "/docs/integrations/mastra"]) {
+  for (const path of [
+    "/docs/vercel-ai-sdk",
+    "/docs/integrations/langchain",
+    "/docs/integrations/mastra",
+  ]) {
     assert.ok(integrations.includes(`](${path})`), `missing integration guide: ${path}`);
   }
 });

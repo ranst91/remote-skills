@@ -1,19 +1,20 @@
+import { createHash } from "node:crypto";
+import {
+  buildPublicationPlan,
+  pythonArtifactPaths,
+} from "../../scripts/release/publication-plan.ts";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { type TestContext, test } from "node:test";
 import {
-  buildPublicationPlan,
-  pythonArtifactPaths,
-} from "../../scripts/release/publication-plan.ts";
-import {
   clientPeerCompatible,
   manifestObject,
   nextReleaseVersion,
   prepareRelease,
+  pythonPackages,
   readReleaseState,
   releasePackages,
   toPythonVersion,
@@ -30,15 +31,19 @@ function fixture(t: TestContext, version = "0.0.1-alpha.0", peer = `^${version}`
       JSON.stringify({
         name: entry.name,
         version,
-        ...(entry.scope !== "core" ? { peerDependencies: { "@remote-skills/client": peer } } : {}),
+        ...(entry.id === "ai_sdk"
+          ? { peerDependencies: { "@remote-skills/client": peer, ai: "^7.0.0" } }
+          : {}),
       }),
     );
   }
-  mkdirSync(join(root, "packages/sdk-python"), { recursive: true });
-  writeFileSync(
-    join(root, "packages/sdk-python/pyproject.toml"),
-    `[project]\nname = "remote-skills"\nversion = "${toPythonVersion(version)}"\n`,
-  );
+  for (const entry of pythonPackages) {
+    mkdirSync(dirname(join(root, entry.manifest)), { recursive: true });
+    writeFileSync(
+      join(root, entry.manifest),
+      `[project]\nname = "${entry.name}"\nversion = "${toPythonVersion(version)}"\n`,
+    );
+  }
   writeFileSync(
     join(root, "CHANGELOG.md"),
     "# Changelog\n\n## [Unreleased]\n\n- Improve skills.\n",
@@ -177,7 +182,7 @@ test("caret client compatibility respects zero versions and prerelease opt-in", 
 
 test("the original coordinated alpha remains retryable and rejects replay or package drift", (t) => {
   const { root, git } = fixture(t, "0.0.1");
-  for (const entry of releasePackages) {
+  for (const entry of releasePackages.filter((entry) => entry.scope !== "integration-langchain")) {
     const path = join(root, entry.manifest);
     writeFileSync(path, readFileSync(path, "utf8").replaceAll("0.0.1", "0.0.1-alpha.0"));
   }
@@ -239,43 +244,41 @@ test("empty Unreleased after the alpha produces factual scoped notes and preserv
   assert.ok(readFileSync(path, "utf8").endsWith(history));
 });
 
-test("Mastra preview and preparation select only its package and preserve unrelated bytes", (t) => {
+test("LangChain selection advances only its TypeScript and Python manifests and remains idempotent", (t) => {
   const { root, base, git } = fixture(t);
   const untouched = [
-    ...releasePackages.filter((entry) => entry.id !== "mastra").map((entry) => entry.manifest),
+    ...releasePackages.filter((p) => p.scope !== "integration-langchain").map((p) => p.manifest),
     "packages/sdk-python/pyproject.toml",
   ];
-  const before = untouched.map((path) => readFileSync(join(root, path), "utf8"));
-  const preview = prepareRelease(root, "patch", "alpha", true, "integration-mastra", base);
-  assert.equal(git("status", "--porcelain"), "");
+  const originals = untouched.map((path) => readFileSync(join(root, path), "utf8"));
+  const preview = prepareRelease(root, "patch", "alpha", true, "integration-langchain", base);
   assert.deepEqual(preview.changedFiles, [
-    "integrations/mastra/package.json",
+    "integrations/langchain/package.json",
+    "integrations/langchain-python/pyproject.toml",
     "CHANGELOG.md",
     "release-state.json",
   ]);
-  assert.equal(preview.version, "0.0.1-alpha.1");
-  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
-  const first = git("diff");
-  const firstIntent = readFileSync(join(root, "release-state.json"), "utf8");
-  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
-  assert.equal(git("diff"), first);
-  assert.equal(readFileSync(join(root, "release-state.json"), "utf8"), firstIntent);
+  assert.equal(
+    readReleaseState(root).manifests.find((p) => p.id === "langchain")?.version,
+    "0.0.1-alpha.0",
+  );
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", base);
+  const first = readFileSync(join(root, "release-state.json"), "utf8");
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", base);
+  assert.equal(readFileSync(join(root, "release-state.json"), "utf8"), first);
   assert.deepEqual(
     untouched.map((path) => readFileSync(join(root, path), "utf8")),
-    before,
+    originals,
   );
   const state = readReleaseState(root);
-  assert.deepEqual(state.selectedScopes, ["integration-mastra"]);
-  assert.deepEqual(state.selectedPackages, [
-    {
-      id: "mastra",
-      name: "@remote-skills/mastra",
-      version: "0.0.1-alpha.1",
-      registry: "npm",
-      scope: "integration-mastra",
-    },
-  ]);
-  assert.equal(state.releases[0]?.gitTag, "integration-mastra/v0.0.1-alpha.1");
+  assert.deepEqual(
+    state.selectedPackages.map((p) => [p.name, p.registry, p.version]),
+    [
+      ["@remote-skills/langchain", "npm", "0.0.1-alpha.1"],
+      ["remote-skills-langchain", "pypi", "0.0.1a1"],
+    ],
+  );
+  assert.equal(state.releases[0]?.gitTag, "integration-langchain/v0.0.1-alpha.1");
   git("add", ".");
   git("commit", "--quiet", "-m", "chore: release packages");
   assert.deepEqual(
@@ -284,63 +287,106 @@ test("Mastra preview and preparation select only its package and preserve unrela
   );
 });
 
-test("Mastra accumulates with core and AI SDK against one unchanged release baseline", (t) => {
+test("LangChain accumulation preserves an independent core selection and rejects Python drift", (t) => {
   const { root, base } = fixture(t, "1.2.3", "^1.0.0");
-  prepareRelease(root, "minor", "stable", false, "integration-mastra", base);
   prepareRelease(root, "patch", "stable", false, "core", base);
-  prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base);
-  prepareRelease(root, "patch", "stable", false, "integration-mastra", base);
-  const state = readReleaseState(root);
-  assert.equal(state.intent?.baseSha, base);
+  prepareRelease(root, "minor", "stable", false, "integration-langchain", base);
+  assert.equal(readReleaseState(root).pythonVersion, "1.2.4");
+  assert.equal(
+    readReleaseState(root).pythonManifests.find((p) => p.scope === "integration-langchain")
+      ?.version,
+    "1.3.0",
+  );
+  const path = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(path, readFileSync(path, "utf8").replace('version = "1.3.0"', 'version = "1.4.0"'));
+  assert.throws(() => readReleaseState(root), /version drift/u);
+});
+
+test("core promotion fails closed for an unselected exact Python SDK dependency, without edits", (t) => {
+  const { root, git } = fixture(t);
+  const path = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(path, readFileSync(path, "utf8") + 'dependencies = ["remote-skills==0.0.1a0"]\n');
+  git("add", ".");
+  git("commit", "--quiet", "-m", "fix: declare SDK dependency");
+  const base = git("rev-parse", "HEAD");
+  const before = readFileSync(join(root, "packages/cli/package.json"), "utf8");
+  assert.throws(
+    () => prepareRelease(root, "patch", "stable", false, "core", base),
+    /Python SDK dependency is incompatible/u,
+  );
+  assert.equal(readFileSync(join(root, "packages/cli/package.json"), "utf8"), before);
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", base);
+  assert.equal(readReleaseState(root).pythonVersion, "0.0.1a0");
+});
+
+test("core-only release preserves both LangChain manifest bytes", (t) => {
+  const { root, base } = fixture(t);
+  const paths = [
+    "integrations/langchain/package.json",
+    "integrations/langchain-python/pyproject.toml",
+  ];
+  const before = paths.map((path) => readFileSync(join(root, path), "utf8"));
+  prepareRelease(root, "patch", "stable", false, "core", base);
   assert.deepEqual(
-    new Set(state.selectedScopes),
-    new Set(["core", "integration-ai-sdk", "integration-mastra"]),
-  );
-  assert.ok(
-    Object.values(state.intent?.scopes ?? {}).every(
-      (entry) => entry.previousVersion === "1.2.3" && entry.version === "1.2.4",
-    ),
-  );
-  assert.deepEqual(
-    new Set(state.selectedPackages.map((entry) => entry.id)),
-    new Set(["cli", "client", "ai_sdk", "mastra", "python"]),
-  );
-  assert.doesNotMatch(
-    readFileSync(join(root, "CHANGELOG.md"), "utf8"),
-    /integration-mastra\/v1\.3\.0/u,
+    paths.map((path) => readFileSync(join(root, path), "utf8")),
+    before,
   );
 });
 
-test("issued legacy alpha remains exact when later integrations were absent from its commit", (t) => {
-  const { root, git } = fixture(t, "0.0.1");
-  for (const entry of releasePackages.filter(
-    (entry) => !["cli", "client", "ai_sdk"].includes(entry.id),
-  )) {
-    git("rm", entry.manifest);
-  }
-  git("commit", "--quiet", "--allow-empty", "-m", "chore: historical foundation");
-  for (const entry of releasePackages.filter((entry) =>
-    ["cli", "client", "ai_sdk"].includes(entry.id),
-  )) {
-    const path = join(root, entry.manifest);
-    writeFileSync(path, readFileSync(path, "utf8").replaceAll("0.0.1", "0.0.1-alpha.0"));
-  }
-  const python = join(root, "packages/sdk-python/pyproject.toml");
-  writeFileSync(python, readFileSync(python, "utf8").replace("0.0.1", "0.0.1a0"));
+test("legacy release reading tolerates newly enrolled packages being absent", (t) => {
+  const { root, git } = fixture(t);
+  for (const entry of [...releasePackages, ...pythonPackages].filter(
+    (p) => p.scope === "integration-langchain",
+  ))
+    rmSync(join(root, entry.manifest));
+  git("add", ".");
+  git("commit", "--quiet", "-m", "test: historical tree without integrations");
   writeFileSync(
     join(root, "release-state.json"),
     JSON.stringify({ version: "0.0.1-alpha.0", previousVersion: "0.0.1", initial: true }),
   );
+  assert.deepEqual(
+    readReleaseState(root).selectedPackages.map((p) => p.id),
+    ["cli", "client", "ai_sdk", "python"],
+  );
+});
+
+test("legacy intent never masks a missing newly enrolled tracked manifest", (t) => {
+  const { root } = fixture(t);
   writeFileSync(
-    join(root, "CHANGELOG.md"),
-    "# Changelog\n\n## [0.0.1-alpha.0]\n\n- Issued alpha.\n",
+    join(root, "release-state.json"),
+    JSON.stringify({ version: "0.0.1-alpha.0", previousVersion: "0.0.1", initial: true }),
+  );
+  rmSync(join(root, "integrations/langchain/package.json"));
+  assert.throws(() => readReleaseState(root), /ENOENT/u);
+});
+
+test("LangChain prereleases retain a reviewed stable Python SDK dependency", (t) => {
+  const { root, git } = fixture(t, "0.0.1", "^0.0.1");
+  const npm = join(root, "integrations/langchain/package.json");
+  writeFileSync(
+    npm,
+    readFileSync(npm, "utf8").replace('"version":"0.0.1"', '"version":"0.0.1-alpha.0"'),
+  );
+  const python = join(root, "integrations/langchain-python/pyproject.toml");
+  writeFileSync(
+    python,
+    readFileSync(python, "utf8").replace('version = "0.0.1"', 'version = "0.0.1a0"') +
+      'dependencies = ["remote-skills==0.0.1"]\n',
   );
   git("add", ".");
-  git("commit", "--quiet", "-m", "chore: release v0.0.1-alpha.0");
-  const state = validateReleaseCommit(root, git("rev-parse", "HEAD"));
+  git("commit", "--quiet", "-m", "test: reviewed stable SDK compatibility");
+  prepareRelease(root, "patch", "alpha", false, "integration-langchain", git("rev-parse", "HEAD"));
+  const state = readReleaseState(root);
+  assert.equal(state.pythonVersion, "0.0.1");
+  assert.equal(
+    state.pythonManifests.find((entry) => entry.name === "remote-skills-langchain")?.version,
+    "0.0.1a1",
+  );
+  assert.match(readFileSync(python, "utf8"), /remote-skills==0\.0\.1"/u);
   assert.deepEqual(
-    state.selectedPackages.map((entry) => entry.id),
-    ["cli", "client", "ai_sdk", "python"],
+    state.selectedPackages.map((entry) => entry.name),
+    ["@remote-skills/langchain", "remote-skills-langchain"],
   );
 });
 
@@ -501,4 +547,111 @@ test("scoped release state rejects a missing selected Mastra manifest", (t) => {
   const path = join(root, "integrations/mastra/package.json");
   rmSync(path);
   assert.throws(() => readReleaseState(root), { code: "ENOENT", path });
+});
+
+test("Mastra preview and preparation select only its package and preserve unrelated bytes", (t) => {
+  const { root, base, git } = fixture(t);
+  const untouched = [
+    ...releasePackages.filter((entry) => entry.id !== "mastra").map((entry) => entry.manifest),
+    "packages/sdk-python/pyproject.toml",
+  ];
+  const before = untouched.map((path) => readFileSync(join(root, path), "utf8"));
+  const preview = prepareRelease(root, "patch", "alpha", true, "integration-mastra", base);
+  assert.equal(git("status", "--porcelain"), "");
+  assert.deepEqual(preview.changedFiles, [
+    "integrations/mastra/package.json",
+    "CHANGELOG.md",
+    "release-state.json",
+  ]);
+  assert.equal(preview.version, "0.0.1-alpha.1");
+  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
+  const first = git("diff");
+  const firstIntent = readFileSync(join(root, "release-state.json"), "utf8");
+  prepareRelease(root, "patch", "alpha", false, "integration-mastra", base);
+  assert.equal(git("diff"), first);
+  assert.equal(readFileSync(join(root, "release-state.json"), "utf8"), firstIntent);
+  assert.deepEqual(
+    untouched.map((path) => readFileSync(join(root, path), "utf8")),
+    before,
+  );
+  const state = readReleaseState(root);
+  assert.deepEqual(state.selectedScopes, ["integration-mastra"]);
+  assert.deepEqual(state.selectedPackages, [
+    {
+      id: "mastra",
+      name: "@remote-skills/mastra",
+      version: "0.0.1-alpha.1",
+      registry: "npm",
+      scope: "integration-mastra",
+    },
+  ]);
+  assert.equal(state.releases[0]?.gitTag, "integration-mastra/v0.0.1-alpha.1");
+  git("add", ".");
+  git("commit", "--quiet", "-m", "chore: release packages");
+  assert.deepEqual(
+    validateReleaseCommit(root, git("rev-parse", "HEAD")).selectedPackages,
+    state.selectedPackages,
+  );
+});
+
+test("Mastra accumulates with core and AI SDK against one unchanged release baseline", (t) => {
+  const { root, base } = fixture(t, "1.2.3", "^1.0.0");
+  prepareRelease(root, "minor", "stable", false, "integration-mastra", base);
+  prepareRelease(root, "patch", "stable", false, "core", base);
+  prepareRelease(root, "patch", "stable", false, "integration-ai-sdk", base);
+  prepareRelease(root, "patch", "stable", false, "integration-mastra", base);
+  const state = readReleaseState(root);
+  assert.equal(state.intent?.baseSha, base);
+  assert.deepEqual(
+    new Set(state.selectedScopes),
+    new Set(["core", "integration-ai-sdk", "integration-mastra"]),
+  );
+  assert.ok(
+    Object.values(state.intent?.scopes ?? {}).every(
+      (entry) => entry.previousVersion === "1.2.3" && entry.version === "1.2.4",
+    ),
+  );
+  assert.deepEqual(
+    new Set(state.selectedPackages.map((entry) => entry.id)),
+    new Set(["cli", "client", "ai_sdk", "mastra", "python"]),
+  );
+  assert.doesNotMatch(
+    readFileSync(join(root, "CHANGELOG.md"), "utf8"),
+    /integration-mastra\/v1\.3\.0/u,
+  );
+});
+
+test("issued legacy alpha remains exact when later integrations were absent from its commit", (t) => {
+  const { root, git } = fixture(t, "0.0.1");
+  for (const entry of releasePackages.filter(
+    (entry) => !["cli", "client", "ai_sdk"].includes(entry.id),
+  )) {
+    git("rm", entry.manifest);
+  }
+  for (const entry of pythonPackages.filter((entry) => entry.scope !== "core"))
+    git("rm", entry.manifest);
+  git("commit", "--quiet", "--allow-empty", "-m", "chore: historical foundation");
+  for (const entry of releasePackages.filter((entry) =>
+    ["cli", "client", "ai_sdk"].includes(entry.id),
+  )) {
+    const path = join(root, entry.manifest);
+    writeFileSync(path, readFileSync(path, "utf8").replaceAll("0.0.1", "0.0.1-alpha.0"));
+  }
+  const python = join(root, "packages/sdk-python/pyproject.toml");
+  writeFileSync(python, readFileSync(python, "utf8").replace("0.0.1", "0.0.1a0"));
+  writeFileSync(
+    join(root, "release-state.json"),
+    JSON.stringify({ version: "0.0.1-alpha.0", previousVersion: "0.0.1", initial: true }),
+  );
+  writeFileSync(
+    join(root, "CHANGELOG.md"),
+    "# Changelog\n\n## [0.0.1-alpha.0]\n\n- Issued alpha.\n",
+  );
+  git("add", ".");
+  git("commit", "--quiet", "-m", "chore: release v0.0.1-alpha.0");
+  const state = validateReleaseCommit(root, git("rev-parse", "HEAD"));
+  assert.deepEqual(
+    state.selectedPackages.map((entry) => entry.id),
+    ["cli", "client", "ai_sdk", "python"],
+  );
 });

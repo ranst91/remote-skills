@@ -150,7 +150,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
   );
   assert.equal(
     property(scripts, "ci:build:repository"),
-    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk --filter=@remote-skills/mastra",
+    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk --filter=@remote-skills/langchain --filter=@remote-skills/mastra",
   );
   for (const group of ["core", "typescript", "python", "protocol", "examples"])
     assert.equal(
@@ -165,8 +165,13 @@ test("CI groups own every default test family without nested Turbo repetition", 
   const groups: unknown = JSON.parse(description.stdout);
   assert.deepEqual(groups, {
     core: ["@remote-skills/core", "@remote-skills/cli"],
-    typescript: ["@remote-skills/client", "@remote-skills/ai-sdk", "@remote-skills/mastra"],
-    python: ["@remote-skills/python-workspace"],
+    typescript: [
+      "@remote-skills/client",
+      "@remote-skills/ai-sdk",
+      "@remote-skills/langchain",
+      "@remote-skills/mastra",
+    ],
+    python: ["@remote-skills/python-workspace", "@remote-skills/langchain-python-workspace"],
     protocol: ["test:protocol", "determinism"],
     examples: [
       "@remote-skills/docs",
@@ -174,6 +179,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
       "@remote-skills/example-typescript-consumer",
       "@remote-skills/example-python-consumer",
       "@remote-skills/example-vercel-ai-sdk",
+      "@remote-skills/example-langchain",
       "@remote-skills/example-mastra",
     ],
   });
@@ -308,12 +314,15 @@ test("the CI project-gate verifier names every workspace", () => {
     "@remote-skills/cli",
     "@remote-skills/client",
     "@remote-skills/ai-sdk",
+    "@remote-skills/langchain",
     "@remote-skills/mastra",
     "@remote-skills/python-workspace",
+    "@remote-skills/langchain-python-workspace",
     "@remote-skills/example-publisher",
     "@remote-skills/example-typescript-consumer",
     "@remote-skills/example-python-consumer",
     "@remote-skills/example-vercel-ai-sdk",
+    "@remote-skills/example-langchain",
     "@remote-skills/example-mastra",
   ])
     assert.ok(verifier.includes(project), `CI verifier does not require ${project}`);
@@ -332,6 +341,7 @@ test("the examples group checks each Vercel workspace and runs browser acceptanc
     );
   }
   assert.equal(commands.filter((command) => command === "pnpm run test:vercel-ai-sdk").length, 1);
+  assert.equal(commands.filter((command) => command === "pnpm run test:langchain").length, 1);
   assert.equal(commands.filter((command) => command === "pnpm run test:mastra").length, 1);
   assert.equal(
     commands.filter(

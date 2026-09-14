@@ -73,7 +73,7 @@ function readNpmManifest(relativePath: string): NpmManifest {
   };
 }
 
-function pythonProjectMetadata(): {
+function pythonProjectMetadata(projectPath = "packages/sdk-python/pyproject.toml"): {
   dependencies: string[];
   license: string;
   name: string;
@@ -81,12 +81,9 @@ function pythonProjectMetadata(): {
   requiresPython: string;
   version: string;
 } {
-  const source = readFileSync(
-    path.join(repositoryRoot, "packages/sdk-python/pyproject.toml"),
-    "utf8",
-  );
+  const source = readFileSync(path.join(repositoryRoot, projectPath), "utf8");
   const projectStart = source.indexOf("[project]\n");
-  if (projectStart < 0) throw new Error("packages/sdk-python/pyproject.toml is missing [project]");
+  if (projectStart < 0) throw new Error(`${projectPath} is missing [project]`);
   const bodyStart = projectStart + "[project]\n".length;
   const nextSection = source.indexOf("\n[", bodyStart);
   const project = source.slice(bodyStart, nextSection < 0 ? source.length : nextSection);
@@ -170,11 +167,15 @@ const core = readNpmManifest("packages/core/package.json");
 const client = readNpmManifest("packages/sdk-typescript/package.json");
 const integration = readNpmManifest("integrations/ai-sdk/package.json");
 const python = pythonProjectMetadata();
+const langchain = readNpmManifest("integrations/langchain/package.json");
+const langchainPython = pythonProjectMetadata("integrations/langchain-python/pyproject.toml");
 for (const [name, license] of [
   [cli.name, cli.license],
   [client.name, client.license],
   [integration.name, integration.license],
   [python.name, python.license],
+  [langchain.name, langchain.license],
+  [langchainPython.name, langchainPython.license],
 ]) {
   if (license !== "Apache-2.0") throw new Error(`${name} must declare Apache-2.0`);
 }
@@ -203,6 +204,14 @@ for (const file of [
   "integrations/ai-sdk/README.md",
   "integrations/ai-sdk/scripts/pack-local.ts",
   "integrations/ai-sdk/tsconfig.build.json",
+  "integrations/langchain/package.json",
+  "integrations/langchain/README.md",
+  "integrations/langchain/scripts/pack-local.ts",
+  "integrations/langchain/tsconfig.json",
+  "integrations/langchain/tsconfig.build.json",
+  "integrations/langchain-python/pyproject.toml",
+  "integrations/langchain-python/LICENSE",
+  "integrations/langchain-python/README.md",
   "pnpm-lock.yaml",
   "pyproject.toml",
   "tsconfig.base.json",
@@ -216,6 +225,8 @@ for (const directory of [
   "packages/sdk-python/src",
   "packages/sdk-typescript/src",
   "integrations/ai-sdk/src",
+  "integrations/langchain/src",
+  "integrations/langchain-python/src",
 ]) {
   addTree(materials, directory);
 }
@@ -264,6 +275,25 @@ const inventory = {
       name: integration.name,
       readme: "integrations/ai-sdk/README.md",
       version: integration.version,
+    },
+    {
+      dependencies: npmDependencies(langchain),
+      ecosystem: "npm",
+      license: "LICENSE",
+      manifest: "integrations/langchain/package.json",
+      name: langchain.name,
+      readme: "integrations/langchain/README.md",
+      version: langchain.version,
+    },
+    {
+      dependencies: langchainPython.dependencies.map((requirement) => ({ requirement })),
+      ecosystem: "pypi",
+      license: "integrations/langchain-python/LICENSE",
+      manifest: "integrations/langchain-python/pyproject.toml",
+      name: langchainPython.name,
+      readme: `integrations/langchain-python/${langchainPython.readme}`,
+      requiresPython: langchainPython.requiresPython,
+      version: langchainPython.version,
     },
   ],
   schemaVersion: 1,

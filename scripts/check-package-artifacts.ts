@@ -41,6 +41,8 @@ for (const packageName of [
   "@remote-skills/client",
   "@remote-skills/python-workspace",
   "@remote-skills/ai-sdk",
+  "@remote-skills/langchain",
+  "@remote-skills/langchain-python-workspace",
 ]) {
   console.log(`package-check ${packageName}`);
   const args = ["--filter", packageName, "run", "package:check"];
