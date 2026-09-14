@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [integration-langchain/v0.0.1] - 2026-09-14
+
+- Release @remote-skills/langchain, remote-skills-langchain at the version named in this section.
+
 ## [integration-mastra/v0.0.1] - 2026-09-14
 
 - Release @remote-skills/mastra at the version named in this section.
