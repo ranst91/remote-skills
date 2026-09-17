@@ -146,6 +146,20 @@ function packageManagerContracts(
 }
 
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
+  ...[
+    "apps/docs/content/docs/integrations/tanstack-ai.mdx",
+    "integrations/tanstack-ai/README.md",
+  ].map((path): [string, BashContractEntry[]] => [
+    `${path}#0`,
+    [
+      {
+        command:
+          "pnpm add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 zod",
+        mode: "static",
+        reason: "verified-by-integrations/tanstack-ai/scripts/check-package.ts",
+      },
+    ],
+  ]),
   ...["apps/docs/content/docs/integrations/mastra.mdx", "integrations/mastra/README.md"].flatMap(
     (path) =>
       packageManagerContracts(path, 0, [
@@ -156,6 +170,42 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
         },
       ]),
   ),
+  [
+    "examples/tanstack-ai/README.md#0",
+    [
+      {
+        command: "pnpm install --frozen-lockfile",
+        mode: "static",
+        reason: "locked-workspace-install",
+      },
+      { command: "pnpm ci:build:repository", mode: "static", reason: "repository-build-gate" },
+      {
+        command: "pnpm --filter @remote-skills/example-tanstack-ai skills:dev",
+        mode: "static",
+        reason: "long-running-server",
+      },
+    ],
+  ],
+  [
+    "examples/tanstack-ai/README.md#1",
+    [
+      {
+        command: 'pnpm --filter @remote-skills/example-tanstack-ai start "Hello!"',
+        mode: "static",
+        reason: "requires-provider-credentials",
+      },
+    ],
+  ],
+  [
+    "examples/tanstack-ai/README.md#2",
+    [
+      {
+        command: "pnpm --filter @remote-skills/example-tanstack-ai check",
+        mode: "static",
+        reason: "executed-by-example-check-gate",
+      },
+    ],
+  ],
   ["examples/vercel-ai-sdk/README.md#0", basicChatContract],
   [
     "integrations/langchain/README.md#0",
@@ -679,7 +729,7 @@ async function executeBashContracts(snippets: readonly Snippet[]) {
   };
 }
 
-type TypeScriptGroup = "core" | "ai-sdk" | "langchain" | "mastra";
+type TypeScriptGroup = "core" | "ai-sdk" | "langchain" | "mastra" | "tanstack-ai";
 
 function langChainDocumentation(snippet: Snippet) {
   const path = relative(repositoryRoot, snippet.path).replaceAll("\\", "/");
@@ -732,6 +782,19 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], group: Typ
           process.platform === "win32" ? "junction" : "dir",
         );
       }
+    }
+    if (group === "tanstack-ai") {
+      await symlink(
+        resolve(repositoryRoot, "integrations/tanstack-ai"),
+        resolve(packageScope, "tanstack-ai"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      await mkdir(resolve(project, "node_modules/@tanstack"), { recursive: true });
+      await symlink(
+        resolve(repositoryRoot, "integrations/tanstack-ai/node_modules/@tanstack/ai-skills"),
+        resolve(project, "node_modules/@tanstack/ai-skills"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
     }
     if (group === "mastra") {
       await symlink(
@@ -810,6 +873,7 @@ export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
     "ai-sdk": [],
     langchain: [],
     mastra: [],
+    "tanstack-ai": [],
   };
   for (const snippet of snippets) {
     if (/\bfrom\s+["'](?:@remote-skills\/ai-sdk|ai)["']/u.test(snippet.code)) {
@@ -821,12 +885,16 @@ export async function verifyTypeScriptSnippets(snippets: readonly Snippet[]) {
       )
     ) {
       groups.langchain.push(snippet);
+    } else if (
+      /from ["'](?:@remote-skills\/tanstack-ai|@tanstack\/ai-skills)/u.test(snippet.code)
+    ) {
+      groups["tanstack-ai"].push(snippet);
     } else if (/from ["'](?:@remote-skills\/mastra|@mastra\/core)/u.test(snippet.code)) {
       groups.mastra.push(snippet);
     } else groups.core.push(snippet);
   }
   if (groups.core.length > 0) await compileTypeScriptProject(groups.core, "core");
-  for (const integration of ["ai-sdk", "langchain", "mastra"] as const) {
+  for (const integration of ["ai-sdk", "langchain", "mastra", "tanstack-ai"] as const) {
     if (groups[integration].length === 0) continue;
     // pnpm filters alone can succeed without a matching workspace. Require the real
     // package manifest first so an unmerged prerequisite cannot silently skip coverage.

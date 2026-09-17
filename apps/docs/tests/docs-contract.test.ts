@@ -56,6 +56,7 @@ const integrationNavigation = [
   "[Vercel AI SDK](/docs/vercel-ai-sdk)",
   "langchain",
   "mastra",
+  "tanstack-ai",
 ];
 const navigation = rootNavigation
   .filter((slug) => !slug.startsWith("---"))
@@ -63,7 +64,13 @@ const navigation = rootNavigation
     slug === "hosting"
       ? hostingNavigation.map((page) => `hosting/${page}`)
       : slug === "integrations"
-        ? ["integrations/index", "vercel-ai-sdk", "integrations/langchain", "integrations/mastra"]
+        ? [
+            "integrations/index",
+            "vercel-ai-sdk",
+            "integrations/langchain",
+            "integrations/mastra",
+            "integrations/tanstack-ai",
+          ]
         : [slug],
   );
 
@@ -471,6 +478,7 @@ test("consumer entry points lead to every framework integration guide", () => {
     "/docs/vercel-ai-sdk",
     "/docs/integrations/langchain",
     "/docs/integrations/mastra",
+    "/docs/integrations/tanstack-ai",
   ]) {
     assert.ok(integrations.includes(`](${path})`), `missing integration guide: ${path}`);
   }

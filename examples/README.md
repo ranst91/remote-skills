@@ -9,6 +9,8 @@ These are quickstart references for the two sides of Remote Skills:
 - Framework chat demos: [Vercel AI SDK](vercel-ai-sdk/) and [Mastra](mastra/) use
   their native skill loaders in TypeScript-only Next.js applications.
 
+- [TanStack AI](tanstack-ai/README.md): terminal agent using native on-demand skill loading.
+
 Start the publisher, then run either consumer in another terminal. The existing tests under
 `tests/examples/` exercise these references. Hosting helpers, authentication, version history,
 and package-install scenarios live there too; they are test infrastructure, not separate examples.

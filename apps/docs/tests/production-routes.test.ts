@@ -19,6 +19,7 @@ const expectedMarkdownRoutes = [
   "/docs/vercel-ai-sdk.md",
   "/docs/integrations/langchain.md",
   "/docs/integrations/mastra.md",
+  "/docs/integrations/tanstack-ai.md",
   "/docs/concepts.md",
   "/docs/hosting/local-or-remote.md",
   "/docs/cache-and-offline.md",

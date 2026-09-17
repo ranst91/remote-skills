@@ -157,6 +157,7 @@ See the [integration package](integrations/ai-sdk/README.md) and [TypeScript cha
 
 For Mastra, use the [integration guide](apps/docs/content/docs/integrations/mastra.mdx), [adapter package](integrations/mastra/README.md), and [Next.js chat demo](examples/mastra/README.md).
 
+For TanStack AI, use the [native skill source](integrations/tanstack-ai/README.md), [integration guide](apps/docs/content/docs/integrations/tanstack-ai.mdx), and [terminal demo](examples/tanstack-ai/README.md).
 
 ## Documentation
 

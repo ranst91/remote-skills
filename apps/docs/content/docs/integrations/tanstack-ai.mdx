@@ -1,0 +1,32 @@
+---
+title: TanStack AI
+description: Use verified remote skills with TanStack AI's native skill middleware.
+---
+
+`@remote-skills/tanstack-ai` implements TanStack's `SkillSource`. `withSkills` exposes catalog metadata and adds the native `load_skill` tool. Full instructions arrive only after selection and verification.
+
+```bash
+pnpm add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 zod
+```
+
+```ts
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/tanstack-ai";
+import { createResourceTool, withSkills } from "@tanstack/ai-skills";
+
+const client = createRemoteSkills({
+  origins: { team: { url: "https://skills.example.com" } },
+});
+await using source = await remoteSkills({ client, origin: "team" });
+// Add these to your chat() call; keep your own adapter, messages and system prompt.
+const middleware = [withSkills(source)];
+const tools = [createResourceTool(source)];
+```
+
+Keep the source alive until the response finishes. Use one source per conversation and close it when done. Passing `{ session }` borrows an existing session; you remain responsible for closing that session. Pins remain immutable across refreshes and turns.
+
+The native resource tool reads verified `references/` and `assets/` files, returning UTF-8 text or base64 for binary content. Resource reads can activate the selected skill. Scripts are not exposed or executed. Integrity verification does not establish trust or grant tool permissions.
+
+Use a Node.js version supported by the package metadata. The integration is tested with `@tanstack/ai-skills@0.1.4` and `@tanstack/ai@0.55.0`.
+
+See the [runnable terminal demo](https://github.com/ranst91/remote-skills/tree/main/examples/tanstack-ai) for a complete agent and local origin.

@@ -13,7 +13,13 @@
   },
   {
     "title": "Integrations",
-    "pages": ["integrations", "vercel-ai-sdk", "integrations/langchain", "integrations/mastra"]
+    "pages": [
+      "integrations",
+      "vercel-ai-sdk",
+      "integrations/langchain",
+      "integrations/mastra",
+      "integrations/tanstack-ai"
+    ]
   },
   {
     "title": "Concepts",
