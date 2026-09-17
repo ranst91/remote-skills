@@ -165,6 +165,7 @@ function addTree(materials: Map<string, PackageMaterial>, relativeRoot: string):
 const cli = readNpmManifest("packages/cli/package.json");
 const core = readNpmManifest("packages/core/package.json");
 const client = readNpmManifest("packages/sdk-typescript/package.json");
+const tanstack = readNpmManifest("integrations/tanstack-ai/package.json");
 const integration = readNpmManifest("integrations/ai-sdk/package.json");
 const python = pythonProjectMetadata();
 const langchain = readNpmManifest("integrations/langchain/package.json");
@@ -173,6 +174,7 @@ for (const [name, license] of [
   [cli.name, cli.license],
   [client.name, client.license],
   [integration.name, integration.license],
+  [tanstack.name, tanstack.license],
   [python.name, python.license],
   [langchain.name, langchain.license],
   [langchainPython.name, langchainPython.license],
@@ -200,6 +202,11 @@ for (const file of [
   "packages/sdk-typescript/scripts/pack-local.ts",
   "packages/sdk-typescript/tsconfig.build.json",
   "packages/sdk-typescript/tsconfig.json",
+  "integrations/tanstack-ai/package.json",
+  "integrations/tanstack-ai/README.md",
+  "integrations/tanstack-ai/scripts/pack-local.ts",
+  "integrations/tanstack-ai/tsconfig.build.json",
+  "integrations/tanstack-ai/tsconfig.json",
   "integrations/ai-sdk/package.json",
   "integrations/ai-sdk/README.md",
   "integrations/ai-sdk/scripts/pack-local.ts",
@@ -224,6 +231,7 @@ for (const directory of [
   "packages/core/src",
   "packages/sdk-python/src",
   "packages/sdk-typescript/src",
+  "integrations/tanstack-ai/src",
   "integrations/ai-sdk/src",
   "integrations/langchain/src",
   "integrations/langchain-python/src",
@@ -266,6 +274,15 @@ const inventory = {
       readme: `packages/sdk-python/${python.readme}`,
       requiresPython: python.requiresPython,
       version: python.version,
+    },
+    {
+      dependencies: npmDependencies(tanstack),
+      ecosystem: "npm",
+      license: "LICENSE",
+      manifest: "integrations/tanstack-ai/package.json",
+      name: tanstack.name,
+      readme: "integrations/tanstack-ai/README.md",
+      version: tanstack.version,
     },
     {
       dependencies: npmDependencies(integration),

@@ -41,6 +41,7 @@ for (const packageName of [
   "@remote-skills/client",
   "@remote-skills/python-workspace",
   "@remote-skills/ai-sdk",
+  "@remote-skills/tanstack-ai",
   "@remote-skills/langchain",
   "@remote-skills/langchain-python-workspace",
 ]) {

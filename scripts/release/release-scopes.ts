@@ -28,6 +28,13 @@ export const releasePackages = [
     scope: "integration-mastra",
     example: "examples/mastra",
   },
+  {
+    id: "tanstack_ai",
+    name: "@remote-skills/tanstack-ai",
+    manifest: "integrations/tanstack-ai/package.json",
+    scope: "integration-tanstack-ai",
+    example: "examples/tanstack-ai",
+  },
 ] as const;
 export const pythonPackages = [
   {
@@ -52,6 +59,7 @@ export const releaseScopes = {
   "integration-ai-sdk": {},
   "integration-langchain": {},
   "integration-mastra": {},
+  "integration-tanstack-ai": {},
 } as const;
 export type Scope = keyof typeof releaseScopes;
 export function isScope(value: string): value is Scope {

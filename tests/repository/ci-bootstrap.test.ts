@@ -150,7 +150,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
   );
   assert.equal(
     property(scripts, "ci:build:repository"),
-    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk --filter=@remote-skills/langchain --filter=@remote-skills/mastra",
+    "node scripts/run-turbo.ts build --filter=@remote-skills/core --filter=@remote-skills/cli --filter=@remote-skills/client --filter=@remote-skills/ai-sdk --filter=@remote-skills/langchain --filter=@remote-skills/mastra --filter=@remote-skills/tanstack-ai",
   );
   for (const group of ["core", "typescript", "python", "protocol", "examples"])
     assert.equal(
@@ -170,6 +170,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
       "@remote-skills/ai-sdk",
       "@remote-skills/langchain",
       "@remote-skills/mastra",
+      "@remote-skills/tanstack-ai",
     ],
     python: ["@remote-skills/python-workspace", "@remote-skills/langchain-python-workspace"],
     protocol: ["test:protocol", "determinism"],
@@ -181,6 +182,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
       "@remote-skills/example-vercel-ai-sdk",
       "@remote-skills/example-langchain",
       "@remote-skills/example-mastra",
+      "@remote-skills/example-tanstack-ai",
     ],
   });
 
@@ -198,6 +200,7 @@ test("CI groups own every default test family without nested Turbo repetition", 
     "packages/sdk-typescript/package.json",
     "integrations/ai-sdk/package.json",
     "integrations/mastra/package.json",
+    "integrations/tanstack-ai/package.json",
     "packages/sdk-python/package.json",
     "apps/docs/package.json",
     "examples/publisher/package.json",
@@ -316,6 +319,7 @@ test("the CI project-gate verifier names every workspace", () => {
     "@remote-skills/ai-sdk",
     "@remote-skills/langchain",
     "@remote-skills/mastra",
+    "@remote-skills/tanstack-ai",
     "@remote-skills/python-workspace",
     "@remote-skills/langchain-python-workspace",
     "@remote-skills/example-publisher",
@@ -324,6 +328,7 @@ test("the CI project-gate verifier names every workspace", () => {
     "@remote-skills/example-vercel-ai-sdk",
     "@remote-skills/example-langchain",
     "@remote-skills/example-mastra",
+    "@remote-skills/example-tanstack-ai",
   ])
     assert.ok(verifier.includes(project), `CI verifier does not require ${project}`);
 });
@@ -423,4 +428,31 @@ test("GitHub Actions are commit-pinned and maintained by Dependabot", () => {
   const dependabot = readFileSync(".github/dependabot.yml", "utf8");
   assert.match(dependabot, /package-ecosystem: github-actions/u);
   assert.match(dependabot, /interval: weekly/u);
+});
+
+test("TanStack CI runs native behavior, installed packaging and the deterministic demo", () => {
+  const typescript = describeGroupCommands("typescript");
+  assert.ok(Array.isArray(typescript));
+  const examples = describeGroupCommands("examples");
+  assert.ok(Array.isArray(examples));
+  assert.ok(
+    typescript.indexOf("pnpm run package:cache") <
+      typescript.indexOf("pnpm --filter @remote-skills/tanstack-ai run package:check"),
+  );
+  for (const command of [
+    "pnpm --filter @remote-skills/tanstack-ai run build",
+    "pnpm --filter @remote-skills/tanstack-ai run check",
+    "pnpm --filter @remote-skills/tanstack-ai run package:check",
+  ])
+    assert.equal(typescript.filter((entry) => entry === command).length, 1);
+  assert.equal(
+    examples.filter(
+      (entry) => entry === "pnpm --filter @remote-skills/example-tanstack-ai run check",
+    ).length,
+    1,
+  );
+  assert.equal(
+    property(rootScripts(), "test:tanstack-ai"),
+    "node --test --test-concurrency=1 tests/examples/tanstack_ai.test.ts",
+  );
 });
