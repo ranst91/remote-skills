@@ -28,8 +28,12 @@
     "@tanstack/ai": "0.55.0",
     "zod": "4.3.6",
     "vitest": "4.1.10",
-    "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "@types/node": "24.13.3",
+    "typescript": "catalog:",
+    "vite": "8.2.2",
+    "esbuild": "0.28.2",
+    "jiti": "2.7.0",
+    "yaml": "2.9.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
