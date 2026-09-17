@@ -36,6 +36,7 @@
     "react-dom": "19.2.8",
     "typescript": "catalog:",
     "undici": "7.29.1",
+    "ws": "8.21.3",
     "zod": "4.3.6"
   },
   "scripts": {
