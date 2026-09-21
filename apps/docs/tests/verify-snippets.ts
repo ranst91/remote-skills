@@ -146,19 +146,21 @@ function packageManagerContracts(
 }
 
 const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map([
-  ...[
-    "apps/docs/content/docs/integrations/tanstack-ai.mdx",
-    "integrations/tanstack-ai/README.md",
-  ].map((path): [string, BashContractEntry[]] => [
-    `${path}#0`,
-    [
-      {
-        command:
-          "pnpm add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 zod",
-        mode: "static",
-        reason: "verified-by-integrations/tanstack-ai/scripts/check-package.ts",
-      },
-    ],
+  ...packageManagerContracts("apps/docs/content/docs/integrations/tanstack-ai.mdx", 0, [
+    {
+      command:
+        "pnpm add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 @tanstack/ai-openai@0.22.8 zod",
+      mode: "static",
+      reason: "registry-install",
+    },
+  ]),
+  ...packageManagerContracts("integrations/tanstack-ai/README.md", 0, [
+    {
+      command:
+        "pnpm add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 @tanstack/ai-openai@0.22.8 zod",
+      mode: "static",
+      reason: "registry-install",
+    },
   ]),
   ...["apps/docs/content/docs/integrations/mastra.mdx", "integrations/mastra/README.md"].flatMap(
     (path) =>
@@ -178,6 +180,31 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
         mode: "static",
         reason: "locked-workspace-install",
       },
+      {
+        command: "pnpm --filter @remote-skills/example-tanstack-ai dev",
+        mode: "static",
+        reason: "requires-provider-credentials",
+      },
+    ],
+  ],
+  [
+    "examples/tanstack-ai/README.md#1",
+    [
+      {
+        command: "pnpm --filter @remote-skills/example-tanstack-ai check",
+        mode: "static",
+        reason: "executed-by-example-check-gate",
+      },
+      {
+        command: "pnpm test:tanstack-ai",
+        mode: "static",
+        reason: "executed-by-example-check-gate",
+      },
+    ],
+  ],
+  [
+    "examples/tanstack-ai/README.md#2",
+    [
       { command: "pnpm ci:build:repository", mode: "static", reason: "repository-build-gate" },
       {
         command: "pnpm --filter @remote-skills/example-tanstack-ai skills:dev",
@@ -187,22 +214,12 @@ const bashContracts: ReadonlyMap<string, readonly BashContractEntry[]> = new Map
     ],
   ],
   [
-    "examples/tanstack-ai/README.md#1",
+    "examples/tanstack-ai/README.md#3",
     [
       {
-        command: 'pnpm --filter @remote-skills/example-tanstack-ai start "Hello!"',
+        command: 'pnpm --filter @remote-skills/example-tanstack-ai terminal "Hello!"',
         mode: "static",
         reason: "requires-provider-credentials",
-      },
-    ],
-  ],
-  [
-    "examples/tanstack-ai/README.md#2",
-    [
-      {
-        command: "pnpm --filter @remote-skills/example-tanstack-ai check",
-        mode: "static",
-        reason: "executed-by-example-check-gate",
       },
     ],
   ],
@@ -790,6 +807,12 @@ async function compileTypeScriptProject(snippets: readonly Snippet[], group: Typ
         process.platform === "win32" ? "junction" : "dir",
       );
       await mkdir(resolve(project, "node_modules/@tanstack"), { recursive: true });
+      for (const dependency of ["ai", "ai-openai"])
+        await symlink(
+          resolve(repositoryRoot, "examples/tanstack-ai/node_modules/@tanstack", dependency),
+          resolve(project, "node_modules/@tanstack", dependency),
+          process.platform === "win32" ? "junction" : "dir",
+        );
       await symlink(
         resolve(repositoryRoot, "integrations/tanstack-ai/node_modules/@tanstack/ai-skills"),
         resolve(project, "node_modules/@tanstack/ai-skills"),

@@ -215,6 +215,9 @@ importers:
 
   examples/tanstack-ai:
     dependencies:
+      '@ai-sdk/react':
+        specifier: 4.0.98
+        version: 4.0.98(react@19.2.8)(zod@4.3.6)
       '@remote-skills/client':
         specifier: workspace:*
         version: link:../../packages/sdk-typescript
@@ -230,10 +233,25 @@ importers:
       '@tanstack/ai-skills':
         specifier: 0.1.4
         version: 0.1.4(@tanstack/ai@0.55.0(zod@4.3.6))(vitest@4.1.10(@types/node@24.13.3)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)))(zod@4.3.6)
+      ai:
+        specifier: 7.0.95
+        version: 7.0.95(zod@4.3.6)
+      next:
+        specifier: 16.3.3
+        version: 16.3.3(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: 19.2.8
+        version: 19.2.8
+      react-dom:
+        specifier: 19.2.8
+        version: 19.2.8(react@19.2.8)
       zod:
         specifier: 4.3.6
         version: 4.3.6
     devDependencies:
+      '@ag-ui/core':
+        specifier: 0.1.1-canary.beta.0
+        version: 0.1.1-canary.beta.0(zod@4.3.6)
       '@copilotkit/aimock':
         specifier: 1.40.0
         version: 1.40.0(vitest@4.1.10(@types/node@24.13.3)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)))
@@ -243,6 +261,12 @@ importers:
       '@types/node':
         specifier: 24.13.3
         version: 24.13.3
+      '@types/react':
+        specifier: 19.2.18
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: 19.2.5
+        version: 19.2.5(@types/react@19.2.18)
       esbuild:
         specifier: 0.28.2
         version: 0.28.2

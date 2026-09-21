@@ -8,8 +8,12 @@ import { createPnpmCommand } from "../../../scripts/lib/pnpm-command.ts";
 import { cleanEnvironment, DUMMY_KEY, reservePort } from "./vercel-ai-sdk-process.ts";
 
 /** Observe real published bytes without substituting catalogs, archives, SDK or tools. */
-export async function startMastra(root: string, modelUrl: string) {
-  const exampleRoot = resolve(root, "examples/mastra");
+export async function startMastra(
+  root: string,
+  modelUrl: string,
+  example: "mastra" | "tanstack-ai" = "mastra",
+) {
+  const exampleRoot = resolve(root, `examples/${example}`);
   const env = { ...cleanEnvironment(), NEXT_TELEMETRY_DISABLED: "1" };
   if (!process.env.REMOTE_SKILLS_E2E_PACKAGES) {
     const build = createPnpmCommand(["ci:build:repository"]);
@@ -23,7 +27,7 @@ export async function startMastra(root: string, modelUrl: string) {
     for (const path of [
       "packages/cli/dist",
       "packages/sdk-typescript/dist",
-      "integrations/mastra/dist",
+      `integrations/${example}/dist`,
     ])
       assert.equal(
         existsSync(resolve(root, path)),
@@ -37,12 +41,16 @@ export async function startMastra(root: string, modelUrl: string) {
   assert.ok(appPort && publisherPort);
   await Promise.all(reserved.map((port) => port.close()));
   const paths: string[] = [];
+  let corrupt = false;
   const proxy = createServer(async (request, response) => {
     paths.push(request.url ?? "/");
     try {
       const upstream = await fetch(`http://127.0.0.1:${publisherPort}${request.url ?? "/"}`);
       response.writeHead(upstream.status, Object.fromEntries(upstream.headers));
-      response.end(Buffer.from(await upstream.arrayBuffer()));
+      const bytes = Buffer.from(await upstream.arrayBuffer());
+      if (corrupt && !request.url?.endsWith("/index.json") && bytes.length)
+        bytes[0] = (bytes[0] ?? 0) ^ 1;
+      response.end(bytes);
     } catch {
       response.writeHead(502).end();
     }
@@ -117,7 +125,14 @@ export async function startMastra(root: string, modelUrl: string) {
   };
   try {
     await Promise.race([readiness, running]);
-    return { origin, paths, stop };
+    return {
+      origin,
+      paths,
+      stop,
+      corruptArtifacts: () => {
+        corrupt = true;
+      },
+    };
   } catch (error) {
     await stop();
     throw error;

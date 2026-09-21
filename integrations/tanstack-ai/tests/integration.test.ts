@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { createLoadSkillTool, createResourceTool } from "@tanstack/ai-skills";
 import { fixture, INSTRUCTIONS, TEXT, TOKEN } from "../../../tests/helpers/remote-skills-origin.ts";
@@ -176,4 +179,52 @@ test("close drains an in-flight source call before releasing the owned session",
   resume();
   await Promise.all([closing, rejected]);
   assert.equal(released, true);
+});
+
+test("read-first concurrent native operations share one verified artifact and pin", async () => {
+  const f = fixture();
+  await using source = await remoteSkills({
+    client: f.client,
+    origin: "team",
+    versions: { greeting: "1.0.0" },
+  });
+  const [resource, instructions, paths] = await Promise.all([
+    source.readResource("greeting", "references/greeting.md"),
+    source.load("greeting"),
+    source.listResources("greeting"),
+  ]);
+  assert.equal(resource, `${TEXT} 1.0.0`);
+  assert.match(instructions, /1\.0\.0/u);
+  assert.ok(paths.includes("references/greeting.md"));
+  assert.equal(f.artifactRequests().length, 1);
+});
+
+test("invalid version configuration fails without activating or closing a borrowed session", async () => {
+  const f = fixture();
+  await using session = await f.client.session("team");
+  for (const versions of [{ absent: "1.0.0" }, { greeting: " " }]) {
+    await assert.rejects(() => remoteSkills({ session, versions }), {
+      code: "configuration_invalid",
+    });
+  }
+  assert.equal((await session.catalog()).length, 1);
+  assert.equal(f.artifactRequests().length, 0);
+});
+
+test("different credentials sharing disk cache independently authorize discovery", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "tanstack-auth-cache-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  const first = fixture({ cache: "disk", cacheOptions: { directory } }, {}, { token: "tenant-a" });
+  const source = await remoteSkills({ client: first.client, origin: "team" });
+  await source.load("greeting");
+  await source.close();
+  const second = fixture({ cache: "disk", cacheOptions: { directory } }, {}, { token: "tenant-b" });
+  second.status(401);
+  await assert.rejects(remoteSkills({ client: second.client, origin: "team" }), {
+    code: "authentication_failed",
+  });
+  assert.equal(second.artifactRequests().length, 0);
+  assert.ok(
+    second.requests.every((request) => request.headers.authorization === "Bearer tenant-b"),
+  );
 });

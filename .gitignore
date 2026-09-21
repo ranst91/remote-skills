@@ -8,3 +8,5 @@ __pycache__/
 .DS_Store
 examples/vercel-ai-sdk/.env
 examples/mastra/.env
+
+examples/tanstack-ai/.env

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnPnpmSync } from "../../../scripts/lib/pnpm-command.ts";
@@ -25,6 +25,20 @@ try {
       file.startsWith("remote-skills-client-") ? (sdk?.path ?? join(work, file)) : join(work, file),
     );
   assert.equal(archives.length, 2);
+  const repeat = join(work, "repeat");
+  const repeated = spawnPnpmSync(
+    ["--filter", "@remote-skills/tanstack-ai", "pack:local", "--pack-destination", repeat],
+    { cwd: root, encoding: "utf8" },
+  );
+  assert.equal(repeated.status, 0, `${repeated.stdout}\n${repeated.stderr}`);
+  const name = readdirSync(repeat).find((file) => file.endsWith(".tgz"));
+  assert.ok(name);
+  assert.deepEqual(
+    readFileSync(join(work, name)),
+    readFileSync(join(repeat, name)),
+    "Repeated isolated packs have identical bytes.",
+  );
+
   console.log(checkInstalledIntegration(archives, root, "integrations/tanstack-ai"));
 } finally {
   rmSync(work, { recursive: true, force: true });

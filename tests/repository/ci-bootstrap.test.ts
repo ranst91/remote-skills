@@ -435,6 +435,7 @@ test("TanStack CI runs native behavior, installed packaging and the deterministi
   assert.ok(Array.isArray(typescript));
   const examples = describeGroupCommands("examples");
   assert.ok(Array.isArray(examples));
+  assert.equal(examples.filter((entry) => entry === "pnpm run test:tanstack-ai").length, 1);
   assert.ok(
     typescript.indexOf("pnpm run package:cache") <
       typescript.indexOf("pnpm --filter @remote-skills/tanstack-ai run package:check"),

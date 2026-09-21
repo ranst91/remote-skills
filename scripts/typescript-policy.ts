@@ -69,6 +69,7 @@ const generatedSourceRoots = [
   resolve("apps/docs/.next"),
   resolve("examples/langchain/.next"),
   resolve("examples/mastra/.next"),
+  resolve("examples/tanstack-ai/.next"),
   resolve("packages/sdk-typescript/dist"),
 ] as const;
 

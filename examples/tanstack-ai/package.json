@@ -3,11 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node app.ts",
+    "start": "next start",
     "skills:dev": "node node_modules/@remote-skills/cli/dist/cli.js dev",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "node --test tests/*.test.ts",
-    "check": "pnpm typecheck && pnpm test"
+    "check": "pnpm typecheck && pnpm test && cd skills && node ../node_modules/@remote-skills/cli/dist/cli.js validate",
+    "dev": "node ../../scripts/examples/dev.ts tanstack-ai",
+    "build": "next build --webpack",
+    "terminal": "node app.ts"
   },
   "dependencies": {
     "@remote-skills/client": "workspace:*",
@@ -15,7 +18,12 @@
     "@tanstack/ai": "0.55.0",
     "@tanstack/ai-skills": "0.1.4",
     "@tanstack/ai-openai": "0.22.8",
-    "zod": "4.3.6"
+    "zod": "4.3.6",
+    "@ai-sdk/react": "4.0.98",
+    "ai": "7.0.95",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
@@ -27,6 +35,15 @@
     "esbuild": "0.28.2",
     "jiti": "2.7.0",
     "yaml": "2.9.0",
-    "ws": "8.21.3"
+    "ws": "8.21.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@ag-ui/core": "0.1.1-canary.beta.0"
+  },
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.33.4",
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

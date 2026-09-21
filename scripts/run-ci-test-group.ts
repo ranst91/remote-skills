@@ -101,6 +101,7 @@ const groups = {
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-mastra", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-tanstack-ai", "run", "check"] },
       { kind: "pnpm", args: ["run", "test:mastra"] },
+      { kind: "pnpm", args: ["run", "test:tanstack-ai"] },
     ],
   },
 } as const;
