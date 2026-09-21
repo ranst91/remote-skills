@@ -258,6 +258,9 @@ importers:
       '@remote-skills/cli':
         specifier: workspace:*
         version: link:../../packages/cli
+      '@tanstack/openai-base':
+        specifier: 0.10.12
+        version: 0.10.12(@tanstack/ai@0.55.0(zod@4.3.6))(ws@8.21.3)(zod@4.3.6)
       '@types/node':
         specifier: 24.13.3
         version: 24.13.3

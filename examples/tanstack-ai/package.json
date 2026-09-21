@@ -38,7 +38,8 @@
     "ws": "8.21.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "@ag-ui/core": "0.1.1-canary.beta.0"
+    "@ag-ui/core": "0.1.1-canary.beta.0",
+    "@tanstack/openai-base": "0.10.12"
   },
   "version": "0.0.0",
   "license": "Apache-2.0",
