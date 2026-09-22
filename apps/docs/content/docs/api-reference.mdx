@@ -441,7 +441,7 @@ The integration creates its own skills-only Workspace; it does not merge an exis
 
 ## TanStack AI integration
 
-`remoteSkills(options: RemoteSkillsOptions): Promise<RemoteSkillSource>` from `@remote-skills/tanstack-ai` returns a native TanStack `SkillSource`. Pass it to `withSkills(source)` and `createResourceTool(source)`. See the [TanStack guide](/docs/integrations/tanstack-ai) for setup.
+`remoteSkills(options: RemoteSkillsOptions): Promise<RemoteSkillSource>` from `@remote-skills/tanstack-ai` returns a native TanStack `SkillSource`. Pass it to `withSkills(skillSource)` for catalog discovery and the automatically registered `load_skill` tool. Optionally add `createResourceTool(skillSource)` to read supporting files with `read_skill_resource`; omit that tool for skills that need only their `SKILL.md` instructions. Both loaders return content through ordinary tool calls and results. See the [TanStack guide](/docs/integrations/tanstack-ai) for setup.
 
 | Option | Behavior |
 | --- | --- |

@@ -43,6 +43,10 @@ bun add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @ta
 
 Configure the URL serving your skills and an `OPENAI_API_KEY` in your environment. Keep your existing model adapter if you use another provider.
 
+`remoteSkills()` returns a `skillSource`: an adapter that reads your published skills. `withSkills(skillSource)` exposes their names and descriptions and automatically adds TanStack's `load_skill` tool, which returns the selected skill's instructions. Loading happens through tool calls and results in the conversation.
+
+`createResourceTool(skillSource)` is optional. It adds a separate `read_skill_resource` tool for supporting files under `references/` or `assets/`; `withSkills` does not add it automatically. Omit it if your skills need only their `SKILL.md` instructions. The example includes it so the agent can read any references required by a skill.
+
 ```ts title="agent.ts"
 import { createRemoteSkills } from "@remote-skills/client";
 import { remoteSkills } from "@remote-skills/tanstack-ai";
@@ -55,13 +59,13 @@ if (!apiKey) throw new Error("OPENAI_API_KEY is required");
 const client = createRemoteSkills({
   origins: { team: { url: "https://skills.example.com" } },
 });
-await using source = await remoteSkills({ client, origin: "team" });
+await using skillSource = await remoteSkills({ client, origin: "team" });
 const response = chat({
   adapter: createOpenaiChatCompletions("gpt-4.1-mini", apiKey),
   messages: [{ role: "user", content: "Welcome a new teammate using our prescribed greeting style." }],
   systemPrompts: ["Help the user. Follow relevant skills and read their required references."],
-  middleware: [withSkills(source)],
-  tools: [createResourceTool(source)],
+  middleware: [withSkills(skillSource)], // Includes the load_skill tool.
+  tools: [createResourceTool(skillSource)], // Optional: read supporting files.
   agentLoopStrategy: maxIterations(5),
 });
 for await (const chunk of response) {
@@ -69,7 +73,7 @@ for await (const chunk of response) {
 }
 ```
 
-For an existing `chat()` call, add `withSkills(source)` to its middleware and `createResourceTool(source)` to its tools. Keep your own adapter, messages, instructions and other tools. Keep the source alive until the stream completes.
+For an existing `chat()` call, add `withSkills(skillSource)` to its middleware. Add `createResourceTool(skillSource)` to its tools only when the agent needs access to supporting files. Keep your own adapter, messages, instructions and other tools. Keep the source alive until the stream completes.
 
 </Step>
 <Step>

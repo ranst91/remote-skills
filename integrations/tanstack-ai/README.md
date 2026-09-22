@@ -20,6 +20,10 @@ bun add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @ta
 
 Set `OPENAI_API_KEY` in your server environment, or keep your existing model adapter.
 
+`remoteSkills()` returns a `skillSource`: an adapter that reads your published skills. `withSkills(skillSource)` exposes their names and descriptions and automatically adds TanStack's `load_skill` tool, which returns the selected skill's instructions. Loading happens through tool calls and results in the conversation.
+
+`createResourceTool(skillSource)` is optional. It adds a separate `read_skill_resource` tool for supporting files under `references/` or `assets/`; `withSkills` does not add it automatically. Omit it if your skills need only their `SKILL.md` instructions. The example includes it so the agent can read any references required by a skill.
+
 ```ts
 import { createRemoteSkills } from "@remote-skills/client";
 import { remoteSkills } from "@remote-skills/tanstack-ai";
@@ -32,13 +36,13 @@ if (!apiKey) throw new Error("OPENAI_API_KEY is required");
 const client = createRemoteSkills({
   origins: { team: { url: "https://skills.example.com" } },
 });
-await using source = await remoteSkills({ client, origin: "team" });
+await using skillSource = await remoteSkills({ client, origin: "team" });
 const response = chat({
   adapter: createOpenaiChatCompletions("gpt-4.1-mini", apiKey),
   messages: [{ role: "user", content: "Welcome a new teammate using our prescribed greeting style." }],
   systemPrompts: ["Help the user. Follow relevant skills and read their required references."],
-  middleware: [withSkills(source)],
-  tools: [createResourceTool(source)],
+  middleware: [withSkills(skillSource)], // Includes the load_skill tool.
+  tools: [createResourceTool(skillSource)], // Optional: read supporting files.
   agentLoopStrategy: maxIterations(5),
 });
 for await (const chunk of response) {
@@ -48,7 +52,7 @@ for await (const chunk of response) {
 
 Create one source per conversation. Reuse it across turns to preserve pins; close it when the conversation ends. `withSkills` tracks loaded skills per `chat()` call. Never share a source across users or wrap it in a global cache. `client.refresh()` affects future sessions, not existing pins.
 
-You may pass `{ session }` instead of `{ client, origin }`; the caller retains ownership of that session. `source.close()` is idempotent, drains outstanding source work and rejects subsequent calls. Closing during a read rejects its result. A closed borrowed session also invalidates the source.
+You may pass `{ session }` instead of `{ client, origin }`; the caller retains ownership of that session. `skillSource.close()` is idempotent, drains outstanding source work and rejects subsequent calls. Closing during a read rejects its result. A closed borrowed session also invalidates the source.
 
 Optional `versions: { greeting: "^1.0.0" }` selects versions through the SDK. Resources under `references/` and `assets/` are supported. UTF-8 content is returned as text; other bytes are returned as `Uint8Array`, which TanStack's resource tool encodes as base64. Direct resource requests also activate and verify the selected skill. Scripts are neither exposed nor executed. SDK error codes are preserved with diagnostic context removed.
 

@@ -1,6 +1,6 @@
 # TanStack AI chat demo
 
-A Next.js browser chat using TanStack AI's native skill middleware and a locally published greeting skill. Expand the native `load_skill` and `read_skill_resource` events to inspect the verified instructions and exact reference used in the answer.
+A Next.js browser chat using TanStack AI's native skill middleware and a locally published greeting skill. Expand the native `load_skill` and `read_skill_resource` events to inspect the verified instructions and exact reference used in the answer. `withSkills` automatically supplies `load_skill`; this demo also adds the optional resource tool because the greeting skill requires `references/greeting.md`.
 
 From the repository root (Node.js 24+ and pinned pnpm):
 
