@@ -25,6 +25,7 @@ const groups = {
       "@remote-skills/ai-sdk",
       "@remote-skills/langchain",
       "@remote-skills/mastra",
+      "@remote-skills/tanstack-ai",
     ],
     commands: [
       { kind: "pnpm", args: ["--filter", "@remote-skills/client", "run", "check"] },
@@ -34,11 +35,14 @@ const groups = {
       { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/tanstack-ai", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "check"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/tanstack-ai", "run", "check"] },
       // Frozen workspace installs cache tarballs, but not all registry metadata
       // needed when adding candidate archives to an isolated offline consumer.
       { kind: "pnpm", args: ["run", "package:cache"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "package:check"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/tanstack-ai", "run", "package:check"] },
     ],
   },
   python: {
@@ -68,6 +72,7 @@ const groups = {
       "@remote-skills/example-vercel-ai-sdk",
       "@remote-skills/example-langchain",
       "@remote-skills/example-mastra",
+      "@remote-skills/example-tanstack-ai",
     ],
     commands: [
       buildCliCommand,
@@ -75,6 +80,7 @@ const groups = {
       { kind: "pnpm", args: ["--filter", "@remote-skills/ai-sdk", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/langchain", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/mastra", "run", "build"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/tanstack-ai", "run", "build"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/docs", "run", "check"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-publisher", "run", "check"] },
       {
@@ -93,7 +99,9 @@ const groups = {
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-langchain", "run", "check"] },
       { kind: "pnpm", args: ["run", "test:langchain"] },
       { kind: "pnpm", args: ["--filter", "@remote-skills/example-mastra", "run", "check"] },
+      { kind: "pnpm", args: ["--filter", "@remote-skills/example-tanstack-ai", "run", "check"] },
       { kind: "pnpm", args: ["run", "test:mastra"] },
+      { kind: "pnpm", args: ["run", "test:tanstack-ai"] },
     ],
   },
 } as const;

@@ -21,6 +21,11 @@ const publicPackages = [
     manifest: "packages/sdk-python/pyproject.toml",
     name: "remote-skills",
   },
+  {
+    ecosystem: "npm",
+    manifest: "integrations/tanstack-ai/package.json",
+    name: "@remote-skills/tanstack-ai",
+  },
   { ecosystem: "npm", manifest: "integrations/ai-sdk/package.json", name: "@remote-skills/ai-sdk" },
   {
     ecosystem: "npm",

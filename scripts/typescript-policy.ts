@@ -41,6 +41,9 @@ export const TYPESCRIPT_PROJECT_CONFIG_PATHS = [
   "integrations/langchain/tsconfig.json",
   "integrations/langchain/tsconfig.build.json",
   "examples/langchain/tsconfig.json",
+  "integrations/tanstack-ai/tsconfig.json",
+  "integrations/tanstack-ai/tsconfig.build.json",
+  "examples/tanstack-ai/tsconfig.json",
   "integrations/mastra/tsconfig.json",
   "integrations/mastra/tsconfig.build.json",
   "examples/mastra/tsconfig.json",
@@ -66,6 +69,7 @@ const generatedSourceRoots = [
   resolve("apps/docs/.next"),
   resolve("examples/langchain/.next"),
   resolve("examples/mastra/.next"),
+  resolve("examples/tanstack-ai/.next"),
   resolve("packages/sdk-typescript/dist"),
 ] as const;
 

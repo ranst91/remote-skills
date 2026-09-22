@@ -11,6 +11,7 @@ const expectedProjects = [
   "@remote-skills/ai-sdk",
   "@remote-skills/langchain",
   "@remote-skills/mastra",
+  "@remote-skills/tanstack-ai",
   "@remote-skills/python-workspace",
   "@remote-skills/langchain-python-workspace",
   "@remote-skills/example-publisher",
@@ -19,6 +20,7 @@ const expectedProjects = [
   "@remote-skills/example-vercel-ai-sdk",
   "@remote-skills/example-langchain",
   "@remote-skills/example-mastra",
+  "@remote-skills/example-tanstack-ai",
 ];
 
 const turbo = createTurboCommand([

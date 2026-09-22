@@ -16,6 +16,7 @@ const requiredSlugs = [
   "consume",
   "integrations",
   "integrations/mastra",
+  "integrations/tanstack-ai",
   "vercel-ai-sdk",
   "integrations/langchain",
   "authentication-and-scopes",

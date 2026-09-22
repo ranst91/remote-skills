@@ -3,7 +3,7 @@ title: API reference
 description: SDK constructors, parameters, return values, data types, and errors.
 ---
 
-Reference for `@remote-skills/client`, Python's `remote_skills`, the [Vercel AI SDK integration](#vercel-ai-sdk-integration), the [Mastra integration](#mastra-integration), and the [LangChain and DeepAgents integration](#langchain-integration). Method tables show awaited return values: TypeScript methods return promises, and Python async methods are awaited. For a runnable integration, see [Consume skills](/docs/consume).
+Reference for `@remote-skills/client`, Python's `remote_skills`, the [Vercel AI SDK integration](#vercel-ai-sdk-integration), the [Mastra integration](#mastra-integration), the [TanStack AI integration](#tanstack-ai-integration), and the [LangChain and DeepAgents integration](#langchain-integration). Method tables show awaited return values: TypeScript methods return promises, and Python async methods are awaited. For a runnable integration, see [Consume skills](/docs/consume).
 
 ## Client creation
 
@@ -438,6 +438,27 @@ Pass your hooks through the `hooks` option. Your before hook runs before activat
 Retain the supplied Workspace, hooks, and instructions on the agent. Replacing hooks at construction or execution, renaming native skill tools, or calling the raw Workspace loader bypasses the required loading path. Reserve `skill`, `skill_read`, and `skill_search` for the native tools and avoid same-named skills from other sources.
 
 The integration creates its own skills-only Workspace; it does not merge an existing Workspace, add filesystem or sandbox tools, or index the whole remote catalog. It runs in Node.js on the server. For skill selection and reading within an application, use the Agent tool path shown in the [guide](/docs/integrations/mastra#connect-your-agent).
+
+## TanStack AI integration
+
+`remoteSkills(options: RemoteSkillsOptions): Promise<RemoteSkillSource>` from `@remote-skills/tanstack-ai` returns a native TanStack `SkillSource`. Pass it to `withSkills(skillSource)` for catalog discovery and the automatically registered `load_skill` tool. Optionally add `createResourceTool(skillSource)` to read supporting files with `read_skill_resource`; omit that tool for skills that need only their `SKILL.md` instructions. Both loaders return content through ordinary tool calls and results. See the [TanStack guide](/docs/integrations/tanstack-ai) for setup.
+
+| Option | Behavior |
+| --- | --- |
+| `{ client, origin }` | Opens and owns one SDK session for the configured origin alias. |
+| `{ session }` | Borrows an existing SDK session; the caller retains ownership. Mutually exclusive with `client` and `origin`. |
+| `versions` | Optional skill-name-to-version-range mapping. Unknown names and empty ranges fail setup. Existing session pins remain authoritative. |
+
+| Member | Awaited result and behavior |
+| --- | --- |
+| `list()` | Fresh array of `{ name, description }` from the session catalog; no instruction downloads. |
+| `load(name)` | Verified raw `SKILL.md` including frontmatter. TanStack strips frontmatter for its native tool result. |
+| `listResources(name)` | Verified paths under `references/` and `assets/`; activates the selected skill if needed. |
+| `readResource(name, path)` | UTF-8 text or `Uint8Array`; TanStack encodes binary tool results as base64. Unsafe paths fail closed. |
+| `session` | The underlying SDK session. |
+| `close()` / `[Symbol.asyncDispose]()` | Drains outstanding source operations, closes owned sessions, and rejects subsequent source calls. Borrowed sessions remain caller-owned. |
+
+Keep one source per conversation and keep it open until the response completes. Pins survive `client.refresh()`; later sessions can select newer artifacts. TanStack tracks loaded skills per `chat()` call. The source does not implement revision keys or script methods, execute content, or add host instructions. SDK error codes are preserved with diagnostic context removed. The exact supported TanStack version is declared in the package peer dependencies; the lockfile pins tested development versions.
 
 ## Request failures
 

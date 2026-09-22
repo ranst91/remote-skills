@@ -853,3 +853,45 @@ test("issued legacy alpha remains exact when later integrations were absent from
     ["cli", "client", "ai_sdk", "python"],
   );
 });
+
+test("TanStack integration release preparation leaves every unrelated package unchanged", (t) => {
+  const { root, base } = fixture(t);
+  const unrelated = [...releasePackages, ...pythonPackages].filter(
+    (entry) => entry.scope !== "integration-tanstack-ai",
+  );
+  const before = unrelated.map((entry) => readFileSync(join(root, entry.manifest), "utf8"));
+  prepareRelease(root, "patch", "alpha", false, "integration-tanstack-ai", base);
+  const state = readReleaseState(root);
+  assert.deepEqual(state.selectedScopes, ["integration-tanstack-ai"]);
+  assert.deepEqual(
+    state.selectedPackages.map((entry) => entry.name),
+    ["@remote-skills/tanstack-ai"],
+  );
+  assert.equal(state.releases[0]?.gitTag, "integration-tanstack-ai/v0.0.1-alpha.1");
+  assert.deepEqual(
+    unrelated.map((entry) => readFileSync(join(root, entry.manifest), "utf8")),
+    before,
+  );
+});
+
+test("TanStack publication plan contains only its exact selected tarball", (t) => {
+  const { root, base } = fixture(t);
+  prepareRelease(root, "patch", "alpha", false, "integration-tanstack-ai", base);
+  const output = join(root, "artifacts");
+  const selected = artifactBytes(
+    output,
+    "npm/remote-skills-tanstack-ai-0.0.1-alpha.1.tgz",
+    "selected candidate",
+  );
+  artifactBytes(output, "npm/remote-skills-tanstack-ai-0.0.1-alpha.10.tgz", "different version");
+  artifactBytes(output, "npm/remote-skills-client-0.0.1-alpha.0.tgz", "SDK dependency");
+  const plan = buildPublicationPlan(
+    readReleaseState(root),
+    output,
+    readFileSync(join(root, "CHANGELOG.md"), "utf8"),
+  );
+  assert.equal(plan.packages.length, 1);
+  assert.equal(plan.packages[0]?.name, "@remote-skills/tanstack-ai");
+  assert.deepEqual(plan.packages[0]?.files, [selected]);
+  assert.equal(plan.releases[0]?.scope, "integration-tanstack-ai");
+});

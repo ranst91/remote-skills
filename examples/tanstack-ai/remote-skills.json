@@ -1,0 +1,1 @@
+{ "sourceRoots": ["skills/source"], "outDir": "skills/dist", "format": "tar.gz" }

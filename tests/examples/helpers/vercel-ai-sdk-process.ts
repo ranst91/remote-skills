@@ -157,7 +157,9 @@ function command(args: string[], cwd: string, env: NodeJS.ProcessEnv) {
   return { child, exited, terminate, output: () => output };
 }
 
-export async function disposableExample(example: "vercel-ai-sdk" | "mastra" = "vercel-ai-sdk") {
+export async function disposableExample(
+  example: "vercel-ai-sdk" | "mastra" | "tanstack-ai" = "vercel-ai-sdk",
+) {
   const root = await mkdtemp(resolve(tmpdir(), "remote-skills-vercel-ai-sdk-"));
   const files = spawnSync("git", ["ls-files", "-z"], { cwd: repository, encoding: "utf8" });
   assert.equal(files.status, 0);
@@ -175,7 +177,11 @@ export async function disposableExample(example: "vercel-ai-sdk" | "mastra" = "v
       const required = [
         "@remote-skills/cli",
         "@remote-skills/client",
-        example === "mastra" ? "@remote-skills/mastra" : "@remote-skills/ai-sdk",
+        example === "tanstack-ai"
+          ? "@remote-skills/tanstack-ai"
+          : example === "mastra"
+            ? "@remote-skills/mastra"
+            : "@remote-skills/ai-sdk",
       ];
       const selected = {
         npm: source.npm.filter((entry) => required.includes(entry.name)),

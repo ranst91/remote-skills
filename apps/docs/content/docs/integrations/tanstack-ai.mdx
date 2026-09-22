@@ -1,0 +1,98 @@
+---
+title: TanStack AI
+description: Let your TanStack AI agent discover and load remote skills.
+---
+
+`@remote-skills/tanstack-ai` connects your [published skills](/docs/hosting/archive-to-origin) to TanStack AI's native `SkillSource`. Your agent sees names and descriptions, then selects instructions and supporting files through TanStack's own tools.
+
+<Steps>
+<Step>
+
+## Install the integration
+
+In your agent's application:
+
+<Tabs items={["npm", "pnpm", "bun"]} groupId="package-manager" persist>
+<Tab>
+
+```bash
+npm install @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 @tanstack/ai-openai@0.22.8 zod
+```
+
+</Tab>
+<Tab>
+
+```bash
+pnpm add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 @tanstack/ai-openai@0.22.8 zod
+```
+
+</Tab>
+<Tab>
+
+```bash
+bun add @remote-skills/tanstack-ai @remote-skills/client @tanstack/ai@0.55.0 @tanstack/ai-skills@0.1.4 @tanstack/ai-openai@0.22.8 zod
+```
+
+</Tab>
+</Tabs>
+
+</Step>
+<Step>
+
+## Connect your agent
+
+Configure the URL serving your skills and an `OPENAI_API_KEY` in your environment. Keep your existing model adapter if you use another provider.
+
+`remoteSkills()` returns a `skillSource`: an adapter that reads your published skills. `withSkills(skillSource)` exposes their names and descriptions and automatically adds TanStack's `load_skill` tool, which returns the selected skill's instructions. Loading happens through tool calls and results in the conversation.
+
+`createResourceTool(skillSource)` is optional. It adds a separate `read_skill_resource` tool for supporting files under `references/` or `assets/`; `withSkills` does not add it automatically. Omit it if your skills need only their `SKILL.md` instructions. The example includes it so the agent can read any references required by a skill.
+
+```ts title="agent.ts"
+import { createRemoteSkills } from "@remote-skills/client";
+import { remoteSkills } from "@remote-skills/tanstack-ai";
+import { chat, maxIterations } from "@tanstack/ai";
+import { createOpenaiChatCompletions } from "@tanstack/ai-openai";
+import { createResourceTool, withSkills } from "@tanstack/ai-skills";
+
+const apiKey = process.env.OPENAI_API_KEY;
+if (!apiKey) throw new Error("OPENAI_API_KEY is required");
+const client = createRemoteSkills({
+  origins: { team: { url: "https://skills.example.com" } },
+});
+await using skillSource = await remoteSkills({ client, origin: "team" });
+const response = chat({
+  adapter: createOpenaiChatCompletions("gpt-4.1-mini", apiKey),
+  messages: [{ role: "user", content: "Welcome a new teammate using our prescribed greeting style." }],
+  systemPrompts: ["Help the user. Follow relevant skills and read their required references."],
+  middleware: [withSkills(skillSource)], // Includes the load_skill tool.
+  tools: [createResourceTool(skillSource)], // Optional: read supporting files.
+  agentLoopStrategy: maxIterations(5),
+});
+for await (const chunk of response) {
+  if (chunk.type === "TEXT_MESSAGE_CONTENT") process.stdout.write(chunk.delta);
+}
+```
+
+For an existing `chat()` call, add `withSkills(skillSource)` to its middleware. Add `createResourceTool(skillSource)` to its tools only when the agent needs access to supporting files. Keep your own adapter, messages, instructions and other tools. Keep the source alive until the stream completes.
+
+</Step>
+<Step>
+
+## See the agent use a skill
+
+Send a request that matches a published skill. The welcome request above gives the agent a reason to select a greeting skill. If you published the Quickstart's `howdy` skill, look for **“Howdy partner!”** in the answer.
+
+Only catalog metadata is loaded at setup. The native `load_skill` tool downloads and verifies the selected artifact. `read_skill_resource` reads verified references or assets from that same copy. An unrelated question can receive a direct answer without downloading any artifact.
+
+Run the [Next.js chat demo](https://github.com/ranst91/remote-skills/tree/main/examples/tanstack-ai) to see expandable native tool calls followed by the answer. It includes a local publisher and deterministic browser tests with only the model replaced.
+
+</Step>
+</Steps>
+
+## Conversations and private skills
+
+Use one source per conversation and close it when done. Passing `{ session }` borrows a session; you remain responsible for closing it. Selected skills stay pinned across turns and refreshes. New sessions pick up updates according to the publisher's cache settings; see [Caching and updates](/docs/cache-and-offline).
+
+Configure private-origin credentials on the client; see [Authentication and scopes](/docs/authentication-and-scopes). The source exposes only verified `references/` and `assets/` resources as UTF-8 text or base64 for binary content. Scripts are not exposed or executed. Integrity verification does not establish trust or grant tool permissions.
+
+See the [API reference](/docs/api-reference#tanstack-ai-integration) for options and lifecycle details. Use a Node.js version supported by the package metadata. The tested TanStack versions are pinned in the installation commands above.

@@ -160,6 +160,7 @@ try {
           langsmith: "0.9.0",
           openai: "7.13.0",
           undici: "7.29.1",
+          ws: "8.21.3",
           react: "19.2.8",
           "react-dom": "19.2.8",
           zod: "4.3.6",

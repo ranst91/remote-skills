@@ -204,7 +204,7 @@ function exampleServices(
   root: string,
   ports: ExampleEnvironment,
   env: Readonly<NodeJS.ProcessEnv>,
-  example: "vercel-ai-sdk" | "mastra" = "vercel-ai-sdk",
+  example: "vercel-ai-sdk" | "mastra" | "tanstack-ai" = "vercel-ai-sdk",
 ): ServiceDefinition[] {
   const exampleRoot = resolve(root, `examples/${example}`);
   const skillsOrigin = `http://127.0.0.1:${ports.skillsPort}`;
@@ -297,14 +297,19 @@ async function runBuild(root: string, signal: AbortSignal): Promise<void> {
 async function main(): Promise<void> {
   const root = resolve(import.meta.dirname, "../..");
   const example = process.argv[2] ?? "vercel-ai-sdk";
-  if (example !== "vercel-ai-sdk" && example !== "mastra") throw new Error("Unknown example.");
+  if (example !== "vercel-ai-sdk" && example !== "mastra" && example !== "tanstack-ai")
+    throw new Error("Unknown example.");
   const exampleRoot = resolve(root, `examples/${example}`);
   const envFile = resolve(exampleRoot, ".env");
   if (existsSync(envFile)) process.loadEnvFile(envFile);
   verifyToolchain(root);
   const ports = validateEnvironment(
     process.env,
-    example === "mastra" ? { appPort: 5_181, skillsPort: 8_791 } : undefined,
+    example === "tanstack-ai"
+      ? { appPort: 5_183, skillsPort: 8_793 }
+      : example === "mastra"
+        ? { appPort: 5_181, skillsPort: 8_791 }
+        : undefined,
   );
   await assertPortsAvailable([ports.appPort, ports.skillsPort]);
 
