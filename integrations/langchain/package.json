@@ -1,6 +1,6 @@
 {
   "name": "@remote-skills/langchain",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1",
   "description": "Verified remote skills through native DeepAgents and LangChain middleware.",
   "type": "module",
   "license": "Apache-2.0",

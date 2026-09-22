@@ -1287,7 +1287,7 @@ wheels = [
 
 [[package]]
 name = "remote-skills"
-version = "0.0.1"
+version = "0.0.2"
 source = { editable = "packages/sdk-python" }
 dependencies = [
     { name = "uts46" },
@@ -1298,7 +1298,7 @@ requires-dist = [{ name = "uts46", specifier = "==0.2.0" }]
 
 [[package]]
 name = "remote-skills-langchain"
-version = "0.0.1a0"
+version = "0.0.1"
 source = { editable = "integrations/langchain-python" }
 dependencies = [
     { name = "deepagents" },
