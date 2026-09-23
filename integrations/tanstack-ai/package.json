@@ -1,6 +1,6 @@
 {
   "name": "@remote-skills/tanstack-ai",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1",
   "description": "Verified remote SkillSource for TanStack AI's native skill loader.",
   "type": "module",
   "license": "Apache-2.0",
