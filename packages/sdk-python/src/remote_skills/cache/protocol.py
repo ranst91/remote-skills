@@ -126,7 +126,10 @@ def _race_publish_worker(
     cached = fixture_cache.get_object(digest)
     if cached is None:
         raise RuntimeError("race fixture object is missing")
-    cache = DiskCache(cache_root, touch_on_read=False)
+    # Publication applies age bounds; evaluate the fixture at its own time.
+    cache = DiskCache(
+        cache_root, touch_on_read=False, clock=lambda: cached.accessed_at
+    )
     after_private = cache._after_private_object
 
     def synchronized_private(private: Path, candidate) -> None:

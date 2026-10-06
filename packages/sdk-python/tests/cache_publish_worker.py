@@ -25,7 +25,9 @@ def main() -> None:
             raise TimeoutError("publication race barrier timed out")
         time.sleep(0.005)
 
-    published = DiskCache(cache_root, touch_on_read=False).publish_object(cached)
+    published = DiskCache(
+        cache_root, touch_on_read=False, clock=lambda: cached.accessed_at
+    ).publish_object(cached)
     print(published.digest)
 
 

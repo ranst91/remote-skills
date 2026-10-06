@@ -181,7 +181,11 @@ export function parseWorkerOutputChunk(buffer: string, chunk: string) {
 }
 
 function startWorker(runtime: CacheRaceRuntime, configuration: WorkerConfiguration): WorkerHandle {
-  const configurationArgument = encodedConfiguration(configuration);
+  // Match the fixed artifact timestamps so default retention cannot age out test objects.
+  const configurationArgument = encodedConfiguration({
+    now: "2026-08-28T12:00:00.000Z",
+    ...configuration,
+  });
   const invocation =
     runtime === "node"
       ? createNodeWorkerCommand(configurationArgument)

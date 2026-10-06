@@ -49,6 +49,8 @@ import remote_skills.cache.disk as disk_cache_module
 import remote_skills.cache.unicode_normalization as unicode_normalization_module
 
 
+# Keep fixture publication inside the default 30-day retention window.
+FIXTURE_NOW = datetime(2026, 8, 26, tzinfo=timezone.utc)
 FIXTURE_DIGEST = "sha256:e4bb9c0cb022778c3e22703220eb387a5405b2025dad77b870291fc692c4e21d"
 FIXTURE_ORIGIN = "https://skills.example.test/.well-known/agent-skills/index.json"
 FIXTURE_ORIGIN_ID = "e396390b2552f0cd92e2bf23ef6af15aedc1d1bb03c6cb2c8ba82d12932b260c"
@@ -233,7 +235,7 @@ class SharedLayoutTest(unittest.TestCase):
     def test_eviction_reclaims_the_digest_lease_generation_record(self) -> None:
         root = Path(tempfile.mkdtemp())
         self.addCleanup(lambda: shutil.rmtree(root, ignore_errors=True))
-        cache = DiskCache(root, touch_on_read=False)
+        cache = DiskCache(root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         cache.publish_object(fixture_object())
         lease = cache.acquire_lease(
             FIXTURE_DIGEST,
@@ -627,7 +629,7 @@ class MixedRuntimeLeaseTest(TemporaryCacheTestCase):
         return True
 
     def test_python_final_eviction_excludes_typescript_lease_acquisition(self) -> None:
-        cache = DiskCache(self.cache_root, touch_on_read=False)
+        cache = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         cache.publish_object(fixture_object())
         signals = Path(self.temporary.name)
         paused = signals / "python-eviction-paused"
@@ -698,7 +700,7 @@ class MixedRuntimeLeaseTest(TemporaryCacheTestCase):
                     child.communicate(timeout=5)
 
     def test_typescript_final_eviction_excludes_python_lease_acquisition(self) -> None:
-        cache = DiskCache(self.cache_root, touch_on_read=False)
+        cache = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         cache.publish_object(fixture_object())
         signals = Path(self.temporary.name)
         paused = signals / "typescript-eviction-paused"
@@ -771,7 +773,7 @@ class MixedRuntimeLeaseTest(TemporaryCacheTestCase):
     def test_python_eviction_after_typescript_prepublication_scan_fails_acquisition(
         self,
     ) -> None:
-        cache = DiskCache(self.cache_root, touch_on_read=False)
+        cache = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         cache.publish_object(fixture_object())
         signals = Path(self.temporary.name)
         paused = signals / "python-gap-eviction-paused"
@@ -841,7 +843,7 @@ class MixedRuntimeLeaseTest(TemporaryCacheTestCase):
     def test_typescript_eviction_after_python_prepublication_scan_fails_acquisition(
         self,
     ) -> None:
-        cache = DiskCache(self.cache_root, touch_on_read=False)
+        cache = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         cache.publish_object(fixture_object())
         signals = Path(self.temporary.name)
         paused = signals / "typescript-gap-eviction-paused"
@@ -909,7 +911,7 @@ class MixedRuntimeLeaseTest(TemporaryCacheTestCase):
                     child.communicate(timeout=5)
 
     def test_python_eviction_preserves_expired_typescript_lease_while_node_is_live(self) -> None:
-        cache = DiskCache(self.cache_root, touch_on_read=False)
+        cache = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         cache.publish_object(fixture_object())
         ready = self.cache_root / "typescript-ready"
         release = self.cache_root / "typescript-release"
@@ -1314,7 +1316,7 @@ class ImmutablePublicationTest(TemporaryCacheTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.cached = fixture_object()
-        self.cache = DiskCache(self.cache_root, touch_on_read=False)
+        self.cache = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
 
     def test_publication_matches_checked_in_cross_process_winner(self) -> None:
         published = self.cache.publish_object(self.cached)
@@ -1693,6 +1695,7 @@ class ImmutablePublicationTest(TemporaryCacheTestCase):
         cache = DiskCache(
             self.cache_root,
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
             archive_verifier=verify,
         )
         self.assertEqual(cache.publish_object(cached), cached)
@@ -1702,6 +1705,7 @@ class ImmutablePublicationTest(TemporaryCacheTestCase):
         rejecting_reader = DiskCache(
             self.cache_root,
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
             archive_verifier=lambda candidate: False,
         )
         with self.assertRaises(CacheCorruptError):
@@ -1722,6 +1726,7 @@ class ImmutablePublicationTest(TemporaryCacheTestCase):
         cache = DiskCache(
             self.cache_root,
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
             archive_verifier=lambda candidate: True,
         )
 
@@ -1741,6 +1746,7 @@ class ImmutablePublicationTest(TemporaryCacheTestCase):
         cache = DiskCache(
             self.cache_root,
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
             archive_verifier=lambda candidate: True,
         )
         cache.publish_object(cached)
@@ -3701,7 +3707,7 @@ class RecoveryAndEvictionTest(TemporaryCacheTestCase):
 
     def test_lease_generation_rejects_stable_symlinked_object_ancestor(self) -> None:
         external_root = Path(self.temporary.name) / "external-object-cache"
-        external_cache = DiskCache(external_root, touch_on_read=False)
+        external_cache = DiskCache(external_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         external_cache.publish_object(fixture_object())
         cache_root = Path(self.temporary.name) / "redirected-object-cache"
         namespace = cache_root / "cache-v1"
@@ -3715,7 +3721,7 @@ class RecoveryAndEvictionTest(TemporaryCacheTestCase):
             self.skipTest(f"directory symlinks unavailable: {error}")
         external_artifact = external_cache.object_path(FIXTURE_DIGEST) / "artifact"
         artifact_before = external_artifact.read_bytes()
-        redirected = DiskCache(cache_root, touch_on_read=False)
+        redirected = DiskCache(cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
 
         with self.assertRaises(CacheCorruptError):
             redirected.acquire_lease(
@@ -4590,7 +4596,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
 
     def test_object_catalog_and_lease_reads_reject_oversize_before_reading(self) -> None:
         cached = fixture_object()
-        writer = DiskCache(self.cache_root, touch_on_read=False)
+        writer = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         writer.publish_object(cached)
         catalog = DiskCache(VALID_STATE, touch_on_read=False).get_catalog(FIXTURE_ORIGIN)
         if catalog is None:
@@ -4610,6 +4616,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
                 DiskCache(
                     self.cache_root,
                     touch_on_read=False,
+                    clock=lambda: FIXTURE_NOW,
                     max_object_metadata_bytes=object_metadata.stat().st_size - 1,
                 ),
                 lambda cache: cache.get_object(cached.digest),
@@ -4618,6 +4625,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
                 DiskCache(
                     self.cache_root,
                     touch_on_read=False,
+                    clock=lambda: FIXTURE_NOW,
                     max_catalog_bytes=catalog_body.stat().st_size - 1,
                 ),
                 lambda cache: cache.get_catalog(FIXTURE_ORIGIN),
@@ -4626,6 +4634,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
                 DiskCache(
                     self.cache_root,
                     touch_on_read=False,
+                    clock=lambda: FIXTURE_NOW,
                     max_lease_metadata_bytes=lease_path.stat().st_size - 1,
                 ),
                 lambda cache: cache.release_lease(lease),
@@ -4677,6 +4686,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
                     DiskCache(
                         self.cache_root,
                         touch_on_read=False,
+                        clock=lambda: FIXTURE_NOW,
                         archive_verifier=lambda candidate: True,
                         **limits,
                     ).publish_object(archive(files))
@@ -4685,6 +4695,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
         DiskCache(
             self.cache_root,
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
             archive_verifier=lambda candidate: True,
         ).publish_object(stored)
         for limits in (
@@ -4700,6 +4711,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
                     DiskCache(
                         self.cache_root,
                         touch_on_read=False,
+                        clock=lambda: FIXTURE_NOW,
                         archive_verifier=lambda candidate: True,
                         **limits,
                     ).get_object(stored.digest)
@@ -4742,6 +4754,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
                     DiskCache(
                         self.cache_root,
                         touch_on_read=False,
+                        clock=lambda: FIXTURE_NOW,
                         archive_verifier=lambda value: True,
                     ).publish_object(candidate((invalid,)))
 
@@ -4753,6 +4766,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
         metadata_cache = DiskCache(
             self.cache_root,
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
             archive_verifier=lambda value: True,
         )
         metadata_directory = Path(self.temporary.name) / "post-unicode-15-metadata"
@@ -4785,6 +4799,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
                 disk = DiskCache(
                     isolated,
                     touch_on_read=False,
+                    clock=lambda: FIXTURE_NOW,
                     archive_verifier=lambda value: True,
                 )
                 valid = candidate(("references/safe.txt",))
@@ -4817,7 +4832,7 @@ class FinalCacheReviewTest(TemporaryCacheTestCase):
         with self.assertRaises(ValueError):
             disk_cache_module._integer(2**53)
 
-        cache = DiskCache(self.cache_root, touch_on_read=False)
+        cache = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         cache.publish_object(fixture_object())
         metadata_path = cache.object_path(FIXTURE_DIGEST) / "object.json"
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -5095,13 +5110,14 @@ class CacheReviewRoundTwoTest(TemporaryCacheTestCase):
                             cache._release_eviction_claim(claim)
 
     def test_eviction_uses_one_operation_wide_object_tree_budget(self) -> None:
-        writer = DiskCache(self.cache_root, touch_on_read=False)
+        writer = DiskCache(self.cache_root, touch_on_read=False, clock=lambda: FIXTURE_NOW)
         timestamp = datetime(2026, 8, 25, 10, 0, tzinfo=timezone.utc)
         writer.publish_object(make_skill_object("scan-one", timestamp))
         writer.publish_object(make_skill_object("scan-two", timestamp))
         limited = DiskCache(
             self.cache_root,
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
             max_scan_entries=14,
         )
 
@@ -6359,6 +6375,7 @@ class CacheFinalReviewTest(TemporaryCacheTestCase):
                 else DiskCache(
                     Path(self.temporary.name) / f"canonical-time-{backend_name}",
                     touch_on_read=False,
+                    clock=lambda: FIXTURE_NOW,
                 )
             )
             with self.subTest(backend=backend_name):
@@ -6440,6 +6457,7 @@ class CacheFinalReviewTest(TemporaryCacheTestCase):
                         Path(self.temporary.name)
                         / f"nonfinite-{backend_name}-{constant.replace('-', 'minus')}",
                         touch_on_read=False,
+                        clock=lambda: FIXTURE_NOW,
                     )
                 )
                 catalog = CachedCatalog(
@@ -6458,6 +6476,7 @@ class CacheFinalReviewTest(TemporaryCacheTestCase):
         catalog_cache = DiskCache(
             Path(self.temporary.name) / "duplicate-catalog-metadata",
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
         )
         catalog_cache.publish_catalog(
             CachedCatalog(
@@ -6484,6 +6503,7 @@ class CacheFinalReviewTest(TemporaryCacheTestCase):
         object_cache = DiskCache(
             Path(self.temporary.name) / "duplicate-object-metadata",
             touch_on_read=False,
+            clock=lambda: FIXTURE_NOW,
         )
         candidate = make_skill_object("duplicate-object-metadata", self.now)
         object_cache.publish_object(candidate)
