@@ -27,6 +27,7 @@ async function publish(
   if (expected === null) throw new Error("race fixture object is missing");
   const cache = new DiskCache({
     directory: cacheRoot,
+    now: () => new Date(expected.metadata.accessedAt),
     coordinationHooks: {
       afterObjectStaging: async () => {
         await writeFile(`${coordinationRoot}/ready-${label}`, "ready");
